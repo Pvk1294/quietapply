@@ -7,13 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": [
-      "**",
-      "!dist",
-      "!fixtures/**/*.html",
-      "!docs/**/*.png",
-      "!**/*.md"
-    ]
+    "includes": ["**", "!dist", "!fixtures/**/*.html", "!docs/**/*.png", "!**/*.md"]
   },
   "formatter": {
     "enabled": true,
