@@ -40,6 +40,8 @@ export const Config = z.object({
   auth: z.enum(["subscription", "api-key"]).default("subscription"),
   model: z.string().optional(),
   browser: BrowserMode.default("playwright-profile"),
+  /** Run the Playwright browser without a window. Off by default so you can watch the first runs. */
+  headless: z.boolean().default(false),
   /** Local run times, 24h "HH:MM". */
   schedule: z.array(z.string().regex(/^\d{2}:\d{2}$/)).default(["09:00", "13:00", "19:00"]),
   timezone: z.string().default("auto"),

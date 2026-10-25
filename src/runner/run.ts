@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { type Config, loadConfig } from "../core/config.js";
 import { type DB, openDb } from "../core/db.js";
@@ -75,6 +75,7 @@ export function mcpServers(
     const args = ["-y", PLAYWRIGHT_MCP, "--output-dir", join(p.logsDir, "playwright")];
     if (config.browser === "playwright-extension") args.push("--extension");
     else args.push("--user-data-dir", p.browserProfile);
+    if (config.headless) args.push("--headless");
     servers.playwright = { command: "npx", args };
   }
   return servers;
@@ -207,9 +208,23 @@ async function applyOne(o: {
     }
   }
   const form = await expectedForm(o.fetcher, o.app.url);
-  const prompt = buildPrompt({ db: o.db, p: o.p, app: o.app, profile: o.profile, mode: desk.mode(), form });
   const work = join(o.p.logsDir, `run-${o.runId}`, `app-${o.app.id}`);
   mkdirSync(work, { recursive: true, mode: 0o700 });
+  // Browser tools may only upload files inside the run's working folder, so stage a copy of the resume there.
+  let resumePath: string | undefined;
+  if (o.profile.resumeFile && existsSync(join(o.p.resumeDir, o.profile.resumeFile))) {
+    resumePath = join(work, o.profile.resumeFile);
+    copyFileSync(join(o.p.resumeDir, o.profile.resumeFile), resumePath);
+  }
+  const prompt = buildPrompt({
+    db: o.db,
+    p: o.p,
+    app: o.app,
+    profile: o.profile,
+    mode: desk.mode(),
+    form,
+    resumePath,
+  });
   // The agent's desk server opens its own connection to the database; close nothing here, SQLite WAL
   // lets both processes work on the same file.
   return getProvider(o.config.provider).runAgent({

@@ -38,6 +38,8 @@ export function buildPrompt(opts: {
   profile: Profile;
   mode: "dry_run" | "review" | "live";
   form?: FormInfo;
+  /** Where the resume copy for this run lives (inside the agent's working folder). */
+  resumePath?: string;
 }): string {
   const { db, p, app, profile, mode, form } = opts;
   const ctx = { company: app.company, ats: app.ats };
@@ -53,7 +55,7 @@ export function buildPrompt(opts: {
     answers.set(a.question, a);
   for (const a of coreAnswers(db, ctx))
     if (![...answers.values()].some((x) => x.memoryId === a.memoryId)) answers.set(a.question, a);
-  const resume = profile.resumeFile ? join(p.resumeDir, profile.resumeFile) : undefined;
+  const resume = opts.resumePath ?? (profile.resumeFile ? join(p.resumeDir, profile.resumeFile) : undefined);
   const notes = siteNotes(p, app.url);
 
   const sections = [
