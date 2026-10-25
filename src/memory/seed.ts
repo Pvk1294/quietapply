@@ -167,6 +167,18 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
     type: "long",
   },
   {
+    key: "data_consent",
+    question:
+      "Do you agree to companies storing and processing your application data (privacy consent boxes)?",
+    patterns: [
+      /^i (agree|consent|acknowledge)/,
+      /(privacy (policy|notice)|data (processing|protection|storage)|storing my)/,
+    ],
+    type: "yesno",
+    essential: true,
+    hint: "Most forms require this box to be ticked.",
+  },
+  {
     key: "gender",
     question: "Gender (voluntary self-identification)",
     patterns: [/gender/, /^sex$/],

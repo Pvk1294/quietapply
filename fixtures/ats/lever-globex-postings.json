@@ -1,0 +1,22 @@
+[
+  {
+    "id": "0a1b2c3d-0000-4000-8000-000000000101",
+    "text": "Backend Developer",
+    "hostedUrl": "https://jobs.lever.co/globex/0a1b2c3d-0000-4000-8000-000000000101",
+    "applyUrl": "https://jobs.lever.co/globex/0a1b2c3d-0000-4000-8000-000000000101/apply",
+    "categories": { "location": "Springfield", "team": "Engineering", "commitment": "Full-time" },
+    "workplaceType": "onsite",
+    "descriptionPlain": "Globex is hiring a backend developer to work on our Node.js and PostgreSQL services.",
+    "lists": [
+      { "text": "Requirements", "content": "<li>2+ years of experience with Node.js</li><li>SQL</li>" }
+    ],
+    "additionalPlain": ""
+  },
+  {
+    "id": "0a1b2c3d-0000-4000-8000-000000000102",
+    "text": "Engineering Intern",
+    "hostedUrl": "https://jobs.lever.co/globex/0a1b2c3d-0000-4000-8000-000000000102",
+    "categories": { "location": "Springfield", "team": "Engineering", "commitment": "Internship" },
+    "descriptionPlain": "Summer internship."
+  }
+]

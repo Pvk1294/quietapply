@@ -1,0 +1,115 @@
+{
+  "id": 5000001,
+  "title": "Software Engineer, Payments",
+  "absolute_url": "https://job-boards.greenhouse.io/acmerockets/jobs/5000001",
+  "location": { "name": "Remote - US" },
+  "questions": [
+    {
+      "label": "First Name",
+      "required": true,
+      "fields": [{ "name": "first_name", "type": "input_text", "values": [] }]
+    },
+    {
+      "label": "Last Name",
+      "required": true,
+      "fields": [{ "name": "last_name", "type": "input_text", "values": [] }]
+    },
+    {
+      "label": "Email",
+      "required": true,
+      "fields": [{ "name": "email", "type": "input_text", "values": [] }]
+    },
+    {
+      "label": "Phone",
+      "required": false,
+      "fields": [{ "name": "phone", "type": "input_text", "values": [] }]
+    },
+    {
+      "label": "Resume/CV",
+      "required": true,
+      "fields": [
+        { "name": "resume", "type": "input_file", "values": [] },
+        { "name": "resume_text", "type": "textarea", "values": [] }
+      ]
+    },
+    {
+      "label": "LinkedIn Profile",
+      "required": false,
+      "fields": [{ "name": "question_1001", "type": "input_text", "values": [] }]
+    },
+    {
+      "label": "Are you legally authorized to work in the United States?",
+      "required": true,
+      "fields": [
+        {
+          "name": "question_1002",
+          "type": "multi_value_single_select",
+          "values": [{ "label": "Yes", "value": 1 }, { "label": "No", "value": 0 }]
+        }
+      ]
+    },
+    {
+      "label": "Will you now or in the future require sponsorship for employment visa status?",
+      "required": true,
+      "fields": [
+        {
+          "name": "question_1003",
+          "type": "multi_value_single_select",
+          "values": [{ "label": "Yes", "value": 1 }, { "label": "No", "value": 0 }]
+        }
+      ]
+    },
+    {
+      "label": "What are your salary expectations?",
+      "required": true,
+      "fields": [{ "name": "question_1004", "type": "input_text", "values": [] }]
+    },
+    {
+      "label": "Which Acme rocket have you flown, and what would you change about it?",
+      "required": true,
+      "fields": [{ "name": "question_1005", "type": "textarea", "values": [] }]
+    },
+    {
+      "label": "How did you hear about this job?",
+      "required": false,
+      "fields": [{ "name": "question_1006", "type": "input_text", "values": [] }]
+    }
+  ],
+  "compliance": [
+    {
+      "type": "eeoc",
+      "questions": [
+        {
+          "label": "Gender",
+          "required": false,
+          "fields": [
+            {
+              "name": "gender",
+              "type": "multi_value_single_select",
+              "values": [
+                { "label": "Male", "value": 1 },
+                { "label": "Female", "value": 2 },
+                { "label": "Decline To Self Identify", "value": 3 }
+              ]
+            }
+          ]
+        },
+        {
+          "label": "Veteran Status",
+          "required": false,
+          "fields": [
+            {
+              "name": "veteran_status",
+              "type": "multi_value_single_select",
+              "values": [
+                { "label": "I am a veteran", "value": 1 },
+                { "label": "I am not a veteran", "value": 2 },
+                { "label": "I don't wish to answer", "value": 3 }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

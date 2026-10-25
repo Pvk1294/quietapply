@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Full-Stack Engineer @ Umbrella Labs (fixture)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- QuietApply test fixture. A made-up company, modeled on the rendered DOM of an Ashby application page. Never submits anywhere. -->
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; color: #111827; }
+  .ashby-application-form-field-entry { margin: 18px 0; } .ashby-application-form-question-title { display: block; font-weight: 600; margin-bottom: 6px; }
+  input[type=text], input[type=email], input[type=tel], textarea { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font: inherit; }
+  fieldset { border: 0; padding: 0; } .ashby-application-form-submit-button { background: #4f46e5; color: #fff; border: 0; padding: 12px 22px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>Full-Stack Engineer</h1>
+<p>Umbrella Labs · Remote</p>
+<div class="ashby-application-form-container">
+<form action="#" onsubmit="event.preventDefault(); document.getElementById('done').hidden = false;">
+  <div class="ashby-application-form-field-entry"><label class="ashby-application-form-question-title" for="_systemfield_name">Name<span>*</span></label><input type="text" id="_systemfield_name" name="_systemfield_name" required></div>
+  <div class="ashby-application-form-field-entry"><label class="ashby-application-form-question-title" for="_systemfield_email">Email<span>*</span></label><input type="email" id="_systemfield_email" name="_systemfield_email" required></div>
+  <div class="ashby-application-form-field-entry"><label class="ashby-application-form-question-title" for="_systemfield_resume">Resume<span>*</span></label><input type="file" id="_systemfield_resume" name="_systemfield_resume" required></div>
+  <div class="ashby-application-form-field-entry"><label class="ashby-application-form-question-title" for="q_linkedin">LinkedIn</label><input type="text" id="q_linkedin" name="q_linkedin"></div>
+  <div class="ashby-application-form-field-entry"><label class="ashby-application-form-question-title" for="q_location">Where are you currently located?<span>*</span></label><input type="text" id="q_location" name="q_location" required></div>
+  <fieldset class="ashby-application-form-field-entry">
+    <legend class="ashby-application-form-question-title">Do you require visa sponsorship?*</legend>
+    <label><input type="radio" name="q_sponsorship" value="Yes" required> Yes</label>
+    <label><input type="radio" name="q_sponsorship" value="No"> No</label>
+  </fieldset>
+  <div class="ashby-application-form-field-entry"><label class="ashby-application-form-question-title" for="q_start">When can you start?<span>*</span></label><input type="text" id="q_start" name="q_start" required></div>
+  <div class="ashby-application-form-field-entry"><label class="ashby-application-form-question-title" for="q_hybrid">Are you open to working hybrid, two days a week in our office?</label><input type="text" id="q_hybrid" name="q_hybrid"></div>
+  <div class="ashby-application-form-field-entry"><label class="ashby-application-form-question-title" for="q_agree"><input type="checkbox" id="q_agree" name="q_agree" required> I agree to Umbrella Labs storing my application data.*</label></div>
+  <button type="submit" class="ashby-application-form-submit-button">Submit Application</button>
+  <p id="done" hidden>Thanks! Your application was submitted (fixture page: nothing was sent).</p>
+</form>
+</div>
+</body>
+</html>

@@ -1,0 +1,38 @@
+{
+  "jobs": [
+    {
+      "id": 5000001,
+      "title": "Software Engineer, Payments",
+      "absolute_url": "https://job-boards.greenhouse.io/acmerockets/jobs/5000001",
+      "location": { "name": "Remote - US" },
+      "company_name": "Acme Rockets",
+      "content": "&lt;p&gt;Acme Rockets builds the billing platform behind our reusable rocket rentals.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;3+ years of professional experience building web services&lt;/li&gt;&lt;li&gt;TypeScript, Node.js and PostgreSQL&lt;/li&gt;&lt;li&gt;React is a plus&lt;/li&gt;&lt;/ul&gt;",
+      "include_ai_disclaimer": null,
+      "ai_disclaimer": null
+    },
+    {
+      "id": 5000002,
+      "title": "Principal Engineer, Propulsion",
+      "absolute_url": "https://job-boards.greenhouse.io/acmerockets/jobs/5000002",
+      "location": { "name": "Springfield" },
+      "company_name": "Acme Rockets",
+      "content": "&lt;p&gt;12+ years of experience with propulsion software.&lt;/p&gt;"
+    },
+    {
+      "id": 5000003,
+      "title": "Account Executive",
+      "absolute_url": "https://job-boards.greenhouse.io/acmerockets/jobs/5000003",
+      "location": { "name": "Remote - US" },
+      "company_name": "Acme Rockets",
+      "content": "&lt;p&gt;Sell rockets.&lt;/p&gt;"
+    },
+    {
+      "id": 5000004,
+      "title": "Frontend Engineer",
+      "absolute_url": "https://job-boards.greenhouse.io/acmerockets/jobs/5000004",
+      "location": { "name": "Remote - US" },
+      "company_name": "Acme Rockets",
+      "content": "&lt;p&gt;React and TypeScript. Please do not use AI tools to write your application.&lt;/p&gt;"
+    }
+  ]
+}

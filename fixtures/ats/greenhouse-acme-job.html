@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Software Engineer, Payments - Acme Rockets (fixture)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- QuietApply test fixture. A made-up company, modeled on the structure of a Greenhouse job board page. Never submits anywhere. -->
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; color: #1d2433; }
+  h1 { font-size: 26px; margin-bottom: 4px; } .location { color: #5b6476; }
+  .field { margin: 16px 0; } label { display: block; font-weight: 600; margin-bottom: 4px; }
+  input[type=text], input[type=email], input[type=tel], select, textarea { width: 100%; padding: 9px; border: 1px solid #c9cfda; border-radius: 6px; font: inherit; }
+  .asterisk { color: #c0392b; } button { background: #2f6fed; color: #fff; border: 0; padding: 11px 20px; border-radius: 6px; font: inherit; }
+  fieldset { border: 1px solid #e3e7ee; border-radius: 8px; padding: 12px 16px; }
+</style>
+</head>
+<body>
+<div class="job__header">
+  <h1 class="job__title">Software Engineer, Payments</h1>
+  <div class="location">Remote - US</div>
+</div>
+<div class="job__description">
+  <p>Acme Rockets builds the billing platform behind our reusable rocket rentals.</p>
+  <h3>What you'll need</h3>
+  <ul>
+    <li>3+ years of professional experience building web services</li>
+    <li>TypeScript, Node.js and PostgreSQL</li>
+    <li>Experience with React is a plus</li>
+  </ul>
+</div>
+
+<form id="application-form" action="#" onsubmit="event.preventDefault(); document.getElementById('done').hidden = false;">
+  <h2>Apply for this job</h2>
+  <div class="field"><label for="first_name">First Name<span class="asterisk">*</span></label><input type="text" id="first_name" name="first_name" required></div>
+  <div class="field"><label for="last_name">Last Name<span class="asterisk">*</span></label><input type="text" id="last_name" name="last_name" required></div>
+  <div class="field"><label for="email">Email<span class="asterisk">*</span></label><input type="email" id="email" name="email" required></div>
+  <div class="field"><label for="phone">Phone</label><input type="tel" id="phone" name="phone"></div>
+  <div class="field"><label for="resume">Resume/CV<span class="asterisk">*</span></label><input type="file" id="resume" name="resume" required></div>
+  <div class="field"><label for="question_1001">LinkedIn Profile</label><input type="text" id="question_1001" name="question_1001"></div>
+  <div class="field">
+    <label for="question_1002">Are you legally authorized to work in the United States?<span class="asterisk">*</span></label>
+    <select id="question_1002" name="question_1002" required><option value="">Select...</option><option value="1">Yes</option><option value="0">No</option></select>
+  </div>
+  <div class="field">
+    <label for="question_1003">Will you now or in the future require sponsorship for employment visa status?<span class="asterisk">*</span></label>
+    <select id="question_1003" name="question_1003" required><option value="">Select...</option><option value="1">Yes</option><option value="0">No</option></select>
+  </div>
+  <div class="field"><label for="question_1004">What are your salary expectations?<span class="asterisk">*</span></label><input type="text" id="question_1004" name="question_1004" required></div>
+  <div class="field"><label for="question_1005">Which Acme rocket have you flown, and what would you change about it?<span class="asterisk">*</span></label><textarea id="question_1005" name="question_1005" rows="4" required></textarea></div>
+  <div class="field"><label for="question_1006">How did you hear about this job?</label><input type="text" id="question_1006" name="question_1006"></div>
+
+  <fieldset>
+    <legend>U.S. Equal Employment Opportunity information (voluntary)</legend>
+    <div class="field"><label for="gender">Gender</label><select id="gender" name="gender"><option value="">Select...</option><option>Male</option><option>Female</option><option>Decline To Self Identify</option></select></div>
+    <div class="field"><label for="veteran_status">Veteran Status</label><select id="veteran_status" name="veteran_status"><option value="">Select...</option><option>I am a veteran</option><option>I am not a veteran</option><option>I don't wish to answer</option></select></div>
+  </fieldset>
+
+  <p><button type="submit">Submit application</button></p>
+  <p id="done" hidden>Thank you for applying (fixture page: nothing was sent).</p>
+</form>
+</body>
+</html>

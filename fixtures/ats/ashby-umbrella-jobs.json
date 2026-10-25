@@ -1,0 +1,25 @@
+{
+  "apiVersion": "1",
+  "jobs": [
+    {
+      "id": "7f3e0000-0000-4000-8000-000000000201",
+      "title": "Full-Stack Engineer",
+      "location": "Remote",
+      "isRemote": true,
+      "isListed": true,
+      "workplaceType": "Remote",
+      "jobUrl": "https://jobs.ashbyhq.com/umbrella/7f3e0000-0000-4000-8000-000000000201",
+      "applyUrl": "https://jobs.ashbyhq.com/umbrella/7f3e0000-0000-4000-8000-000000000201/application",
+      "descriptionPlain": "Build our TypeScript and React product. 2+ years of experience."
+    },
+    {
+      "id": "7f3e0000-0000-4000-8000-000000000202",
+      "title": "Software Engineer (unlisted)",
+      "location": "Remote",
+      "isRemote": true,
+      "isListed": false,
+      "jobUrl": "https://jobs.ashbyhq.com/umbrella/7f3e0000-0000-4000-8000-000000000202",
+      "descriptionPlain": "Internal."
+    }
+  ]
+}
