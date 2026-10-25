@@ -14,8 +14,8 @@ export function parseResumeText(text: string, now = new Date()): Profile {
   const phone = /(?:\+\d{1,3}[\s-]?)?(?:\(\d{2,4}\)[\s-]?)?\d{3,5}[\s-]?\d{3,4}[\s-]?\d{0,4}/
     .exec(text.replace(email, ""))?.[0]
     ?.trim();
-  const urls = [...text.matchAll(/(?:https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+\/[^\s,|)]+/gi)].map((m) =>
-    m[0].startsWith("http") ? m[0] : `https://${m[0]}`,
+  const urls = [...text.matchAll(/(?:https?:\/\/)?(?:www\.)?[a-z0-9-]+(?:\.[a-z0-9-]+)+\/[^\s,|)]+/gi)].map(
+    (m) => (m[0].startsWith("http") ? m[0] : `https://${m[0]}`),
   );
   const linkedin = urls.find((u) => /linkedin\.com\/in\//i.test(u));
   const github = urls.find((u) => /github\.com\//i.test(u));
@@ -30,10 +30,13 @@ export function parseResumeText(text: string, now = new Date()): Profile {
         !/@|\d|resume|curriculum/i.test(l) &&
         !HEADINGS.some(([, re]) => re.test(l)),
     ) ?? "";
-  const headline = header.find((l) => l !== name && !l.includes("@") && !/\d{3}/.test(l) && l.length < 80) ?? "";
+  const headline =
+    header.find((l) => l !== name && !l.includes("@") && !/\d{3}/.test(l) && l.length < 80) ?? "";
 
   const experience = parseExperience(sections.get("experience") ?? []);
-  const years = experience.flatMap((e) => [yearOf(e.start), yearOf(e.end, now)]).filter((y): y is number => !!y);
+  const years = experience
+    .flatMap((e) => [yearOf(e.start), yearOf(e.end, now)])
+    .filter((y): y is number => !!y);
   const totalYears = years.length ? Math.max(0, Math.max(...years) - Math.min(...years)) : undefined;
 
   return Profile.parse({
@@ -98,7 +101,10 @@ function parseExperience(lines: string[]): Profile["experience"] {
       continue;
     }
     // "Senior Engineer, Acme Corp | Jan 2020 - Present" or the title on the line above the dates.
-    let head = line.replace(range[0], "").replace(/[|·•,–—-]\s*$/, "").trim();
+    let head = line
+      .replace(range[0], "")
+      .replace(/[|·•,–—-]\s*$/, "")
+      .trim();
     if (!head && i > 0) head = lines[i - 1]!;
     const [title, company] = splitTitleCompany(head);
     out.push({ title, company, start: range[1], end: range[2], highlights: [] });
@@ -122,9 +128,15 @@ function parseEducation(lines: string[]): Profile["education"] {
     const line = lines[i]!;
     if (!degree.test(line)) continue;
     const years = line.match(/\d{4}/g) ?? [];
-    const schoolLine = /university|college|institute|school/i.test(line) ? line : (lines[i + 1] ?? lines[i - 1] ?? "");
+    const schoolLine = /university|college|institute|school/i.test(line)
+      ? line
+      : (lines[i + 1] ?? lines[i - 1] ?? "");
     out.push({
-      school: schoolLine.replace(RANGE, "").replace(/\d{4}/g, "").replace(/[|,–—-]\s*$/, "").trim(),
+      school: schoolLine
+        .replace(RANGE, "")
+        .replace(/\d{4}/g, "")
+        .replace(/[|,–—-]\s*$/, "")
+        .trim(),
       degree: degree.exec(line)?.[0],
       field: /\b(?:in|of)\s+([A-Z][A-Za-z &]+)/.exec(line)?.[1]?.trim(),
       end: years.at(-1),

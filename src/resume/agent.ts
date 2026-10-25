@@ -26,7 +26,10 @@ export function profilePrompt(resumeText: string): string {
 }
 
 /** Ask the user's own agent to structure the resume. Returns undefined if it fails, so init falls back. */
-export async function profileFromAgent(provider: Provider, resumeText: string): Promise<Partial<Profile> | undefined> {
+export async function profileFromAgent(
+  provider: Provider,
+  resumeText: string,
+): Promise<Partial<Profile> | undefined> {
   try {
     const out = await provider.complete(profilePrompt(resumeText), { timeoutMs: 240_000 });
     const json = out.slice(out.indexOf("{"), out.lastIndexOf("}") + 1);
