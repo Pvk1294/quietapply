@@ -1,0 +1,22 @@
+Jane Doe
+Full-Stack Software Engineer
+Springfield, Oregon | jane.doe@example.com | +1 555 010 0199
+linkedin.com/in/jane-doe-example | github.com/janedoe-example | janedoe.example.dev/portfolio
+
+SUMMARY
+Full-stack engineer with five years of experience building web products in TypeScript and Python.
+
+EXPERIENCE
+Software Engineer, Initech | Jan 2022 - Present
+- Built a billing dashboard in React and Node.js used by 2,000 internal staff
+- Cut API latency by 40% by adding Redis caching
+Junior Developer, Globex Corporation | Jun 2020 - Dec 2021
+- Maintained Django services and PostgreSQL reporting jobs
+
+EDUCATION
+B.S. in Computer Science, Springfield State University, 2020
+
+SKILLS
+Languages: TypeScript, JavaScript, Python, SQL
+Frameworks: React, Node.js, Django
+Tools: PostgreSQL, Redis, Docker, AWS, Git
