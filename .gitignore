@@ -30,3 +30,6 @@ coverage/
 .DS_Store
 .idea/
 .vscode/
+
+# Dot job report copy (the committed one is docs/report.md)
+/report.md
