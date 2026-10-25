@@ -23,6 +23,13 @@ import { expectedForm } from "./expected.js";
 import { buildPrompt } from "./prompt.js";
 import { scriptedAgent } from "./scripted-agent.js";
 
+const SUMMARY_LABEL: Record<string, string> = {
+  blocked: "to finish yourself",
+  needs_answers: "waiting for answers",
+  awaiting_review: "for review",
+  dry_run: "dry run",
+};
+
 export const PLAYWRIGHT_MCP = "@playwright/mcp@0.0.83";
 
 export interface RunOptions {
@@ -161,7 +168,7 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
       status === "waiting_for_reset"
         ? "Usage limit reached. The next run after the reset carries on."
         : Object.entries(counts)
-            .map(([k, v]) => `${v} ${k.replace(/_/g, " ")}`)
+            .map(([k, v]) => `${v} ${SUMMARY_LABEL[k] ?? k.replace(/_/g, " ")}`)
             .join(", ") || "Nothing processed.";
     finishRun(db, runId, status, message);
     return { status, runId, processed, message };

@@ -62,7 +62,7 @@ export async function doctor(): Promise<Check[]> {
   const profile = loadProfile(p);
   checks.push({
     name: "Profile",
-    ok: profile.name && profile.email ? true : false,
+    ok: !!(profile.name && profile.email),
     detail: profile.name
       ? `${profile.name}, ${profile.skills.length} skills, ${profile.experience.length} roles`
       : "no profile: run quietapply init --resume <file>",
@@ -75,7 +75,7 @@ export async function doctor(): Promise<Check[]> {
     const d = await provider.detect();
     checks.push({
       name: `Provider: ${provider.label}`,
-      ok: d.installed ? (d.loggedIn === false ? false : true) : false,
+      ok: d.installed && d.loggedIn !== false,
       detail:
         [d.version, d.authMethod && d.authMethod !== "unknown" ? d.authMethod : "", ...d.notes]
           .filter(Boolean)
