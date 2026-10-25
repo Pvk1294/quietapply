@@ -1,0 +1,31 @@
+# build output
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# QuietApply user data must never be committed. The real data folder is ~/.quietapply (outside the repo);
+# these patterns catch a data folder pointed inside the repo by QUIETAPPLY_HOME, and stray personal files.
+.quietapply/
+.quietapply-*/
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+profile.yaml
+config.yaml
+resume/
+logs/
+browser-profile/
+*.pdf
+*.docx
+!fixtures/**/*.pdf
+!fixtures/**/*.docx
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

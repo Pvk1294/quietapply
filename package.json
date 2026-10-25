@@ -1,0 +1,71 @@
+{
+  "name": "quietapply",
+  "version": "0.1.0-dev",
+  "description": "A self-hosted job-application agent that runs on your own Claude Code or Codex, applies on company job boards, and asks you before it guesses.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "quietapply": "dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "prompts",
+    "playbooks",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build": "npm run build:server && npm run build:web",
+    "build:server": "tsc -p tsconfig.build.json",
+    "build:web": "vite build --config web/vite.config.ts",
+    "dev:web": "vite --config web/vite.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run",
+    "check": "npm run lint && npm run typecheck && npm test",
+    "demo": "node dist/cli/index.js demo",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "keywords": [
+    "job-search",
+    "auto-apply",
+    "claude-code",
+    "codex",
+    "playwright",
+    "mcp",
+    "agent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Pvk1294/quietapply.git"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.8.1",
+    "@hono/node-server": "^2.1.5",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "commander": "^15.0.0",
+    "hono": "^4.13.14",
+    "mammoth": "^1.13.0",
+    "node-html-parser": "^9.0.5",
+    "unpdf": "^1.9.1",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "playwright-core": "^1.64.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^4.1.12"
+  }
+}

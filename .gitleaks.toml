@@ -1,0 +1,8 @@
+title = "QuietApply gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fixture pages and the fake persona contain made-up example data only"
+paths = ['''fixtures/''']
