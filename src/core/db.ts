@@ -1,3 +1,4 @@
+import { chmodSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { ensureHome, type Paths, paths } from "./paths.js";
 
@@ -92,6 +93,11 @@ export type DB = DatabaseSync;
 export function openDb(p: Paths = paths()): DB {
   ensureHome(p);
   const db = new DatabaseSync(p.db);
+  try {
+    chmodSync(p.db, 0o600);
+  } catch {
+    // Windows: no POSIX modes
+  }
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;");
   migrate(db);
   return db;
