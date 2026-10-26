@@ -821,6 +821,7 @@ a.row:hover {
 /* ---------- forms ---------- */
 
 input:not([type="checkbox"]),
+select,
 textarea {
   width: 100%;
   padding: 10px 12px;
@@ -912,6 +913,47 @@ textarea {
 
 .switch:checked::after {
   transform: translateX(18px);
+}
+
+.chips.wrap {
+  flex-wrap: wrap;
+  overflow: visible;
+}
+
+.entries {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: 1.3fr 1.3fr 0.8fr 0.8fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.company-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.company-list .tag button {
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 0 0 6px;
+  font: inherit;
+}
+
+.inline-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .settings h3 {
@@ -1395,6 +1437,12 @@ textarea {
   }
   .row-meta .muted {
     display: none;
+  }
+  .entry {
+    grid-template-columns: 1fr 1fr;
+  }
+  .chips.wrap {
+    flex-wrap: wrap;
   }
   .grid3 {
     grid-template-columns: 1fr;

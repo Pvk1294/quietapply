@@ -3,6 +3,8 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { Hono } from "hono";
 import { z } from "zod";
+import { resolveCareersUrl } from "../companies/resolve.js";
+import { mergeCompanyList, starterList, suggestCompanies, toCompany } from "../companies/starter.js";
 import { Config, loadConfig, saveConfig } from "../core/config.js";
 import { type DB, kvGet, openDb } from "../core/db.js";
 import { allowance, startOfToday } from "../core/limits.js";
@@ -22,7 +24,7 @@ import {
   setStatus,
 } from "../core/store.js";
 import { deleteAnswer, listAnswers, updateAnswer } from "../memory/answers.js";
-import { loadProfile } from "../memory/profile.js";
+import { loadProfile, Profile, saveProfile } from "../memory/profile.js";
 import { answerQuestion, dismissQuestion } from "../memory/queue.js";
 import { discover } from "../runner/discover.js";
 import { isPaused } from "../runner/run.js";
@@ -217,17 +219,50 @@ export function createApp(opts: AppOptions): Hono {
 
   app.get("/api/settings", (c) => {
     const config = loadConfig(p);
-    const profile = loadProfile(p);
-    return c.json({
-      config,
-      profile: {
-        name: profile.name,
-        email: profile.email,
-        location: profile.location,
-        resumeFile: profile.resumeFile,
-      },
-      home: p.home,
-    });
+    return c.json({ config, profile: loadProfile(p), home: p.home, starter: starterList().companies.length });
+  });
+
+  app.put("/api/profile", async (c) => {
+    const body = Profile.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) return c.json({ error: body.error.issues.map((i) => i.message).join("; ") }, 400);
+    // The resume file is set by `quietapply init`, never by the browser.
+    const profile = { ...body.data, resumeFile: loadProfile(p).resumeFile };
+    profile.location = [profile.city, profile.country].filter(Boolean).join(", ") || profile.location;
+    saveProfile(profile, p);
+    return c.json({ profile: loadProfile(p) });
+  });
+
+  app.get("/api/companies/suggest", (c) => {
+    const s = suggestCompanies(loadConfig(p)).slice(0, 60);
+    return c.json(s.map((x) => ({ name: x.name, ats: x.ats, token: x.token, jobs: x.jobs, why: x.why })));
+  });
+
+  app.post("/api/companies", async (c) => {
+    const body = z
+      .object({ url: z.string().min(1).optional(), suggested: z.array(z.string()).optional() })
+      .safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) return c.json({ error: "Send a url or suggested" }, 400);
+    const config = loadConfig(p);
+    if (body.data.url) {
+      const r = await resolveCareersUrl(body.data.url, opts.fetcher ?? defaultFetcher);
+      if (!r.ok) return c.json({ error: r.reason }, 400);
+      config.companies = mergeCompanyList(config.companies, [r.company]);
+      saveConfig(config, p);
+      return c.json({ added: r.company, jobs: r.jobs, companies: config.companies });
+    }
+    const want = new Set(body.data.suggested ?? []);
+    const picks = suggestCompanies(config).filter((x) => want.has(`${x.ats}:${x.token}`));
+    config.companies = mergeCompanyList(config.companies, picks.map(toCompany));
+    saveConfig(config, p);
+    return c.json({ companies: config.companies });
+  });
+
+  app.delete("/api/companies/:ats/:token", (c) => {
+    const config = loadConfig(p);
+    const { ats, token } = c.req.param();
+    config.companies = config.companies.filter((x) => !(x.ats === ats && x.token === token));
+    saveConfig(config, p);
+    return c.json({ companies: config.companies });
   });
 
   const SettingsBody = z.object({
@@ -245,11 +280,17 @@ export function createApp(opts: AppOptions): Hono {
       .object({
         roles: z.array(z.string()),
         locations: z.array(z.string()),
+        countries: z.array(z.string()),
+        seniority: z.array(z.string()),
+        minSalary: z.object({ amount: z.number().min(0), currency: z.string().min(3) }).nullable(),
         neverApply: z.array(z.string()),
         excludeTitles: z.array(z.string()),
       })
       .partial()
       .optional(),
+    sources: Config.shape.sources.unwrap().partial().omit({ linkedin: true }).optional(),
+    preferences: Config.shape.preferences.unwrap().partial().optional(),
+    coverLetterStyle: Config.shape.coverLetterStyle.unwrap().optional(),
   });
   app.put("/api/settings", async (c) => {
     const body = SettingsBody.safeParse(await c.req.json().catch(() => ({})));
@@ -259,7 +300,14 @@ export function createApp(opts: AppOptions): Hono {
     if (b.dryRun !== undefined) config.dryRun = b.dryRun;
     if (b.schedule) config.schedule = b.schedule;
     if (b.limits) config.limits = { ...config.limits, ...b.limits };
-    if (b.rules) config.rules = { ...config.rules, ...b.rules };
+    if (b.rules) {
+      const { minSalary, ...rest } = b.rules;
+      config.rules = { ...config.rules, ...rest };
+      if (minSalary !== undefined) config.rules.minSalary = minSalary ?? undefined;
+    }
+    if (b.sources) config.sources = { ...config.sources, ...b.sources };
+    if (b.preferences) config.preferences = { ...config.preferences, ...b.preferences };
+    if (b.coverLetterStyle) config.coverLetterStyle = b.coverLetterStyle;
     saveConfig(config, p);
     return c.json({ config: loadConfig(p) });
   });

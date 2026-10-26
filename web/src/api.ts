@@ -93,6 +93,43 @@ export interface Summary {
   companies: number;
 }
 
+export interface Company {
+  name: string;
+  ats: string;
+  token: string;
+}
+
+export interface Profile {
+  name: string;
+  email: string;
+  phone: string;
+  location: string;
+  city?: string;
+  country?: string;
+  headline: string;
+  summary: string;
+  links: { linkedin?: string; github?: string; portfolio?: string; other: string[] };
+  totalYears?: number;
+  experience: {
+    company: string;
+    title: string;
+    start?: string;
+    end?: string;
+    location?: string;
+    highlights: string[];
+  }[];
+  education: {
+    school: string;
+    degree?: string;
+    field?: string;
+    start?: string;
+    end?: string;
+    grade?: string;
+  }[];
+  skills: { name: string; years?: number }[];
+  resumeFile?: string;
+}
+
 export interface Settings {
   config: {
     provider: string;
@@ -102,18 +139,29 @@ export interface Settings {
     schedule: string[];
     timezone: string;
     limits: { perDay: number; perCompany30d: number; reviewFirst: number; runTimeoutMinutes: number };
-    sources: Record<string, boolean>;
-    companies: { name: string; ats: string; token: string }[];
+    sources: { greenhouse: boolean; lever: boolean; ashby: boolean; linkedin: boolean };
+    companies: Company[];
     rules: {
       roles: string[];
       excludeTitles: string[];
       locations: string[];
+      countries: string[];
+      seniority: string[];
+      minSalary?: { amount: number; currency: string };
       neverApply: string[];
       minSkillMatch: number;
     };
+    preferences: { industries: string[]; sizes: string[] };
+    coverLetterStyle: "none" | "short" | "warm" | "formal" | "template";
   };
-  profile: { name: string; email: string; location: string; resumeFile?: string };
+  profile: Profile;
   home: string;
+  starter: number;
+}
+
+export interface Suggestion extends Company {
+  jobs: number;
+  why: string[];
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -151,4 +199,15 @@ export const api = {
   discover: () => request<{ found: number; added: number }>("POST", "/api/discover"),
   settings: () => request<Settings>("GET", "/api/settings"),
   saveSettings: (s: unknown) => request<{ config: Settings["config"] }>("PUT", "/api/settings", s),
+  saveProfile: (profile: Profile) => request<{ profile: Profile }>("PUT", "/api/profile", profile),
+  suggestions: () => request<Suggestion[]>("GET", "/api/companies/suggest"),
+  addCompanyUrl: (url: string) =>
+    request<{ added: Company; jobs: number; companies: Company[] }>("POST", "/api/companies", { url }),
+  addSuggested: (ids: string[]) =>
+    request<{ companies: Company[] }>("POST", "/api/companies", { suggested: ids }),
+  removeCompany: (c: Company) =>
+    request<{ companies: Company[] }>(
+      "DELETE",
+      `/api/companies/${encodeURIComponent(c.ats)}/${encodeURIComponent(c.token)}`,
+    ),
 };

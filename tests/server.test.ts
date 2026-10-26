@@ -1,9 +1,12 @@
 import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { loadConfig } from "../src/core/config.js";
 import { openDb } from "../src/core/db.js";
 import { addApplication, askQuestion, getApplication, setStatus } from "../src/core/store.js";
+import { loadProfile } from "../src/memory/profile.js";
 import { createApp } from "../src/server/app.js";
 import { makeHome } from "./helpers/home.js";
+import { boardFetcher } from "./helpers/wizard.js";
 
 const PORT = 4777;
 const HOST = { host: `127.0.0.1:${PORT}` };
@@ -132,5 +135,106 @@ describe("dashboard API", () => {
       limits: { perDay: 5, reviewFirst: 10 },
       rules: { roles: ["engineer"] },
     });
+  });
+
+  it("saves the targets, job sites and cover-letter style set up in the wizard", async () => {
+    const { app, p } = setup();
+    const res = await app.request("/api/settings", {
+      method: "PUT",
+      headers: WRITE,
+      body: JSON.stringify({
+        rules: { countries: ["India"], seniority: ["mid"], minSalary: { amount: 2500000, currency: "INR" } },
+        sources: { lever: false },
+        preferences: { industries: ["fintech"] },
+        coverLetterStyle: "formal",
+      }),
+    });
+    expect(res.status).toBe(200);
+    const c = loadConfig(p);
+    expect(c.rules).toMatchObject({
+      countries: ["India"],
+      seniority: ["mid"],
+      minSalary: { amount: 2500000 },
+    });
+    expect(c.sources).toMatchObject({ greenhouse: true, lever: false, linkedin: false });
+    expect(c.preferences.industries).toEqual(["fintech"]);
+    expect(c.coverLetterStyle).toBe("formal");
+    await app.request("/api/settings", {
+      method: "PUT",
+      headers: WRITE,
+      body: '{"rules":{"minSalary":null}}',
+    });
+    expect(loadConfig(p).rules.minSalary).toBeUndefined();
+    // LinkedIn cannot be switched on from the dashboard.
+    await app.request("/api/settings", {
+      method: "PUT",
+      headers: WRITE,
+      body: '{"sources":{"linkedin":true}}',
+    });
+    expect(loadConfig(p).sources.linkedin).toBe(false);
+  });
+
+  it("edits the profile but never the resume file", async () => {
+    const { app, p } = setup();
+    const { profile } = (await (await app.request("/api/settings", { headers: HOST })).json()) as {
+      profile: Record<string, unknown>;
+    };
+    const res = await app.request("/api/profile", {
+      method: "PUT",
+      headers: WRITE,
+      body: JSON.stringify({
+        ...profile,
+        phone: "+1 555 010 0111",
+        city: "Portland",
+        country: "United States",
+        resumeFile: "x.pdf",
+      }),
+    });
+    expect(res.status).toBe(200);
+    expect(loadProfile(p)).toMatchObject({
+      phone: "+1 555 010 0111",
+      location: "Portland, United States",
+      resumeFile: "resume.pdf",
+    });
+    const bad = await app.request("/api/profile", {
+      method: "PUT",
+      headers: WRITE,
+      body: '{"skills":"many"}',
+    });
+    expect(bad.status).toBe(400);
+  });
+
+  it("adds companies by careers URL or from suggestions, and removes them", async () => {
+    const p = makeHome({ companies: [] });
+    const app = createApp({ p, port: PORT, startRun: () => {}, fetcher: boardFetcher });
+    const added = await app.request("/api/companies", {
+      method: "POST",
+      headers: WRITE,
+      body: JSON.stringify({ url: "https://globex.example/careers" }),
+    });
+    expect(await added.json()).toMatchObject({
+      added: { name: "Globex", ats: "lever", token: "globex" },
+      jobs: 1,
+    });
+    const bad = await app.request("/api/companies", {
+      method: "POST",
+      headers: WRITE,
+      body: JSON.stringify({ url: "https://nothing.example/careers" }),
+    });
+    expect(bad.status).toBe(400);
+    const sug = (await (await app.request("/api/companies/suggest", { headers: HOST })).json()) as {
+      ats: string;
+      token: string;
+    }[];
+    expect(sug.length).toBeGreaterThan(0);
+    const pick = `${sug[0]!.ats}:${sug[0]!.token}`;
+    await app.request("/api/companies", {
+      method: "POST",
+      headers: WRITE,
+      body: JSON.stringify({ suggested: [pick] }),
+    });
+    expect(loadConfig(p).companies).toHaveLength(2);
+    await app.request("/api/companies/lever/globex", { method: "DELETE", headers: WRITE });
+    expect(loadConfig(p).companies.map((c) => `${c.ats}:${c.token}`)).toEqual([pick]);
   });
 });
