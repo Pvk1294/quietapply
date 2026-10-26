@@ -3,15 +3,24 @@
   "version": "0.1.0-dev",
   "description": "A self-hosted job-application agent that runs on your own Claude Code or Codex, applies on company job boards, and asks you before it guesses.",
   "license": "MIT",
+  "author": "Prateek Verma (https://github.com/Pvk1294)",
+  "homepage": "https://github.com/Pvk1294/quietapply#readme",
+  "bugs": {
+    "url": "https://github.com/Pvk1294/quietapply/issues"
+  },
   "type": "module",
   "bin": {
     "quietapply": "dist/cli/index.js"
   },
   "files": [
     "dist",
+    "data",
     "prompts",
     "playbooks",
-    "fixtures",
+    "fixtures/ats",
+    "fixtures/persona",
+    "install.sh",
+    "install.ps1",
     "README.md",
     "LICENSE"
   ],
@@ -29,7 +38,11 @@
     "test": "vitest run",
     "check": "npm run lint && npm run typecheck && npm test",
     "demo": "node dist/cli/index.js demo",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "prepack": "npm run clean && npm run build",
+    "prepublishOnly": "npm run check",
+    "companies:verify": "node scripts/verify-companies.mjs",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "keywords": [
     "job-search",
@@ -68,5 +81,8 @@
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vitest": "^4.1.12"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
