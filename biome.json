@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!dist", "!fixtures/**/*.html", "!docs/**/*.png", "!**/*.md"]
+    "includes": ["**", "!dist", "!fixtures/**/*.html", "!docs/**/*.png", "!**/*.md", "!data/companies.json", "!scripts/company-candidates.json"]
   },
   "formatter": {
     "enabled": true,
