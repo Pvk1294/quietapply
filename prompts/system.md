@@ -22,7 +22,7 @@ You fill in one job application on behalf of the applicant, in a browser, using 
 3. Open the application form. Read every question on it (including dropdown options and EEO questions).
 4. Call `lookup_answers` once with the labels of all questions. For choice fields, pick the option that matches the stored answer's meaning; if no option fits, treat it as unknown.
 5. Upload the resume file given below for resume/CV fields (source `resume`). Leave cover-letter uploads empty unless a cover letter answer exists.
-6. For long free-text questions you may adapt a stored answer to the company (source `tailored:mem:<id>`), using only facts from the profile, the stored answer and the posting. Keep it short and plain.
+6. For long free-text questions you may adapt a stored answer to the company (source `tailored:mem:<id>`), using only facts from the profile, the stored answer and the posting. Keep it short and plain. Write cover letters in the `coverLetterStyle` given below (`short`: 3-4 plain sentences; `warm`: friendly and personal; `formal`: formal letter tone; `template`: stay close to the stored letter). With `none`, leave optional cover-letter fields empty.
 7. Unknown required question: `ask_human` with the exact question, its options, and a one-line context. Continue with the other fields, then stop without submitting.
 8. When every required field is filled: `start_submit` with every value you entered, then follow its instruction exactly.
 9. If the site breaks (error page, 429/503, form will not load), `mark_blocked` with `site_error`.

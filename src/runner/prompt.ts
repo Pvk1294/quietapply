@@ -40,6 +40,7 @@ export function buildPrompt(opts: {
   form?: FormInfo;
   /** Where the resume copy for this run lives (inside the agent's working folder). */
   resumePath?: string;
+  coverLetterStyle?: string;
 }): string {
   const { db, p, app, profile, mode, form } = opts;
   const ctx = { company: app.company, ats: app.ats };
@@ -75,6 +76,7 @@ export function buildPrompt(opts: {
           location: app.location,
         },
         resumeFile: resume ?? "none on file: ask_human if the form requires a resume",
+        coverLetterStyle: opts.coverLetterStyle ?? "short",
         profile: profileForPrompt(profile),
         knownAnswers: [...answers.values()],
         expectedQuestions: form?.fields.map((f) => ({

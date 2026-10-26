@@ -224,6 +224,7 @@ async function applyOne(o: {
     mode: desk.mode(),
     form,
     resumePath,
+    coverLetterStyle: o.config.coverLetterStyle,
   });
   // The agent's desk server opens its own connection to the database; close nothing here, SQLite WAL
   // lets both processes work on the same file.

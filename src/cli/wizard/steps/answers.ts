@@ -246,17 +246,20 @@ export const answersStep: Step = {
       message: "Cover letters, when a form has a box for one",
       initial: config.coverLetterStyle,
       options: [
-        { value: "short", label: "Short and direct", hint: "3-4 sentences from your profile" },
+        { value: "short", label: "Short and direct", hint: "3-4 sentences" },
         { value: "warm", label: "Warm and personal" },
         { value: "formal", label: "Formal" },
         { value: "template", label: "Use my own template" },
         { value: "none", label: "Skip optional cover letters" },
       ],
     });
-    if (config.coverLetterStyle === "template") {
+    if (config.coverLetterStyle !== "none") {
+      // Every typed value must come from memory, so the agent writes cover letters from a stored base.
       const t = await ui.text({
         message:
-          "Paste a short base cover letter (one paragraph; the agent adapts it to each company without adding facts)",
+          config.coverLetterStyle === "template"
+            ? "Paste your base cover letter (one paragraph; the agent adapts it to each company without adding facts)"
+            : "A short base cover letter for the agent to adapt (optional; without one, forms that require a cover letter ask you)",
         initial: savedAnswer(db, "cover_letter") ?? "",
       });
       remember(db, "cover_letter", "A short base cover letter (optional).", t, { type: "long" });
