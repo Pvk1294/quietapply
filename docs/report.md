@@ -3,8 +3,8 @@
 **Summary**
 1. QuietApply v0.1 works end to end in dry-run mode: setup from a resume, answer memory, question queue, runner, Greenhouse/Lever/Ashby, dashboard, scheduler. It never submits while dry run is on.
 2. Checked live once: your Claude Code (Sonnet) with Playwright MCP filled the Lever fixture page on localhost. It cited a memory id for every field and stopped before Submit ([script](../scripts/live-dry-run.mjs)).
-3. Checks pass on a fresh clone: lint, types, build and 78 tests.
-4. Private repo created: [github.com/Pvk1294/quietapply](https://github.com/Pvk1294/quietapply), branch `v0.1-night1`. **The last 5 commits are local only:** Dot's checker sent the push to you for approval. Until you push, the GitHub copy cannot build, because `src/resume/` is missing there.
+3. Checks pass on a fresh clone and on GitHub CI: lint, types, build and 78 tests.
+4. Private repo: [github.com/Pvk1294/quietapply](https://github.com/Pvk1294/quietapply), branch `v0.1-night1`. Everything is pushed (you approved the push), and GitHub CI is green: Linux and macOS, Node 22 and 24, plus the gitleaks secret scan.
 5. No real application, email or post was sent. None of your data or your old code was copied or changed.
 
 ## What works
@@ -67,8 +67,8 @@ node scripts/live-dry-run.mjs      # optional: one real dry run with your Claude
 ```
 
 ## Waiting for you
-- **Push approval.** Dot's checker stopped a `git add -A` + push after the live run, in case a resume had been staged. I checked: only code changed, and the live run wrote only to temp folders. I committed the named files locally and pushed nothing more. To push: `cd ~/Desktop/quietapply && git push`. This also fixes the remote build, which lacks `src/resume/` because of a `.gitignore` bug that is now fixed.
 - **No pull request yet.** The repo has no `main` branch, and pushing to main is not something I'm allowed to do. Create `main` from `v0.1-night1` when you are happy with it.
+- The guard paused one push overnight; you approved it in the morning, and it is done.
 
 ## Open decisions
 - **Name:** QuietApply (npm and GitHub names were free on 26 Oct per the planning report). It is used only in `package.json`, the README and the UI, so it is easy to rename.
@@ -84,7 +84,7 @@ node scripts/live-dry-run.mjs      # optional: one real dry run with your Claude
 - **The live test used Sonnet** to keep usage on your plan low. The provider defaults to your CLI's default model unless you set `model:` in the config.
 
 ## Next steps toward v0.1
-1. Push, open the repo, and check that CI is green on GitHub.
+1. Create `main` from `v0.1-night1` and set it as the default branch.
 2. One live Codex dry run (`npm i -g @openai/codex`, then `codex login`).
 3. Dogfood in review mode on two or three real Greenhouse jobs, and watch the browser.
 4. Show the agent's screenshot on each application in the dashboard.
