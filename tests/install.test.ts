@@ -83,6 +83,7 @@ describe("install.sh", () => {
     expect(r.out).toContain("Claude Code 2.0.0");
     expect(r.out).toContain("building from GitHub instead");
     expect(r.out).toContain("git clone --depth 1 --branch main https://github.com/Pvk1294/quietapply.git");
+    expect(r.out).toContain(`(cd ${r.home}/.local/share/quietapply/src && npm ci --no-fund --no-audit)`);
     expect(r.out).toContain(`ln -sf ${r.home}/.local/share/quietapply/src/dist/cli/index.js`);
     expect(r.out).toContain(`append to ${r.home}/.zshrc: export PATH="${r.home}/.local/bin:$PATH"`);
   });

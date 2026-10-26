@@ -63,6 +63,17 @@ run() {
   fi
 }
 
+# Run a command inside a folder (npm ci ignores --prefix for finding the lockfile).
+in_dir() {
+  local dir="$1"
+  shift
+  if [ "$DRY_RUN" = 1 ]; then
+    printf '  %s[dry-run]%s (cd %s && %s)\n' "$DIM" "$RESET" "$dir" "$*"
+  else
+    (cd "$dir" && "$@")
+  fi
+}
+
 usage() {
   cat <<'USAGE'
 QuietApply installer (macOS / Linux)
@@ -275,8 +286,8 @@ install_from_source() {
     run git clone --depth 1 --branch "$REF" "$REPO" "$src"
   fi
   say "  Building (a minute or two)"
-  run npm --prefix "$src" ci --no-fund --no-audit
-  run npm --prefix "$src" run build
+  in_dir "$src" npm ci --no-fund --no-audit
+  in_dir "$src" npm run build
   run chmod +x "$src/dist/cli/index.js"
   ENTRY="$src/dist/cli/index.js"
 }

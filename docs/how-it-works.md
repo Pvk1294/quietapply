@@ -36,6 +36,8 @@ sequenceDiagram
 | Providers | `src/providers/` | Build the unattended command line for `claude -p` and `codex exec`, detect usage limits |
 | Runner | `src/runner/run.ts` | Queue, fit gate, caps, one agent run per application, and settling of half-finished work (approved-but-unrecorded submits become "unclear" and are never retried automatically) |
 | Discovery | `src/runner/discover.ts`, `src/sources/` | Public Greenhouse Job Board API, Lever Postings API, Ashby Job Posting API |
+| Setup wizard | `src/cli/wizard/` | `quietapply init`: seven steps that each save as they end; progress in `setup-state.json` |
+| Companies | `src/companies/`, `data/companies.json` | Starter list checked against the live job APIs, suggestions by region and job family, careers-URL → ATS board |
 | Form parser | `src/forms/parse.ts` | Reads labels, types, required flags and options from Greenhouse, Lever and rendered Ashby pages; spots visible CAPTCHAs and password fields |
 | Scripted agent | `src/runner/scripted-agent.ts` | A no-AI stand-in that talks to the real desk server; used by tests and the demo, never submits |
 | Scheduler | `src/scheduler/` | `tick` every 15 minutes through launchd or systemd; runs the latest due slot once |

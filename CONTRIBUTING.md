@@ -24,6 +24,7 @@ Work on the dashboard with hot reload: run `node dist/cli/index.js demo` in one 
 
 ## Good first contributions
 
+- **A company for the starter list**: add it to `scripts/company-candidates.json` (name, industry, size and `"try": ["greenhouse:token"]`), run `npm run build:server && npm run companies:verify`, and commit both files. Only companies with open jobs on a public Greenhouse, Lever or Ashby board are kept.
 - **A site playbook** (`playbooks/<ats>.md`): short, factual notes on how a job site's form behaves. No personal data.
 - **An ATS adapter** (`src/sources/<ats>.ts`): list open jobs from the site's public API, with a fixture JSON and a test. Add the URL pattern to `src/sources/detect.ts`.
 - **A fixture page**: save the structure of a real form, replace every company and person detail with made-up ones, and add a parse test in `tests/ats.test.ts`.
@@ -32,7 +33,9 @@ Work on the dashboard with hot reload: run `node dist/cli/index.js demo` in one 
 ## Layout
 
 ```
-src/cli/        commands (init, doctor, run, schedule, dashboard, demo, …)
+src/cli/        commands (doctor, run, schedule, dashboard, demo, …); src/cli/wizard/ is `init`
+src/companies/  starter company list, careers-URL detection, region tags
+data/           companies.json, the starter list (rebuilt by scripts/verify-companies.mjs)
 src/core/       config, SQLite store, fit gate, caps, lock
 src/memory/     profile, answer memory, question queue, standard questions
 src/mcp/        desk tools and the MCP server the agent talks to

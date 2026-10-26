@@ -6,9 +6,9 @@ QuietApply uses the Claude Code or Codex you already have (subscription or API k
 
 ![The QuietApply dashboard: today's status, questions waiting for you and recent applications](docs/screenshots/today-desktop.png)
 
-> Built from a personal runner that tracked more than 880 real applications in six weeks. Everything that broke along the way shaped the defaults below.
+> Built from the author's own runner, which has tracked 437 real applications since 16 September 2026. Everything that broke along the way shaped the defaults below.
 
-> **Status: v0.1 in development.** It works end to end in dry-run mode on the bundled fixture pages and has been checked live with Claude Code. Not yet published to npm. Expect rough edges.
+> **Status: v0.1 in development.** It works end to end in dry-run mode on the bundled fixture pages and has been checked live with Claude Code. Not yet published to npm (the one-line installer builds from GitHub until it is). Expect rough edges.
 
 ---
 
@@ -25,7 +25,8 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 
 ## Features
 
-- `quietapply init` reads your resume (PDF, DOCX or text), builds `profile.yaml`, and asks the handful of questions almost every form asks (work authorization, sponsorship, notice period, salary, relocation, consent). Anything you skip is asked later, only when a form needs it.
+- **Guided setup** (`quietapply init`): seven short steps, resumable if you quit halfway. It checks your AI is signed in, reads your resume (PDF, DOCX or text) into a profile you confirm, takes the answers almost every form asks (work authorisation and sponsorship per country, notice period, salary with currency, relocation, remote/hybrid, travel, diversity questions declined by default), your targets, and picks companies for you. Everything is editable later in Settings and Memory.
+- **Starter company list:** 249 companies hiring on Greenhouse, Lever and Ashby (94 in India, 192 with remote roles, plus the US and Europe), checked live against their public job APIs. Setup picks the ones that match your roles and places; add any other company by pasting its careers-page link. No board tokens to look up.
 - **Answer memory** you can see and edit. Each answer can apply everywhere or to one company only.
 - **Fit gate** before every application: job titles, excluded words, locations, never-apply list, years of experience, skill match, and postings that ask for no AI.
 - **Job sites:** Greenhouse, Lever and Ashby in v0.1; Workday is next.
@@ -42,32 +43,59 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 
 ## Quickstart
 
-You need Node.js 22.13 or newer, Google Chrome or Microsoft Edge, and one of:
+You need Node.js 22.13 or newer, Google Chrome or Microsoft Edge, and Claude Code or Codex. The installer checks all three and tells you how to get what is missing.
 
-- [Claude Code](https://code.claude.com/docs) signed in with a Claude plan, or with `ANTHROPIC_API_KEY`
-- [Codex CLI](https://github.com/openai/codex) signed in with ChatGPT, or with `CODEX_API_KEY`
+**macOS or Linux, one line:**
 
-**Try it first with fake data** (nothing leaves your machine, no AI needed):
+```bash
+curl -fsSL https://raw.githubusercontent.com/Pvk1294/quietapply/main/install.sh | bash
+```
+
+It installs QuietApply into `~/.local/share/quietapply` (no `sudo`; your global npm is untouched), puts the `quietapply` command in `~/.local/bin`, and starts the setup wizard. Add `-s -- --no-init` to only install, or `--dry-run` to see what it would do. Windows (PowerShell): `irm https://raw.githubusercontent.com/Pvk1294/quietapply/main/install.ps1 | iex`.
+
+**Or with npm** (once the package is published):
+
+```bash
+npx quietapply init
+```
+
+**Try it first with fake data** (nothing leaves your machine, no AI needed): `quietapply demo`.
+
+### What setup asks
+
+`quietapply init` walks through seven steps. Quit any time: finished steps are saved and the next `quietapply init` continues where you stopped. Redo one part with `quietapply init --step <name>`.
+
+1. **AI** (`ai`): finds Claude Code or Codex, checks you are signed in (plan or API key), and shows how to sign in if not.
+2. **Resume** (`resume`): reads your resume and pre-fills name, email, phone, city and country, LinkedIn, GitHub, portfolio, work history, education, skills and years of experience for you to confirm or fix.
+3. **Standard answers** (`answers`): work authorisation and visa sponsorship for each country you target, notice period, current and expected salary with currency, relocation, remote/hybrid/on-site, travel, "how did you hear about us", diversity questions ("I prefer not to answer" by default) and a cover-letter style.
+4. **Targets** (`targets`): job titles, seniority, cities and countries, remote, minimum salary, industries and company sizes you like, companies to never apply to, daily cap.
+5. **Where to apply** (`sources`): Greenhouse, Lever and Ashby (LinkedIn stays off; see below), and companies from the starter list or any careers-page link you paste.
+6. **Logins** (`logins`): none needed. Greenhouse, Lever and Ashby forms need no account, QuietApply uses its own Chrome profile (`~/.quietapply/browser-profile`), never your everyday browser, and it never asks for or stores passwords.
+7. **Safety** (`safety`): dry run stays on, the first 10 applications wait for your OK, then a `quietapply doctor` check and an offer to turn on the schedule.
+
+### Everyday commands
+
+```bash
+quietapply dashboard                  # http://127.0.0.1:4777: questions, applications, Memory, Settings
+quietapply discover                   # find open roles at your companies (or the best starter-list matches)
+quietapply run                        # one run now (dry run: forms are filled, nothing is submitted)
+quietapply companies suggest --add    # add the best starter-list matches to your watch list
+quietapply companies add <url>        # add a company by careers-page link
+quietapply doctor                     # checks the CLI, sign-in, browser and data folder
+quietapply schedule on                # runs at the times in config.yaml
+```
+
+The first runs open a separate Chrome profile in `~/.quietapply/browser-profile`. Your everyday browser is not touched.
+
+### From source
 
 ```bash
 git clone https://github.com/Pvk1294/quietapply && cd quietapply
 npm install && npm run build
 node dist/cli/index.js demo          # fake persona "Jane Doe", fixture pages, dashboard on :4777
+npm link                             # makes the `quietapply` command available
+quietapply init
 ```
-
-**Set it up for yourself:**
-
-```bash
-npm link                              # makes the `quietapply` command available (npx quietapply once published)
-quietapply init                       # AI, resume -> profile, common questions, targets, companies
-quietapply doctor                     # checks the CLI, login, browser and data folder
-quietapply discover                   # finds open roles at your companies
-quietapply run                        # one run now (dry run: forms are filled, nothing is submitted)
-quietapply dashboard                  # http://127.0.0.1:4777
-quietapply schedule on                # runs at the times in config.yaml
-```
-
-The first runs open a separate Chrome profile in `~/.quietapply/browser-profile`. Your everyday browser is not touched.
 
 ## How it works
 
@@ -120,9 +148,14 @@ companies:
   - { name: Acme Rockets, ats: greenhouse, token: acmerockets }
 rules:
   roles: [engineer, developer]
+  seniority: [mid, senior]          # intern, entry, mid, senior, staff, lead, director
   excludeTitles: [intern, principal]
-  locations: [remote, Berlin]
+  countries: [India]                # a job in Bengaluru counts as India
+  locations: [remote, Bengaluru]
+  minSalary: { amount: 2500000, currency: INR }
   neverApply: [My Current Employer]
+preferences: { industries: [fintech, devtools], sizes: [scaleup] }
+coverLetterStyle: short             # short, warm, formal, template, none
 ```
 
 ## Safety, and job-site terms of service
@@ -149,7 +182,10 @@ Site playbooks (`playbooks/*.md`) and ATS adapters (`src/sources/`) are the easi
 npm install
 npm run check      # lint + typecheck + tests
 npm run build
+npm run companies:verify   # re-check the starter company list against the live job APIs
 ```
+
+Releasing to npm: [docs/RELEASING.md](docs/RELEASING.md).
 
 ## License
 
