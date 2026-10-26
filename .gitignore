@@ -9,7 +9,8 @@ coverage/
 # Folder patterns are anchored to the repo root so they never hide source folders such as src/resume/.
 .quietapply/
 .quietapply-*/
-/data/
+/data/*
+!/data/companies.json
 *.db
 *.db-journal
 *.db-wal
