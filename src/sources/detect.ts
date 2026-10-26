@@ -19,7 +19,15 @@ export function detectAts(input: string): AtsRef | undefined {
   const host = url.hostname.toLowerCase();
   const parts = url.pathname.split("/").filter(Boolean);
 
-  if (/(^|\.)greenhouse\.io$/.test(host)) {
+  if (host === "boards-api.greenhouse.io") {
+    // boards-api.greenhouse.io/v1/boards/acme/jobs/123
+    const i = parts.indexOf("boards");
+    const token = i >= 0 ? parts[i + 1] : undefined;
+    return token
+      ? { ats: "greenhouse", token, jobId: parts[i + 2] === "jobs" ? parts[i + 3] : undefined }
+      : undefined;
+  }
+  if (/^(job-)?boards(\.eu)?\.greenhouse\.io$/.test(host)) {
     // boards.greenhouse.io/acme/jobs/123, job-boards.greenhouse.io/acme/jobs/123, boards.greenhouse.io/embed/job_app?for=acme&token=123
     if (parts[0] === "embed") {
       const token = url.searchParams.get("for");
@@ -35,6 +43,14 @@ export function detectAts(input: string): AtsRef | undefined {
       region: host.includes(".eu.") ? "eu" : undefined,
     };
   }
+  if (host === "api.lever.co" || host === "api.eu.lever.co") {
+    // api.lever.co/v0/postings/acme/<id>
+    const i = parts.indexOf("postings");
+    const token = i >= 0 ? parts[i + 1] : undefined;
+    return token
+      ? { ats: "lever", token, jobId: parts[i + 2], region: host.includes(".eu.") ? "eu" : undefined }
+      : undefined;
+  }
   if (/(^|\.)lever\.co$/.test(host) && host.startsWith("jobs.")) {
     if (!parts[0]) return undefined;
     return {
@@ -44,9 +60,16 @@ export function detectAts(input: string): AtsRef | undefined {
       region: host.includes(".eu.") ? "eu" : undefined,
     };
   }
+  if (host === "api.ashbyhq.com") {
+    // api.ashbyhq.com/posting-api/job-board/acme
+    const i = parts.indexOf("job-board");
+    const token = i >= 0 ? parts[i + 1] : undefined;
+    return token ? { ats: "ashby", token: decodeURIComponent(token) } : undefined;
+  }
   if (host === "jobs.ashbyhq.com") {
     if (!parts[0]) return undefined;
-    return { ats: "ashby", token: decodeURIComponent(parts[0]), jobId: parts[1] };
+    const jobId = parts[1] && parts[1] !== "embed" ? parts[1] : undefined;
+    return { ats: "ashby", token: decodeURIComponent(parts[0]), jobId };
   }
   return undefined;
 }

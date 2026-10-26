@@ -1,4 +1,5 @@
-import type { Config } from "../core/config.js";
+import { suggestCompanies, toCompany } from "../companies/starter.js";
+import type { Company, Config } from "../core/config.js";
 import type { DB } from "../core/db.js";
 import { checkFit } from "../core/rules.js";
 import { addApplication } from "../core/store.js";
@@ -10,11 +11,28 @@ import { listLever } from "../sources/lever.js";
 import type { JobListing } from "../sources/types.js";
 
 export interface DiscoverSummary {
+  /** Companies checked; when the watch list is empty these come from the starter list. */
+  companies: number;
+  fromStarterList: boolean;
   found: number;
   added: number;
   alreadyKnown: number;
   skipped: Record<string, number>;
   errors: { company: string; error: string }[];
+}
+
+/** How many starter-list companies discover checks when your own list is empty. */
+export const STARTER_SCAN = 30;
+
+/** The companies to check: your list, or the best starter-list matches for your roles and places. */
+export function companiesToScan(
+  config: Config,
+  opts: { starter?: boolean } = {},
+): { companies: Company[]; fromStarterList: boolean } {
+  if (config.companies.length && !opts.starter)
+    return { companies: config.companies, fromStarterList: false };
+  const picks = suggestCompanies(config).slice(0, STARTER_SCAN).map(toCompany);
+  return { companies: [...config.companies, ...picks], fromStarterList: true };
 }
 
 /** Pull open roles from every company's public job API and queue the ones that pass the fit gate. */
@@ -23,9 +41,19 @@ export async function discover(
   config: Config,
   profile: Profile,
   fetcher: Fetcher,
+  opts: { starter?: boolean } = {},
 ): Promise<DiscoverSummary> {
-  const out: DiscoverSummary = { found: 0, added: 0, alreadyKnown: 0, skipped: {}, errors: [] };
-  for (const c of config.companies) {
+  const { companies, fromStarterList } = companiesToScan(config, opts);
+  const out: DiscoverSummary = {
+    companies: companies.length,
+    fromStarterList,
+    found: 0,
+    added: 0,
+    alreadyKnown: 0,
+    skipped: {},
+    errors: [],
+  };
+  for (const c of companies) {
     if (!config.sources[c.ats]) continue;
     let jobs: JobListing[];
     try {
@@ -33,7 +61,7 @@ export async function discover(
         c.ats === "greenhouse"
           ? await listGreenhouse(fetcher, c.token, c.name)
           : c.ats === "lever"
-            ? await listLever(fetcher, c.token, c.name)
+            ? await listLever(fetcher, c.token, c.name, c.region)
             : await listAshby(fetcher, c.token, c.name);
     } catch (err) {
       out.errors.push({ company: c.name, error: (err as Error).message });

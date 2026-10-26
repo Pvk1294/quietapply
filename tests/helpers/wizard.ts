@@ -144,7 +144,15 @@ export function makeCtx(
       },
       discover: async () => {
         calls.push("discover");
-        return { found: 3, added: 2, alreadyKnown: 0, skipped: {}, errors: [] };
+        return {
+          companies: 1,
+          fromStarterList: false,
+          found: 3,
+          added: 2,
+          alreadyKnown: 0,
+          skipped: {},
+          errors: [],
+        };
       },
       ...over,
     },

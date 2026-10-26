@@ -1,0 +1,3170 @@
+[
+  {
+    "name": "Stripe",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:stripe"]
+  },
+  {
+    "name": "Airbnb",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["greenhouse:airbnb"]
+  },
+  {
+    "name": "Figma",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["greenhouse:figma"]
+  },
+  {
+    "name": "Dropbox",
+    "industry": "saas",
+    "size": "large",
+    "try": ["greenhouse:dropbox"]
+  },
+  {
+    "name": "Discord",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["greenhouse:discord"]
+  },
+  {
+    "name": "Reddit",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["greenhouse:reddit"]
+  },
+  {
+    "name": "Robinhood",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:robinhood"]
+  },
+  {
+    "name": "Coinbase",
+    "industry": "crypto",
+    "size": "large",
+    "try": ["greenhouse:coinbase"]
+  },
+  {
+    "name": "Databricks",
+    "industry": "data",
+    "size": "large",
+    "try": ["greenhouse:databricks"]
+  },
+  {
+    "name": "Cloudflare",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:cloudflare"]
+  },
+  {
+    "name": "Datadog",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:datadog"]
+  },
+  {
+    "name": "GitLab",
+    "industry": "devtools",
+    "size": "large",
+    "try": ["greenhouse:gitlab"]
+  },
+  {
+    "name": "Twilio",
+    "industry": "devtools",
+    "size": "large",
+    "try": ["greenhouse:twilio"]
+  },
+  {
+    "name": "MongoDB",
+    "industry": "data",
+    "size": "large",
+    "try": ["greenhouse:mongodb"]
+  },
+  {
+    "name": "Elastic",
+    "industry": "data",
+    "size": "large",
+    "try": ["greenhouse:elastic"]
+  },
+  {
+    "name": "Okta",
+    "industry": "security",
+    "size": "large",
+    "try": ["greenhouse:okta"]
+  },
+  {
+    "name": "Asana",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["greenhouse:asana"]
+  },
+  {
+    "name": "Airtable",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["greenhouse:airtable"]
+  },
+  {
+    "name": "Instacart",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:instacart"]
+  },
+  {
+    "name": "Lyft",
+    "industry": "mobility",
+    "size": "large",
+    "try": ["greenhouse:lyft"]
+  },
+  {
+    "name": "Pinterest",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["greenhouse:pinterest"]
+  },
+  {
+    "name": "DoorDash",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:doordashusa"]
+  },
+  {
+    "name": "Gusto",
+    "industry": "hr",
+    "size": "large",
+    "try": ["greenhouse:gusto"]
+  },
+  {
+    "name": "Brex",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["greenhouse:brex"]
+  },
+  {
+    "name": "Affirm",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:affirm"]
+  },
+  {
+    "name": "Chime",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:chime"]
+  },
+  {
+    "name": "Samsara",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:samsara"]
+  },
+  {
+    "name": "Flexport",
+    "industry": "logistics",
+    "size": "large",
+    "try": ["greenhouse:flexport"]
+  },
+  {
+    "name": "Grammarly",
+    "industry": "ai",
+    "size": "scaleup",
+    "try": ["greenhouse:grammarly"]
+  },
+  {
+    "name": "Duolingo",
+    "industry": "edtech",
+    "size": "large",
+    "try": ["greenhouse:duolingo"]
+  },
+  {
+    "name": "Squarespace",
+    "industry": "saas",
+    "size": "large",
+    "try": ["greenhouse:squarespace"]
+  },
+  {
+    "name": "Webflow",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["ashby:webflow"]
+  },
+  {
+    "name": "Postman",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["greenhouse:postman"]
+  },
+  {
+    "name": "PhonePe",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:phonepe"]
+  },
+  {
+    "name": "BrowserStack",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["greenhouse:browserstack"]
+  },
+  {
+    "name": "Druva",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["greenhouse:druva"]
+  },
+  {
+    "name": "Innovaccer",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["greenhouse:innovaccer"]
+  },
+  {
+    "name": "Anthropic",
+    "industry": "ai",
+    "size": "scaleup",
+    "try": ["greenhouse:anthropic"]
+  },
+  {
+    "name": "Vercel",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["greenhouse:vercel"]
+  },
+  {
+    "name": "Grafana Labs",
+    "industry": "infra",
+    "size": "scaleup",
+    "try": ["greenhouse:grafanalabs"]
+  },
+  {
+    "name": "Canonical",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:canonical"]
+  },
+  {
+    "name": "Monzo",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:monzo"]
+  },
+  {
+    "name": "N26",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:n26"]
+  },
+  {
+    "name": "Celonis",
+    "industry": "data",
+    "size": "large",
+    "try": ["greenhouse:celonis"]
+  },
+  {
+    "name": "Contentful",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["greenhouse:contentful"]
+  },
+  {
+    "name": "GetYourGuide",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["greenhouse:getyourguide"]
+  },
+  {
+    "name": "Adyen",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:adyen"]
+  },
+  {
+    "name": "Intercom",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["greenhouse:intercom"]
+  },
+  {
+    "name": "Rubrik",
+    "industry": "security",
+    "size": "large",
+    "try": ["greenhouse:rubrik"]
+  },
+  {
+    "name": "Fivetran",
+    "industry": "data",
+    "size": "scaleup",
+    "try": ["greenhouse:fivetran"]
+  },
+  {
+    "name": "Toast",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:toast"]
+  },
+  {
+    "name": "Airwallex",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["ashby:airwallex"]
+  },
+  {
+    "name": "Udemy",
+    "industry": "edtech",
+    "size": "large",
+    "try": ["greenhouse:udemy"]
+  },
+  {
+    "name": "Coursera",
+    "industry": "edtech",
+    "size": "large",
+    "try": ["greenhouse:coursera"]
+  },
+  {
+    "name": "Box",
+    "industry": "saas",
+    "size": "large",
+    "try": ["greenhouse:boxinc"]
+  },
+  {
+    "name": "ThoughtSpot",
+    "industry": "data",
+    "size": "scaleup",
+    "try": ["greenhouse:thoughtspot"]
+  },
+  {
+    "name": "MoEngage",
+    "industry": "marketing",
+    "size": "scaleup",
+    "try": ["greenhouse:moengage"]
+  },
+  {
+    "name": "Glean",
+    "industry": "ai",
+    "size": "scaleup",
+    "try": ["greenhouse:gleanwork"]
+  },
+  {
+    "name": "Zscaler",
+    "industry": "security",
+    "size": "large",
+    "try": ["greenhouse:zscaler"]
+  },
+  {
+    "name": "Harness",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["greenhouse:harnessinc"]
+  },
+  {
+    "name": "Confluent",
+    "industry": "data",
+    "size": "large",
+    "try": ["greenhouse:confluent", "ashby:confluent"]
+  },
+  {
+    "name": "Observe.AI",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["greenhouse:observeai"]
+  },
+  {
+    "name": "Miro",
+    "industry": "saas",
+    "size": "large",
+    "try": ["greenhouse:realtimeboardglobal"]
+  },
+  {
+    "name": "Klarna",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:klarna"]
+  },
+  {
+    "name": "HubSpot",
+    "industry": "marketing",
+    "size": "large",
+    "try": ["greenhouse:hubspot"]
+  },
+  {
+    "name": "Zendesk",
+    "industry": "saas",
+    "size": "large",
+    "try": ["greenhouse:zendesk"]
+  },
+  {
+    "name": "Snowflake",
+    "industry": "data",
+    "size": "large",
+    "try": ["ashby:snowflake"]
+  },
+  {
+    "name": "Palo Alto Networks",
+    "industry": "security",
+    "size": "large",
+    "try": ["greenhouse:paloaltonetworks"]
+  },
+  {
+    "name": "CrowdStrike",
+    "industry": "security",
+    "size": "large",
+    "try": ["greenhouse:crowdstrike"]
+  },
+  {
+    "name": "SentinelOne",
+    "industry": "security",
+    "size": "large",
+    "try": ["greenhouse:sentinelone"]
+  },
+  {
+    "name": "1Password",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["ashby:1password"]
+  },
+  {
+    "name": "Lattice",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["greenhouse:lattice"]
+  },
+  {
+    "name": "Carta",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["greenhouse:carta"]
+  },
+  {
+    "name": "Mercury",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["greenhouse:mercury"]
+  },
+  {
+    "name": "Plaid",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["ashby:plaid"]
+  },
+  {
+    "name": "Notion",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["ashby:notion"]
+  },
+  {
+    "name": "Linear",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["ashby:linear"]
+  },
+  {
+    "name": "Ramp",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["ashby:ramp"]
+  },
+  {
+    "name": "OpenAI",
+    "industry": "ai",
+    "size": "large",
+    "try": ["ashby:openai"]
+  },
+  {
+    "name": "Supabase",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["ashby:supabase"]
+  },
+  {
+    "name": "Deel",
+    "industry": "hr",
+    "size": "large",
+    "try": ["ashby:deel"]
+  },
+  {
+    "name": "Zapier",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["ashby:zapier"]
+  },
+  {
+    "name": "Replit",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["ashby:replit"]
+  },
+  {
+    "name": "Retool",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["ashby:retool"]
+  },
+  {
+    "name": "Cohere",
+    "industry": "ai",
+    "size": "scaleup",
+    "try": ["ashby:cohere"]
+  },
+  {
+    "name": "Mistral AI",
+    "industry": "ai",
+    "size": "scaleup",
+    "try": ["lever:mistral", "ashby:mistral"]
+  },
+  {
+    "name": "Sentry",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["ashby:sentry"]
+  },
+  {
+    "name": "PostHog",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["ashby:posthog"]
+  },
+  {
+    "name": "Spotify",
+    "industry": "media",
+    "size": "large",
+    "try": ["lever:spotify"]
+  },
+  {
+    "name": "Palantir",
+    "industry": "data",
+    "size": "large",
+    "try": ["lever:palantir"]
+  },
+  {
+    "name": "Netflix",
+    "industry": "media",
+    "size": "large",
+    "try": ["lever:netflix"]
+  },
+  {
+    "name": "Atlan",
+    "industry": "data",
+    "size": "startup",
+    "try": ["ashby:atlan"]
+  },
+  {
+    "name": "Razorpay",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["lever:razorpay", "greenhouse:razorpay", "ashby:razorpay"]
+  },
+  {
+    "name": "CRED",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:cred"]
+  },
+  {
+    "name": "Groww",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:groww"]
+  },
+  {
+    "name": "Meesho",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:meesho"]
+  },
+  {
+    "name": "Dream Sports",
+    "industry": "gaming",
+    "size": "large",
+    "try": ["lever:dreamsports", "greenhouse:dreamsports"]
+  },
+  {
+    "name": "Unacademy",
+    "industry": "edtech",
+    "size": "large",
+    "try": ["lever:unacademy"]
+  },
+  {
+    "name": "Paytm",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["lever:paytm"]
+  },
+  {
+    "name": "InMobi",
+    "industry": "marketing",
+    "size": "large",
+    "try": ["greenhouse:inmobi"]
+  },
+  {
+    "name": "ShareChat",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["lever:sharechat", "greenhouse:sharechat"]
+  },
+  {
+    "name": "Zepto",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:zepto", "ashby:zepto"]
+  },
+  {
+    "name": "Jupiter",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:jupiter", "lever:jupiter-money"]
+  },
+  {
+    "name": "Acko",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:acko"]
+  },
+  {
+    "name": "Urban Company",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["lever:urbancompany"]
+  },
+  {
+    "name": "Spinny",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:spinny"]
+  },
+  {
+    "name": "Cars24",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:cars24"]
+  },
+  {
+    "name": "Zeta",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:zeta"]
+  },
+  {
+    "name": "Juspay",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:juspay", "greenhouse:juspay"]
+  },
+  {
+    "name": "Hasura",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["lever:hasura", "ashby:hasura"]
+  },
+  {
+    "name": "Chargebee",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["lever:chargebee", "greenhouse:chargebee"]
+  },
+  {
+    "name": "Whatfix",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["lever:whatfix", "greenhouse:whatfix"]
+  },
+  {
+    "name": "Darwinbox",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["lever:darwinbox"]
+  },
+  {
+    "name": "Mindtickle",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["lever:mindtickle"]
+  },
+  {
+    "name": "Locus",
+    "industry": "logistics",
+    "size": "startup",
+    "try": ["lever:locus"]
+  },
+  {
+    "name": "Exotel",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["lever:exotel"]
+  },
+  {
+    "name": "CleverTap",
+    "industry": "marketing",
+    "size": "scaleup",
+    "try": ["lever:clevertap", "greenhouse:clevertap"]
+  },
+  {
+    "name": "Haptik",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["lever:haptik"]
+  },
+  {
+    "name": "Yellow.ai",
+    "industry": "ai",
+    "size": "scaleup",
+    "try": ["lever:yellowai", "lever:yellow", "greenhouse:yellowai"]
+  },
+  {
+    "name": "Fyle",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["lever:fyle"]
+  },
+  {
+    "name": "Smallcase",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["lever:smallcase"]
+  },
+  {
+    "name": "Setu",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["lever:setu"]
+  },
+  {
+    "name": "Khatabook",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:khatabook"]
+  },
+  {
+    "name": "Rocketlane",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["ashby:rocketlane", "lever:rocketlane"]
+  },
+  {
+    "name": "Sarvam AI",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:sarvam"]
+  },
+  {
+    "name": "Plum",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["lever:plum", "ashby:plum"]
+  },
+  {
+    "name": "Ultrahuman",
+    "industry": "health",
+    "size": "startup",
+    "try": ["lever:ultrahuman"]
+  },
+  {
+    "name": "Ather Energy",
+    "industry": "climate",
+    "size": "large",
+    "try": ["lever:atherenergy"]
+  },
+  {
+    "name": "Swiggy",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:swiggy"]
+  },
+  {
+    "name": "Zomato",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:zomato"]
+  },
+  {
+    "name": "Ola",
+    "industry": "mobility",
+    "size": "large",
+    "try": ["lever:olacabs", "lever:ola"]
+  },
+  {
+    "name": "Freshworks",
+    "industry": "saas",
+    "size": "large",
+    "try": ["greenhouse:freshworks", "lever:freshworks"]
+  },
+  {
+    "name": "Nykaa",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:nykaa"]
+  },
+  {
+    "name": "Lenskart",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:lenskart"]
+  },
+  {
+    "name": "PhysicsWallah",
+    "industry": "edtech",
+    "size": "large",
+    "try": ["lever:physicswallah"]
+  },
+  {
+    "name": "upGrad",
+    "industry": "edtech",
+    "size": "large",
+    "try": ["lever:upgrad"]
+  },
+  {
+    "name": "Vedantu",
+    "industry": "edtech",
+    "size": "large",
+    "try": ["lever:vedantu"]
+  },
+  {
+    "name": "Licious",
+    "industry": "ecommerce",
+    "size": "scaleup",
+    "try": ["lever:licious"]
+  },
+  {
+    "name": "Rapido",
+    "industry": "mobility",
+    "size": "large",
+    "try": ["lever:rapido"]
+  },
+  {
+    "name": "BharatPe",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["lever:bharatpe"]
+  },
+  {
+    "name": "Pine Labs",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["lever:pinelabs"]
+  },
+  {
+    "name": "MPL",
+    "industry": "gaming",
+    "size": "scaleup",
+    "try": ["lever:mpl", "lever:mobilepremierleague"]
+  },
+  {
+    "name": "Games24x7",
+    "industry": "gaming",
+    "size": "scaleup",
+    "try": ["lever:games24x7"]
+  },
+  {
+    "name": "OkCredit",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["lever:okcredit"]
+  },
+  {
+    "name": "Increff",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["lever:increff"]
+  },
+  {
+    "name": "Sigmoid",
+    "industry": "data",
+    "size": "scaleup",
+    "try": ["greenhouse:sigmoid"]
+  },
+  {
+    "name": "Hevo Data",
+    "industry": "data",
+    "size": "startup",
+    "try": ["lever:hevodata"]
+  },
+  {
+    "name": "Amagi",
+    "industry": "media",
+    "size": "scaleup",
+    "try": ["lever:amagi"]
+  },
+  {
+    "name": "Gupshup",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["lever:gupshup"]
+  },
+  {
+    "name": "Uniphore",
+    "industry": "ai",
+    "size": "scaleup",
+    "try": ["lever:uniphore", "greenhouse:uniphore"]
+  },
+  {
+    "name": "Icertis",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["lever:icertis", "greenhouse:icertis"]
+  },
+  {
+    "name": "Highspot",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["greenhouse:highspot", "lever:highspot"]
+  },
+  {
+    "name": "Nium",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:nium"]
+  },
+  {
+    "name": "Turing",
+    "industry": "ai",
+    "size": "scaleup",
+    "try": ["greenhouse:turing"]
+  },
+  {
+    "name": "Toptal",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["lever:toptal"]
+  },
+  {
+    "name": "Hugging Face",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:huggingface", "lever:huggingface"]
+  },
+  {
+    "name": "Perplexity",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:perplexity"]
+  },
+  {
+    "name": "Scale AI",
+    "industry": "ai",
+    "size": "scaleup",
+    "try": ["greenhouse:scaleai"]
+  },
+  {
+    "name": "Runway",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:runway"]
+  },
+  {
+    "name": "ElevenLabs",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:elevenlabs"]
+  },
+  {
+    "name": "Pinecone",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:pinecone"]
+  },
+  {
+    "name": "Weights & Biases",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["greenhouse:wandb", "lever:wandb"]
+  },
+  {
+    "name": "Anyscale",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:anyscale"]
+  },
+  {
+    "name": "Modal",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:modal"]
+  },
+  {
+    "name": "Together AI",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["greenhouse:togetherai"]
+  },
+  {
+    "name": "Harvey",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:harvey"]
+  },
+  {
+    "name": "Writer",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:writer"]
+  },
+  {
+    "name": "Jasper",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:jasper"]
+  },
+  {
+    "name": "Character.AI",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:character"]
+  },
+  {
+    "name": "Cursor",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:cursor"]
+  },
+  {
+    "name": "Cognition",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:cognition"]
+  },
+  {
+    "name": "Sierra",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:sierra"]
+  },
+  {
+    "name": "Decagon",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:decagon"]
+  },
+  {
+    "name": "LangChain",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["ashby:langchain"]
+  },
+  {
+    "name": "Clay",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["ashby:claylabs"]
+  },
+  {
+    "name": "Vanta",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["ashby:vanta"]
+  },
+  {
+    "name": "Drata",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["ashby:drata"]
+  },
+  {
+    "name": "Wiz",
+    "industry": "security",
+    "size": "large",
+    "try": ["greenhouse:wizinc"]
+  },
+  {
+    "name": "Snyk",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["ashby:snyk"]
+  },
+  {
+    "name": "Tailscale",
+    "industry": "infra",
+    "size": "startup",
+    "try": ["greenhouse:tailscale"]
+  },
+  {
+    "name": "HashiCorp",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:hashicorp"]
+  },
+  {
+    "name": "Fly.io",
+    "industry": "infra",
+    "size": "startup",
+    "try": ["ashby:fly", "greenhouse:flyio"]
+  },
+  {
+    "name": "Render",
+    "industry": "infra",
+    "size": "startup",
+    "try": ["ashby:render"]
+  },
+  {
+    "name": "Netlify",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["greenhouse:netlify"]
+  },
+  {
+    "name": "Cockroach Labs",
+    "industry": "data",
+    "size": "scaleup",
+    "try": ["greenhouse:cockroachlabs"]
+  },
+  {
+    "name": "ClickHouse",
+    "industry": "data",
+    "size": "scaleup",
+    "try": ["ashby:clickhouse"]
+  },
+  {
+    "name": "Neon",
+    "industry": "data",
+    "size": "startup",
+    "try": ["ashby:neon"]
+  },
+  {
+    "name": "PlanetScale",
+    "industry": "data",
+    "size": "startup",
+    "try": ["greenhouse:planetscale"]
+  },
+  {
+    "name": "dbt Labs",
+    "industry": "data",
+    "size": "scaleup",
+    "try": ["greenhouse:dbtlabsinc", "ashby:dbtlabs"]
+  },
+  {
+    "name": "Airbyte",
+    "industry": "data",
+    "size": "startup",
+    "try": ["ashby:airbyte"]
+  },
+  {
+    "name": "Starburst",
+    "industry": "data",
+    "size": "scaleup",
+    "try": ["greenhouse:starburst"]
+  },
+  {
+    "name": "Hex",
+    "industry": "data",
+    "size": "startup",
+    "try": ["ashby:hex"]
+  },
+  {
+    "name": "Mode",
+    "industry": "data",
+    "size": "startup",
+    "try": ["greenhouse:mode"]
+  },
+  {
+    "name": "Amplitude",
+    "industry": "data",
+    "size": "scaleup",
+    "try": ["ashby:amplitude"]
+  },
+  {
+    "name": "Mixpanel",
+    "industry": "data",
+    "size": "scaleup",
+    "try": ["greenhouse:mixpanel"]
+  },
+  {
+    "name": "Segment",
+    "industry": "data",
+    "size": "scaleup",
+    "try": ["greenhouse:segment"]
+  },
+  {
+    "name": "LaunchDarkly",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["greenhouse:launchdarkly"]
+  },
+  {
+    "name": "CircleCI",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["greenhouse:circleci"]
+  },
+  {
+    "name": "JetBrains",
+    "industry": "devtools",
+    "size": "large",
+    "try": ["greenhouse:jetbrains"]
+  },
+  {
+    "name": "Docker",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["ashby:docker"]
+  },
+  {
+    "name": "Kong",
+    "industry": "infra",
+    "size": "scaleup",
+    "try": ["ashby:kong"]
+  },
+  {
+    "name": "Temporal",
+    "industry": "infra",
+    "size": "startup",
+    "try": ["ashby:temporal"]
+  },
+  {
+    "name": "Chainguard",
+    "industry": "security",
+    "size": "startup",
+    "try": ["greenhouse:chainguard"]
+  },
+  {
+    "name": "Sourcegraph",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["greenhouse:sourcegraph91"]
+  },
+  {
+    "name": "GitHub",
+    "industry": "devtools",
+    "size": "large",
+    "try": ["greenhouse:github"]
+  },
+  {
+    "name": "Automattic",
+    "industry": "media",
+    "size": "large",
+    "try": ["greenhouse:automattic"]
+  },
+  {
+    "name": "Doist",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["greenhouse:doist", "ashby:doist"]
+  },
+  {
+    "name": "Buffer",
+    "industry": "marketing",
+    "size": "startup",
+    "try": ["greenhouse:buffer", "ashby:buffer"]
+  },
+  {
+    "name": "Hotjar",
+    "industry": "marketing",
+    "size": "scaleup",
+    "try": ["greenhouse:hotjar"]
+  },
+  {
+    "name": "Toggl",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["greenhouse:toggl", "ashby:toggl"]
+  },
+  {
+    "name": "Wikimedia Foundation",
+    "industry": "media",
+    "size": "scaleup",
+    "try": ["greenhouse:wikimedia"]
+  },
+  {
+    "name": "Mozilla",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["greenhouse:mozilla"]
+  },
+  {
+    "name": "DuckDuckGo",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["ashby:duckduckgo", "greenhouse:duckduckgo"]
+  },
+  {
+    "name": "Proton",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["greenhouse:proton"]
+  },
+  {
+    "name": "Kraken",
+    "industry": "crypto",
+    "size": "large",
+    "try": ["ashby:kraken.com"]
+  },
+  {
+    "name": "Chainalysis",
+    "industry": "crypto",
+    "size": "scaleup",
+    "try": ["greenhouse:chainalysis"]
+  },
+  {
+    "name": "Consensys",
+    "industry": "crypto",
+    "size": "scaleup",
+    "try": ["greenhouse:consensys"]
+  },
+  {
+    "name": "Ripple",
+    "industry": "crypto",
+    "size": "large",
+    "try": ["greenhouse:ripple"]
+  },
+  {
+    "name": "Gemini",
+    "industry": "crypto",
+    "size": "scaleup",
+    "try": ["greenhouse:gemini"]
+  },
+  {
+    "name": "OpenSea",
+    "industry": "crypto",
+    "size": "startup",
+    "try": ["ashby:opensea", "greenhouse:opensea"]
+  },
+  {
+    "name": "Alchemy",
+    "industry": "crypto",
+    "size": "startup",
+    "try": ["ashby:alchemy"]
+  },
+  {
+    "name": "Fireblocks",
+    "industry": "crypto",
+    "size": "scaleup",
+    "try": ["greenhouse:fireblocks"]
+  },
+  {
+    "name": "Uniswap Labs",
+    "industry": "crypto",
+    "size": "startup",
+    "try": ["ashby:uniswap"]
+  },
+  {
+    "name": "Polygon Labs",
+    "industry": "crypto",
+    "size": "scaleup",
+    "try": ["ashby:polygon-labs"]
+  },
+  {
+    "name": "CoinDCX",
+    "industry": "crypto",
+    "size": "scaleup",
+    "try": ["lever:coindcx"]
+  },
+  {
+    "name": "Wise",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:wise"]
+  },
+  {
+    "name": "Revolut",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:revolut"]
+  },
+  {
+    "name": "Checkout.com",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:checkoutcom"]
+  },
+  {
+    "name": "GoCardless",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["greenhouse:gocardless"]
+  },
+  {
+    "name": "Mollie",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["ashby:mollie"]
+  },
+  {
+    "name": "Trade Republic",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["greenhouse:traderepublicbank"]
+  },
+  {
+    "name": "Pleo",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["ashby:pleo"]
+  },
+  {
+    "name": "Qonto",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["ashby:qonto"]
+  },
+  {
+    "name": "Bunq",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["greenhouse:bunq"]
+  },
+  {
+    "name": "SumUp",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:sumup"]
+  },
+  {
+    "name": "Marqeta",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["greenhouse:marqeta"]
+  },
+  {
+    "name": "Payoneer",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:payoneer"]
+  },
+  {
+    "name": "Rapyd",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["greenhouse:rapyd"]
+  },
+  {
+    "name": "Nubank",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["ashby:nubank"]
+  },
+  {
+    "name": "Ebanx",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["greenhouse:ebanx"]
+  },
+  {
+    "name": "Klook",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["greenhouse:klook"]
+  },
+  {
+    "name": "Grab",
+    "industry": "mobility",
+    "size": "large",
+    "try": ["greenhouse:grab"]
+  },
+  {
+    "name": "Gojek",
+    "industry": "mobility",
+    "size": "large",
+    "try": ["lever:gojek", "greenhouse:gojek"]
+  },
+  {
+    "name": "Canva",
+    "industry": "saas",
+    "size": "large",
+    "try": ["lever:canva", "greenhouse:canva"]
+  },
+  {
+    "name": "Atlassian",
+    "industry": "devtools",
+    "size": "large",
+    "try": ["lever:atlassian", "greenhouse:atlassian"]
+  },
+  {
+    "name": "Xero",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["ashby:xero"]
+  },
+  {
+    "name": "SafetyCulture",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["greenhouse:safetyculture", "lever:safetyculture"]
+  },
+  {
+    "name": "Culture Amp",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["greenhouse:cultureamp"]
+  },
+  {
+    "name": "Employment Hero",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["greenhouse:employmenthero", "lever:employmenthero"]
+  },
+  {
+    "name": "Shopify",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:shopify", "ashby:shopify"]
+  },
+  {
+    "name": "Wealthsimple",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["ashby:wealthsimple"]
+  },
+  {
+    "name": "Cohere Health",
+    "industry": "health",
+    "size": "startup",
+    "try": ["greenhouse:coherehealth"]
+  },
+  {
+    "name": "Faire",
+    "industry": "ecommerce",
+    "size": "scaleup",
+    "try": ["greenhouse:faire"]
+  },
+  {
+    "name": "Wealthfront",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:wealthfront"]
+  },
+  {
+    "name": "SoFi",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:sofi"]
+  },
+  {
+    "name": "Nextdoor",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["greenhouse:nextdoor"]
+  },
+  {
+    "name": "Quora",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["ashby:quora"]
+  },
+  {
+    "name": "Medium",
+    "industry": "media",
+    "size": "startup",
+    "try": ["greenhouse:medium"]
+  },
+  {
+    "name": "Substack",
+    "industry": "media",
+    "size": "startup",
+    "try": ["ashby:substack"]
+  },
+  {
+    "name": "Patreon",
+    "industry": "media",
+    "size": "scaleup",
+    "try": ["ashby:patreon"]
+  },
+  {
+    "name": "Twitch",
+    "industry": "media",
+    "size": "large",
+    "try": ["greenhouse:twitch"]
+  },
+  {
+    "name": "Roblox",
+    "industry": "gaming",
+    "size": "large",
+    "try": ["greenhouse:roblox"]
+  },
+  {
+    "name": "Riot Games",
+    "industry": "gaming",
+    "size": "large",
+    "try": ["greenhouse:riotgames"]
+  },
+  {
+    "name": "Epic Games",
+    "industry": "gaming",
+    "size": "large",
+    "try": ["greenhouse:epicgames"]
+  },
+  {
+    "name": "Unity",
+    "industry": "gaming",
+    "size": "large",
+    "try": ["greenhouse:unity3d", "greenhouse:unity"]
+  },
+  {
+    "name": "Niantic",
+    "industry": "gaming",
+    "size": "scaleup",
+    "try": ["greenhouse:niantic"]
+  },
+  {
+    "name": "Scopely",
+    "industry": "gaming",
+    "size": "large",
+    "try": ["greenhouse:scopely"]
+  },
+  {
+    "name": "Supercell",
+    "industry": "gaming",
+    "size": "scaleup",
+    "try": ["ashby:supercell"]
+  },
+  {
+    "name": "Peloton",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["greenhouse:peloton"]
+  },
+  {
+    "name": "Strava",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["ashby:strava"]
+  },
+  {
+    "name": "Calm",
+    "industry": "health",
+    "size": "startup",
+    "try": ["greenhouse:calm"]
+  },
+  {
+    "name": "Headspace",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["greenhouse:headspace"]
+  },
+  {
+    "name": "Hims & Hers",
+    "industry": "health",
+    "size": "large",
+    "try": ["ashby:hims-and-hers"]
+  },
+  {
+    "name": "Oscar Health",
+    "industry": "health",
+    "size": "large",
+    "try": ["greenhouse:oscar"]
+  },
+  {
+    "name": "Ro",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["lever:ro"]
+  },
+  {
+    "name": "Zocdoc",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["greenhouse:zocdoc"]
+  },
+  {
+    "name": "Flatiron Health",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["greenhouse:flatironhealth"]
+  },
+  {
+    "name": "Tempus",
+    "industry": "health",
+    "size": "large",
+    "try": ["greenhouse:tempus"]
+  },
+  {
+    "name": "Benchling",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["ashby:benchling"]
+  },
+  {
+    "name": "Komodo Health",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["greenhouse:komodohealth"]
+  },
+  {
+    "name": "Sword Health",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["greenhouse:swordhealth"]
+  },
+  {
+    "name": "Doctolib",
+    "industry": "health",
+    "size": "large",
+    "try": ["greenhouse:doctolib"]
+  },
+  {
+    "name": "Babylon",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["greenhouse:babylon"]
+  },
+  {
+    "name": "Practo",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["lever:practo"]
+  },
+  {
+    "name": "PharmEasy",
+    "industry": "health",
+    "size": "large",
+    "try": ["lever:pharmeasy"]
+  },
+  {
+    "name": "HealthifyMe",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["lever:healthifyme"]
+  },
+  {
+    "name": "Cult.fit",
+    "industry": "health",
+    "size": "large",
+    "try": ["lever:cultfit", "lever:curefit"]
+  },
+  {
+    "name": "Uber",
+    "industry": "mobility",
+    "size": "large",
+    "try": ["greenhouse:uber"]
+  },
+  {
+    "name": "Bolt",
+    "industry": "mobility",
+    "size": "large",
+    "try": ["greenhouse:bolt", "ashby:bolt"]
+  },
+  {
+    "name": "Cabify",
+    "industry": "mobility",
+    "size": "scaleup",
+    "try": ["greenhouse:cabify"]
+  },
+  {
+    "name": "BlaBlaCar",
+    "industry": "mobility",
+    "size": "scaleup",
+    "try": ["lever:blablacar"]
+  },
+  {
+    "name": "Waymo",
+    "industry": "mobility",
+    "size": "large",
+    "try": ["greenhouse:waymo"]
+  },
+  {
+    "name": "Aurora",
+    "industry": "mobility",
+    "size": "large",
+    "try": ["greenhouse:aurorainnovation"]
+  },
+  {
+    "name": "Zipline",
+    "industry": "logistics",
+    "size": "scaleup",
+    "try": ["greenhouse:flyzipline"]
+  },
+  {
+    "name": "Rivian",
+    "industry": "mobility",
+    "size": "large",
+    "try": ["greenhouse:rivian"]
+  },
+  {
+    "name": "Tesla",
+    "industry": "mobility",
+    "size": "large",
+    "try": ["greenhouse:tesla"]
+  },
+  {
+    "name": "Anduril",
+    "industry": "hardware",
+    "size": "large",
+    "try": ["greenhouse:andurilindustries"]
+  },
+  {
+    "name": "SpaceX",
+    "industry": "hardware",
+    "size": "large",
+    "try": ["greenhouse:spacex"]
+  },
+  {
+    "name": "Relativity Space",
+    "industry": "hardware",
+    "size": "scaleup",
+    "try": ["greenhouse:relativity"]
+  },
+  {
+    "name": "Nothing",
+    "industry": "hardware",
+    "size": "scaleup",
+    "try": ["greenhouse:nothing", "ashby:nothing"]
+  },
+  {
+    "name": "Framework",
+    "industry": "hardware",
+    "size": "startup",
+    "try": ["greenhouse:frameworkcomputer"]
+  },
+  {
+    "name": "Oura",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["greenhouse:oura"]
+  },
+  {
+    "name": "Whoop",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["ashby:whoop"]
+  },
+  {
+    "name": "Lime",
+    "industry": "mobility",
+    "size": "scaleup",
+    "try": ["greenhouse:lime", "lever:lime"]
+  },
+  {
+    "name": "Delivery Hero",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:deliveryhero"]
+  },
+  {
+    "name": "Glovo",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:glovo"]
+  },
+  {
+    "name": "Wolt",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:wolt"]
+  },
+  {
+    "name": "HelloFresh",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:hellofresh"]
+  },
+  {
+    "name": "Zalando",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:zalando"]
+  },
+  {
+    "name": "Vinted",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:vinted", "lever:vinted"]
+  },
+  {
+    "name": "Back Market",
+    "industry": "ecommerce",
+    "size": "scaleup",
+    "try": ["ashby:backmarket"]
+  },
+  {
+    "name": "ManoMano",
+    "industry": "ecommerce",
+    "size": "scaleup",
+    "try": ["greenhouse:manomano"]
+  },
+  {
+    "name": "Etsy",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:etsy"]
+  },
+  {
+    "name": "Wayfair",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:wayfair"]
+  },
+  {
+    "name": "Chewy",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:chewy"]
+  },
+  {
+    "name": "Poshmark",
+    "industry": "ecommerce",
+    "size": "scaleup",
+    "try": ["ashby:poshmark"]
+  },
+  {
+    "name": "GoodRx",
+    "industry": "health",
+    "size": "scaleup",
+    "try": ["greenhouse:goodrx"]
+  },
+  {
+    "name": "Thumbtack",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["ashby:thumbtack"]
+  },
+  {
+    "name": "Yelp",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["greenhouse:yelp"]
+  },
+  {
+    "name": "Zillow",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["greenhouse:zillow"]
+  },
+  {
+    "name": "Redfin",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["greenhouse:redfin"]
+  },
+  {
+    "name": "Opendoor",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["greenhouse:opendoor"]
+  },
+  {
+    "name": "Compass",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["greenhouse:urbancompass"]
+  },
+  {
+    "name": "SoundCloud",
+    "industry": "media",
+    "size": "scaleup",
+    "try": ["greenhouse:soundcloud71"]
+  },
+  {
+    "name": "Deezer",
+    "industry": "media",
+    "size": "scaleup",
+    "try": ["greenhouse:deezer"]
+  },
+  {
+    "name": "Vimeo",
+    "industry": "media",
+    "size": "scaleup",
+    "try": ["greenhouse:vimeo"]
+  },
+  {
+    "name": "Typeform",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["greenhouse:typeform"]
+  },
+  {
+    "name": "Pitch",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["ashby:pitch", "greenhouse:pitch"]
+  },
+  {
+    "name": "Personio",
+    "industry": "hr",
+    "size": "large",
+    "try": ["greenhouse:personio"]
+  },
+  {
+    "name": "HiBob",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["greenhouse:hibob", "ashby:hibob"]
+  },
+  {
+    "name": "Factorial",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["greenhouse:factorial", "ashby:factorial"]
+  },
+  {
+    "name": "Rippling",
+    "industry": "hr",
+    "size": "large",
+    "try": ["ashby:rippling", "greenhouse:rippling"]
+  },
+  {
+    "name": "Justworks",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["greenhouse:justworks"]
+  },
+  {
+    "name": "Greenhouse",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["greenhouse:greenhouse"]
+  },
+  {
+    "name": "Lever",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["lever:lever"]
+  },
+  {
+    "name": "Ashby",
+    "industry": "hr",
+    "size": "startup",
+    "try": ["ashby:ashby"]
+  },
+  {
+    "name": "Workable",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["greenhouse:workable"]
+  },
+  {
+    "name": "Oyster",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["ashby:oyster"]
+  },
+  {
+    "name": "Multiplier",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["lever:multiplier", "ashby:multiplier"]
+  },
+  {
+    "name": "Papaya Global",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["greenhouse:papayaglobal"]
+  },
+  {
+    "name": "Loom",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["greenhouse:loom"]
+  },
+  {
+    "name": "Calendly",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["greenhouse:calendly"]
+  },
+  {
+    "name": "ClickUp",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["ashby:clickup"]
+  },
+  {
+    "name": "Monday.com",
+    "industry": "saas",
+    "size": "large",
+    "try": ["greenhouse:mondaycom", "ashby:monday"]
+  },
+  {
+    "name": "Smartsheet",
+    "industry": "saas",
+    "size": "large",
+    "try": ["greenhouse:smartsheet"]
+  },
+  {
+    "name": "Coda",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["greenhouse:coda"]
+  },
+  {
+    "name": "Front",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["greenhouse:frontapp", "ashby:front"]
+  },
+  {
+    "name": "Gong",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["greenhouse:gongio"]
+  },
+  {
+    "name": "Outreach",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["lever:outreach"]
+  },
+  {
+    "name": "Apollo.io",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["greenhouse:apolloio"]
+  },
+  {
+    "name": "Attentive",
+    "industry": "marketing",
+    "size": "scaleup",
+    "try": ["greenhouse:attentive"]
+  },
+  {
+    "name": "Braze",
+    "industry": "marketing",
+    "size": "scaleup",
+    "try": ["greenhouse:braze"]
+  },
+  {
+    "name": "Iterable",
+    "industry": "marketing",
+    "size": "scaleup",
+    "try": ["ashby:iterable"]
+  },
+  {
+    "name": "Klaviyo",
+    "industry": "marketing",
+    "size": "large",
+    "try": ["greenhouse:klaviyo"]
+  },
+  {
+    "name": "Sprout Social",
+    "industry": "marketing",
+    "size": "large",
+    "try": ["greenhouse:sproutsocial"]
+  },
+  {
+    "name": "Semrush",
+    "industry": "marketing",
+    "size": "large",
+    "try": ["greenhouse:semrush", "lever:semrush"]
+  },
+  {
+    "name": "Similarweb",
+    "industry": "marketing",
+    "size": "scaleup",
+    "try": ["greenhouse:similarweb"]
+  },
+  {
+    "name": "Contentsquare",
+    "industry": "marketing",
+    "size": "large",
+    "try": ["lever:contentsquare"]
+  },
+  {
+    "name": "Algolia",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["greenhouse:algolia"]
+  },
+  {
+    "name": "Mapbox",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["ashby:mapbox"]
+  },
+  {
+    "name": "Auth0",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["greenhouse:auth0"]
+  },
+  {
+    "name": "Cloudinary",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["lever:cloudinary"]
+  },
+  {
+    "name": "Sendbird",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["greenhouse:sendbird"]
+  },
+  {
+    "name": "Agora",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["greenhouse:agora"]
+  },
+  {
+    "name": "Pusher",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["greenhouse:pusher"]
+  },
+  {
+    "name": "Ably",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["greenhouse:ably", "ashby:ably"]
+  },
+  {
+    "name": "New Relic",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:newrelic"]
+  },
+  {
+    "name": "PagerDuty",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:pagerduty"]
+  },
+  {
+    "name": "Dynatrace",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:dynatrace"]
+  },
+  {
+    "name": "Honeycomb",
+    "industry": "infra",
+    "size": "startup",
+    "try": ["greenhouse:honeycomb"]
+  },
+  {
+    "name": "Chronosphere",
+    "industry": "infra",
+    "size": "startup",
+    "try": ["greenhouse:chronosphere", "ashby:chronosphere"]
+  },
+  {
+    "name": "Fastly",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:fastly"]
+  },
+  {
+    "name": "DigitalOcean",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:digitalocean98"]
+  },
+  {
+    "name": "Akamai",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:akamai"]
+  },
+  {
+    "name": "Nutanix",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:nutanix"]
+  },
+  {
+    "name": "Pure Storage",
+    "industry": "infra",
+    "size": "large",
+    "try": ["greenhouse:purestorage"]
+  },
+  {
+    "name": "Cohesity",
+    "industry": "security",
+    "size": "large",
+    "try": ["greenhouse:cohesity"]
+  },
+  {
+    "name": "Netskope",
+    "industry": "security",
+    "size": "large",
+    "try": ["greenhouse:netskope"]
+  },
+  {
+    "name": "Abnormal Security",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["greenhouse:abnormalsecurity"]
+  },
+  {
+    "name": "Arctic Wolf",
+    "industry": "security",
+    "size": "large",
+    "try": ["greenhouse:arcticwolf"]
+  },
+  {
+    "name": "Tanium",
+    "industry": "security",
+    "size": "large",
+    "try": ["greenhouse:tanium"]
+  },
+  {
+    "name": "Lacework",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["greenhouse:lacework"]
+  },
+  {
+    "name": "Sysdig",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["lever:sysdig"]
+  },
+  {
+    "name": "Huntress",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["greenhouse:huntress"]
+  },
+  {
+    "name": "Bitwarden",
+    "industry": "security",
+    "size": "startup",
+    "try": ["greenhouse:bitwarden"]
+  },
+  {
+    "name": "Keeper Security",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["greenhouse:keepersecurity"]
+  },
+  {
+    "name": "Coalition",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["greenhouse:coalition"]
+  },
+  {
+    "name": "Elastic Path",
+    "industry": "ecommerce",
+    "size": "startup",
+    "try": ["greenhouse:elasticpath"]
+  },
+  {
+    "name": "commercetools",
+    "industry": "ecommerce",
+    "size": "scaleup",
+    "try": ["greenhouse:commercetools"]
+  },
+  {
+    "name": "BigCommerce",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["greenhouse:bigcommerce"]
+  },
+  {
+    "name": "Bolt Financial",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["greenhouse:boltfinancial"]
+  },
+  {
+    "name": "Navan",
+    "industry": "saas",
+    "size": "large",
+    "try": ["greenhouse:tripactions"]
+  },
+  {
+    "name": "Expensify",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["greenhouse:expensify"]
+  },
+  {
+    "name": "Bill.com",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["greenhouse:billcom"]
+  },
+  {
+    "name": "Tipalti",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["greenhouse:tipalti"]
+  },
+  {
+    "name": "Pipe",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["ashby:pipe"]
+  },
+  {
+    "name": "Modern Treasury",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["ashby:moderntreasury"]
+  },
+  {
+    "name": "Increase",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["ashby:increase"]
+  },
+  {
+    "name": "Lithic",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["greenhouse:lithic"]
+  },
+  {
+    "name": "Alloy",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["greenhouse:alloy"]
+  },
+  {
+    "name": "Persona",
+    "industry": "security",
+    "size": "startup",
+    "try": ["ashby:persona"]
+  },
+  {
+    "name": "Sardine",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["ashby:sardine"]
+  },
+  {
+    "name": "Socure",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["ashby:socure"]
+  },
+  {
+    "name": "Onfido",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["greenhouse:onfido"]
+  },
+  {
+    "name": "Sumsub",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["ashby:sumsub"]
+  },
+  {
+    "name": "Veriff",
+    "industry": "security",
+    "size": "scaleup",
+    "try": ["greenhouse:veriff"]
+  },
+  {
+    "name": "Hyperverge",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["lever:hyperverge"]
+  },
+  {
+    "name": "Signzy",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["lever:signzy"]
+  },
+  {
+    "name": "Perfios",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:perfios"]
+  },
+  {
+    "name": "M2P Fintech",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:m2pfintech", "lever:m2p"]
+  },
+  {
+    "name": "Cashfree Payments",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:cashfree", "greenhouse:cashfree"]
+  },
+  {
+    "name": "Open Financial",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:open", "lever:bankopen"]
+  },
+  {
+    "name": "Instamojo",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["lever:instamojo"]
+  },
+  {
+    "name": "Rupeek",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:rupeek"]
+  },
+  {
+    "name": "Zerodha",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:zerodha"]
+  },
+  {
+    "name": "Upstox",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["lever:upstox"]
+  },
+  {
+    "name": "Dhan",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["lever:dhan"]
+  },
+  {
+    "name": "INDmoney",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:indmoney"]
+  },
+  {
+    "name": "Jar",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["lever:jar", "lever:jar-app"]
+  },
+  {
+    "name": "Scapia",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["lever:scapia", "ashby:scapia"]
+  },
+  {
+    "name": "Kotak 811",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["lever:kotak811"]
+  },
+  {
+    "name": "Treebo",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["lever:treebo"]
+  },
+  {
+    "name": "OYO",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["lever:oyo", "lever:oyorooms"]
+  },
+  {
+    "name": "MakeMyTrip",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["lever:makemytrip"]
+  },
+  {
+    "name": "ixigo",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["lever:ixigo"]
+  },
+  {
+    "name": "Dunzo",
+    "industry": "ecommerce",
+    "size": "scaleup",
+    "try": ["lever:dunzo"]
+  },
+  {
+    "name": "BigBasket",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:bigbasket"]
+  },
+  {
+    "name": "Blinkit",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:blinkit"]
+  },
+  {
+    "name": "FirstCry",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:firstcry"]
+  },
+  {
+    "name": "Myntra",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:myntra"]
+  },
+  {
+    "name": "Udaan",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:udaan"]
+  },
+  {
+    "name": "Delhivery",
+    "industry": "logistics",
+    "size": "large",
+    "try": ["lever:delhivery"]
+  },
+  {
+    "name": "Shiprocket",
+    "industry": "logistics",
+    "size": "scaleup",
+    "try": ["lever:shiprocket"]
+  },
+  {
+    "name": "Shadowfax",
+    "industry": "logistics",
+    "size": "scaleup",
+    "try": ["lever:shadowfax"]
+  },
+  {
+    "name": "Rivigo",
+    "industry": "logistics",
+    "size": "scaleup",
+    "try": ["lever:rivigo"]
+  },
+  {
+    "name": "BlackBuck",
+    "industry": "logistics",
+    "size": "scaleup",
+    "try": ["lever:blackbuck"]
+  },
+  {
+    "name": "Ninjacart",
+    "industry": "ecommerce",
+    "size": "scaleup",
+    "try": ["lever:ninjacart"]
+  },
+  {
+    "name": "DeHaat",
+    "industry": "ecommerce",
+    "size": "scaleup",
+    "try": ["lever:dehaat"]
+  },
+  {
+    "name": "Pocket FM",
+    "industry": "media",
+    "size": "scaleup",
+    "try": ["lever:pocketfm"]
+  },
+  {
+    "name": "Kuku FM",
+    "industry": "media",
+    "size": "startup",
+    "try": ["lever:kukufm"]
+  },
+  {
+    "name": "Glance",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["greenhouse:glance"]
+  },
+  {
+    "name": "Dailyhunt",
+    "industry": "media",
+    "size": "large",
+    "try": ["lever:dailyhunt", "lever:verse"]
+  },
+  {
+    "name": "Eloelo",
+    "industry": "consumer",
+    "size": "startup",
+    "try": ["lever:eloelo"]
+  },
+  {
+    "name": "Scaler",
+    "industry": "edtech",
+    "size": "scaleup",
+    "try": ["lever:scaler", "lever:interviewbit"]
+  },
+  {
+    "name": "Masai School",
+    "industry": "edtech",
+    "size": "startup",
+    "try": ["lever:masaischool"]
+  },
+  {
+    "name": "Simplilearn",
+    "industry": "edtech",
+    "size": "large",
+    "try": ["lever:simplilearn"]
+  },
+  {
+    "name": "Great Learning",
+    "industry": "edtech",
+    "size": "large",
+    "try": ["lever:greatlearning"]
+  },
+  {
+    "name": "Eruditus",
+    "industry": "edtech",
+    "size": "large",
+    "try": ["lever:eruditus", "greenhouse:eruditus"]
+  },
+  {
+    "name": "Classplus",
+    "industry": "edtech",
+    "size": "scaleup",
+    "try": ["lever:classplus"]
+  },
+  {
+    "name": "Testbook",
+    "industry": "edtech",
+    "size": "scaleup",
+    "try": ["lever:testbook"]
+  },
+  {
+    "name": "Cuemath",
+    "industry": "edtech",
+    "size": "scaleup",
+    "try": ["lever:cuemath"]
+  },
+  {
+    "name": "Sprinklr",
+    "industry": "saas",
+    "size": "large",
+    "try": ["lever:sprinklr", "greenhouse:sprinklr"]
+  },
+  {
+    "name": "Zoho",
+    "industry": "saas",
+    "size": "large",
+    "try": ["lever:zoho"]
+  },
+  {
+    "name": "Capillary Technologies",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["lever:capillary", "lever:capillarytech"]
+  },
+  {
+    "name": "Netcore Cloud",
+    "industry": "marketing",
+    "size": "scaleup",
+    "try": ["lever:netcore", "lever:netcorecloud"]
+  },
+  {
+    "name": "WebEngage",
+    "industry": "marketing",
+    "size": "startup",
+    "try": ["lever:webengage"]
+  },
+  {
+    "name": "LeadSquared",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["lever:leadsquared"]
+  },
+  {
+    "name": "Kapture CX",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["lever:kapture"]
+  },
+  {
+    "name": "Tekion",
+    "industry": "saas",
+    "size": "large",
+    "try": ["ashby:tekion"]
+  },
+  {
+    "name": "Mindtree",
+    "industry": "saas",
+    "size": "large",
+    "try": ["lever:mindtree"]
+  },
+  {
+    "name": "Thoughtworks",
+    "industry": "saas",
+    "size": "large",
+    "try": ["greenhouse:thoughtworks"]
+  },
+  {
+    "name": "Nagarro",
+    "industry": "saas",
+    "size": "large",
+    "try": ["lever:nagarro"]
+  },
+  {
+    "name": "EPAM Systems",
+    "industry": "saas",
+    "size": "large",
+    "try": ["greenhouse:epamsystems"]
+  },
+  {
+    "name": "Globant",
+    "industry": "saas",
+    "size": "large",
+    "try": ["greenhouse:globant"]
+  },
+  {
+    "name": "Sahaj Software",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["greenhouse:sahajsoftware"]
+  },
+  {
+    "name": "CommerceIQ",
+    "industry": "saas",
+    "size": "scaleup",
+    "try": ["greenhouse:commerceiq"]
+  },
+  {
+    "name": "Simpl",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["lever:simpl", "lever:getsimpl"]
+  },
+  {
+    "name": "LambdaTest",
+    "industry": "devtools",
+    "size": "scaleup",
+    "try": ["lever:lambdatest"]
+  },
+  {
+    "name": "Appsmith",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["ashby:appsmith", "lever:appsmith"]
+  },
+  {
+    "name": "ToolJet",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["ashby:tooljet", "lever:tooljet"]
+  },
+  {
+    "name": "Middleware",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["ashby:middleware"]
+  },
+  {
+    "name": "SigNoz",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["ashby:signoz"]
+  },
+  {
+    "name": "Hoppscotch",
+    "industry": "devtools",
+    "size": "startup",
+    "try": ["ashby:hoppscotch"]
+  },
+  {
+    "name": "Chatwoot",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["ashby:chatwoot"]
+  },
+  {
+    "name": "Frappe",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["lever:frappe"]
+  },
+  {
+    "name": "Zluri",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["lever:zluri"]
+  },
+  {
+    "name": "Spendflo",
+    "industry": "saas",
+    "size": "startup",
+    "try": ["lever:spendflo"]
+  },
+  {
+    "name": "Sprinto",
+    "industry": "security",
+    "size": "startup",
+    "try": ["lever:sprinto"]
+  },
+  {
+    "name": "Scrut Automation",
+    "industry": "security",
+    "size": "startup",
+    "try": ["lever:scrut"]
+  },
+  {
+    "name": "Akto",
+    "industry": "security",
+    "size": "startup",
+    "try": ["ashby:akto"]
+  },
+  {
+    "name": "Pixxel",
+    "industry": "hardware",
+    "size": "startup",
+    "try": ["lever:pixxel"]
+  },
+  {
+    "name": "Skyroot Aerospace",
+    "industry": "hardware",
+    "size": "startup",
+    "try": ["lever:skyroot"]
+  },
+  {
+    "name": "Agnikul",
+    "industry": "hardware",
+    "size": "startup",
+    "try": ["lever:agnikul"]
+  },
+  {
+    "name": "Exponent Energy",
+    "industry": "climate",
+    "size": "startup",
+    "try": ["lever:exponent", "lever:exponentenergy"]
+  },
+  {
+    "name": "Log9",
+    "industry": "climate",
+    "size": "startup",
+    "try": ["lever:log9"]
+  },
+  {
+    "name": "Yulu",
+    "industry": "mobility",
+    "size": "startup",
+    "try": ["lever:yulu"]
+  },
+  {
+    "name": "Euler Motors",
+    "industry": "mobility",
+    "size": "startup",
+    "try": ["lever:eulermotors"]
+  },
+  {
+    "name": "Rebel Foods",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:rebelfoods"]
+  },
+  {
+    "name": "Country Delight",
+    "industry": "ecommerce",
+    "size": "scaleup",
+    "try": ["lever:countrydelight"]
+  },
+  {
+    "name": "Mamaearth",
+    "industry": "ecommerce",
+    "size": "scaleup",
+    "try": ["lever:mamaearth", "lever:honasa"]
+  },
+  {
+    "name": "boAt",
+    "industry": "hardware",
+    "size": "scaleup",
+    "try": ["lever:boat", "lever:boatlifestyle"]
+  },
+  {
+    "name": "Noise",
+    "industry": "hardware",
+    "size": "scaleup",
+    "try": ["lever:noise"]
+  },
+  {
+    "name": "Pepperfry",
+    "industry": "ecommerce",
+    "size": "scaleup",
+    "try": ["lever:pepperfry"]
+  },
+  {
+    "name": "Livspace",
+    "industry": "ecommerce",
+    "size": "large",
+    "try": ["lever:livspace"]
+  },
+  {
+    "name": "NoBroker",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["lever:nobroker"]
+  },
+  {
+    "name": "Housing.com",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["lever:housing"]
+  },
+  {
+    "name": "CarDekho",
+    "industry": "consumer",
+    "size": "large",
+    "try": ["lever:cardekho", "lever:girnarsoft"]
+  },
+  {
+    "name": "PolicyBazaar",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["lever:policybazaar"]
+  },
+  {
+    "name": "Digit Insurance",
+    "industry": "fintech",
+    "size": "large",
+    "try": ["lever:godigit"]
+  },
+  {
+    "name": "InsuranceDekho",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:insurancedekho"]
+  },
+  {
+    "name": "Turtlemint",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:turtlemint"]
+  },
+  {
+    "name": "Lendingkart",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:lendingkart"]
+  },
+  {
+    "name": "KreditBee",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:kreditbee"]
+  },
+  {
+    "name": "MoneyView",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:moneyview"]
+  },
+  {
+    "name": "Fibe",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:fibe", "lever:earlysalary"]
+  },
+  {
+    "name": "Stashfin",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:stashfin"]
+  },
+  {
+    "name": "Uni Cards",
+    "industry": "fintech",
+    "size": "startup",
+    "try": ["lever:uni", "lever:unicards"]
+  },
+  {
+    "name": "OneCard",
+    "industry": "fintech",
+    "size": "scaleup",
+    "try": ["lever:onecard", "lever:fplabs"]
+  },
+  {
+    "name": "Park+",
+    "industry": "consumer",
+    "size": "startup",
+    "try": ["lever:parkplus"]
+  },
+  {
+    "name": "Apna",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["lever:apna"]
+  },
+  {
+    "name": "Instahyre",
+    "industry": "hr",
+    "size": "startup",
+    "try": ["lever:instahyre"]
+  },
+  {
+    "name": "Keka",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["lever:keka"]
+  },
+  {
+    "name": "greytHR",
+    "industry": "hr",
+    "size": "scaleup",
+    "try": ["lever:greythr"]
+  },
+  {
+    "name": "Springworks",
+    "industry": "hr",
+    "size": "startup",
+    "try": ["lever:springworks"]
+  },
+  {
+    "name": "Truecaller",
+    "industry": "consumer",
+    "size": "scaleup",
+    "try": ["greenhouse:truecaller"]
+  },
+  {
+    "name": "InVideo",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["lever:invideo"]
+  },
+  {
+    "name": "Rephrase.ai",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["lever:rephrase"]
+  },
+  {
+    "name": "Gan.ai",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["lever:gan"]
+  },
+  {
+    "name": "Krutrim",
+    "industry": "ai",
+    "size": "scaleup",
+    "try": ["lever:krutrim"]
+  },
+  {
+    "name": "Mad Street Den",
+    "industry": "ai",
+    "size": "startup",
+    "try": ["lever:madstreetden"]
+  },
+  {
+    "name": "Fractal Analytics",
+    "industry": "data",
+    "size": "large",
+    "try": ["lever:fractal", "greenhouse:fractal"]
+  },
+  {
+    "name": "Tiger Analytics",
+    "industry": "data",
+    "size": "large",
+    "try": ["lever:tigeranalytics"]
+  },
+  {
+    "name": "Mu Sigma",
+    "industry": "data",
+    "size": "large",
+    "try": ["lever:musigma"]
+  },
+  {
+    "name": "LatentView",
+    "industry": "data",
+    "size": "large",
+    "try": ["lever:latentview"]
+  },
+  {
+    "name": "Tredence",
+    "industry": "data",
+    "size": "large",
+    "try": ["lever:tredence"]
+  },
+  {
+    "name": "Quantiphi",
+    "industry": "data",
+    "size": "large",
+    "try": ["lever:quantiphi"]
+  },
+  {
+    "name": "Gramener",
+    "industry": "data",
+    "size": "startup",
+    "try": ["lever:gramener"]
+  },
+  {
+    "name": "Course5 Intelligence",
+    "industry": "data",
+    "size": "scaleup",
+    "try": ["lever:course5"]
+  }
+]

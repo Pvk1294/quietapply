@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { Command } from "commander";
-import { loadConfig } from "../core/config.js";
+import { loadConfig, saveConfig } from "../core/config.js";
 import { kvGet, kvSet, openDb } from "../core/db.js";
 import { ensureHome, packageRoot, paths } from "../core/paths.js";
 import { addApplication, listApplications, listQuestions } from "../core/store.js";
@@ -57,13 +57,93 @@ program
 program
   .command("discover")
   .description("Find open roles at your companies through the public Greenhouse, Lever and Ashby APIs")
-  .action(async () => {
+  .option("--starter", "also check the best matches from the bundled starter company list")
+  .action(async (o: { starter?: boolean }) => {
     const p = ensureHome(paths());
     const db = openDb(p);
-    const s = await discover(db, loadConfig(p), loadProfile(p), defaultFetcher);
+    const s = await discover(db, loadConfig(p), loadProfile(p), defaultFetcher, o);
+    if (s.fromStarterList)
+      console.log(
+        `Checking ${s.companies} companies, including the best matches from the starter list for your roles and places.\n` +
+          "Keep the ones you like with `quietapply companies suggest --add`.",
+      );
     console.log(`Found ${s.found} open roles; queued ${s.added} new (${s.alreadyKnown} already known).`);
     for (const [reason, n] of Object.entries(s.skipped)) console.log(`  skipped ${n}: ${reason}`);
     for (const e of s.errors) console.log(`  error at ${e.company}: ${e.error}`);
+  });
+
+const companies = program.command("companies").description("The companies QuietApply watches");
+
+companies
+  .command("list")
+  .description("Show your watch list")
+  .action(() => {
+    const list = loadConfig(ensureHome(paths())).companies;
+    if (!list.length) console.log("No companies yet. Try `quietapply companies suggest`.");
+    for (const c of list) console.log(`${c.name.padEnd(28)} ${c.ats.padEnd(10)} ${c.token}`);
+  });
+
+companies
+  .command("suggest")
+  .description("Companies from the bundled, checked starter list that match your roles and places")
+  .option("--add [n]", "add the best n to your watch list (default 40)")
+  .option("--limit <n>", "how many to show", Number, 40)
+  .action(async (o: { add?: string | boolean; limit: number }) => {
+    const { suggestCompanies, mergeCompanyList, toCompany, starterList } = await import(
+      "../companies/starter.js"
+    );
+    const p = ensureHome(paths());
+    const config = loadConfig(p);
+    const s = suggestCompanies(config);
+    console.log(
+      `${s.length} matches from ${starterList().companies.length} companies (checked ${starterList().checkedAt}).`,
+    );
+    const n = o.add === undefined ? o.limit : o.add === true ? 40 : Number(o.add);
+    for (const c of s.slice(0, n))
+      console.log(
+        `${c.name.padEnd(28)} ${c.ats.padEnd(10)} ${String(c.jobs).padStart(4)} open  ${c.why.join(", ")}`,
+      );
+    if (o.add !== undefined) {
+      config.companies = mergeCompanyList(config.companies, s.slice(0, n).map(toCompany));
+      saveConfig(config, p);
+      console.log(`\nWatching ${config.companies.length} companies.`);
+    }
+  });
+
+companies
+  .command("add <urls...>")
+  .description("Add companies by careers-page URL (Greenhouse, Lever, Ashby, or a page that embeds one)")
+  .action(async (urls: string[]) => {
+    const { resolveCareersUrl } = await import("../companies/resolve.js");
+    const { mergeCompanyList } = await import("../companies/starter.js");
+    const p = ensureHome(paths());
+    const config = loadConfig(p);
+    for (const u of urls) {
+      const r = await resolveCareersUrl(u, defaultFetcher);
+      if (!r.ok) {
+        console.log(`✗ ${u}: ${r.reason}`);
+        process.exitCode = 1;
+        continue;
+      }
+      config.companies = mergeCompanyList(config.companies, [r.company]);
+      console.log(`✓ ${r.company.name} (${r.company.ats}: ${r.company.token}), ${r.jobs} open jobs`);
+    }
+    saveConfig(config, p);
+  });
+
+companies
+  .command("remove <name>")
+  .description("Stop watching a company (by name or board token)")
+  .action((name: string) => {
+    const p = ensureHome(paths());
+    const config = loadConfig(p);
+    const before = config.companies.length;
+    const n = name.toLowerCase();
+    config.companies = config.companies.filter(
+      (c) => c.name.toLowerCase() !== n && c.token.toLowerCase() !== n,
+    );
+    saveConfig(config, p);
+    console.log(before === config.companies.length ? `Not on the list: ${name}` : `Removed ${name}.`);
   });
 
 program
