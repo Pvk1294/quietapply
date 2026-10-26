@@ -28,6 +28,8 @@ export const Profile = z.object({
   email: z.string().default(""),
   phone: z.string().default(""),
   location: z.string().default(""),
+  city: z.string().optional(),
+  country: z.string().optional(),
   headline: z.string().default(""),
   summary: z.string().default(""),
   links: z
@@ -88,6 +90,17 @@ export const PROFILE_FIELDS: { field: string; pattern: RegExp; value: (p: Profil
     { field: "email", pattern: /e ?mail/, value: (p) => p.email },
     { field: "phone", pattern: /phone|mobile|contact number/, value: (p) => p.phone },
     {
+      field: "country",
+      pattern:
+        /^country( of residence)?$|^current country|^country (you live in|where you live)|which country (do you|are you) (live|living|based|reside)/,
+      value: (p) => p.country,
+    },
+    {
+      field: "city",
+      pattern: /^(current )?city( of residence)?$/,
+      value: (p) => p.city,
+    },
+    {
       field: "location",
       pattern: /^(current )?(location|city)|where are you (currently )?(located|based)/,
       value: (p) => p.location,
@@ -123,6 +136,7 @@ export function profileForPrompt(profile: Profile): Record<string, unknown> {
     email: profile.email,
     phone: profile.phone,
     location: profile.location,
+    country: profile.country,
     headline: profile.headline,
     links: profile.links,
     totalYears: profile.totalYears,

@@ -1,6 +1,7 @@
 import type { DB } from "../core/db.js";
 import { now } from "../core/db.js";
 import { norm, sameQuestion, similarity } from "../core/text.js";
+import { countriesInText } from "./countries.js";
 import { PROFILE_FIELDS, type Profile } from "./profile.js";
 import { STANDARD_QUESTIONS, standardQuestion } from "./seed.js";
 
@@ -58,7 +59,8 @@ export function saveAnswer(db: DB, a: NewAnswer): Answer {
     (x) =>
       x.scope === scope &&
       (x.scope_value ?? "").toLowerCase() === (scopeValue ?? "").toLowerCase() &&
-      ((key && x.key === key) || sameQuestion(x.question, a.question)),
+      // Two keyed answers are the same only when their keys are ("sponsorship" vs "sponsorship:in").
+      (key && x.key ? x.key === key : sameQuestion(x.question, a.question)),
   );
   const t = now();
   if (existing) {
@@ -200,8 +202,23 @@ export function lookupAnswer(
         };
     }
   }
-  const scored = listAnswers(db)
-    .filter((a) => inScope(a, ctx))
+  const all = listAnswers(db).filter((a) => inScope(a, ctx));
+  // "Are you authorized to work in the United States?" uses the answer saved for that country, if any.
+  if (key && PER_COUNTRY_KEYS.includes(key)) {
+    for (const cc of countriesInText(question)) {
+      const hit = all.find((a) => a.key === `${key}:${cc}`);
+      if (hit)
+        return {
+          status: "known",
+          memoryId: `mem:${hit.id}`,
+          answer: hit.answer,
+          question: hit.question,
+          confidence: 1,
+          sensitive: hit.sensitive,
+        };
+    }
+  }
+  const scored = all
     .map((a) => ({ a, s: score(a, question, key) + SCOPE_BONUS[a.scope] }))
     .sort((x, y) => y.s - x.s);
   const best = scored[0];
@@ -243,6 +260,9 @@ export function relevantAnswers(
   return [...out.values()];
 }
 
+/** Standard questions that can have one answer per country, saved under keys like "sponsorship:us". */
+export const PER_COUNTRY_KEYS = ["work_authorization", "sponsorship"];
+
 /** Answers every form tends to need; sent even when the form's questions are not known in advance. */
 export const CORE_KEYS = ["work_authorization", "sponsorship", "notice_period", "relocation", "work_mode"];
 
@@ -251,7 +271,7 @@ export function coreAnswers(
   ctx: LookupContext = {},
 ): { question: string; memoryId: string; answer: string }[] {
   return listAnswers(db)
-    .filter((a) => a.key && CORE_KEYS.includes(a.key) && inScope(a, ctx))
+    .filter((a) => a.key && CORE_KEYS.includes(a.key.split(":")[0]!) && inScope(a, ctx))
     .map((a) => ({ question: a.question, memoryId: `mem:${a.id}`, answer: a.answer }));
 }
 

@@ -14,6 +14,8 @@ export const Company = z.object({
   ats: z.enum(["greenhouse", "lever", "ashby"]),
   /** Board token / company slug used by the public job API, e.g. "acme" for boards.greenhouse.io/acme. */
   token: z.string(),
+  /** Lever and Greenhouse have an EU-hosted variant for some companies. */
+  region: z.literal("eu").optional(),
 });
 export type Company = z.infer<typeof Company>;
 
@@ -24,6 +26,15 @@ export const Rules = z.object({
   excludeTitles: z.array(z.string()).default([]),
   /** Accepted locations; "remote" matches remote roles. Empty = any location. */
   locations: z.array(z.string()).default([]),
+  /**
+   * Countries you want to work in. A job in Bengaluru counts as India even when the posting does not say
+   * "India". Empty = no country filter beyond `locations`.
+   */
+  countries: z.array(z.string()).default([]),
+  /** Seniority levels to apply for (see SENIORITY). Empty = any level. */
+  seniority: z.array(z.string()).default([]),
+  /** Skip postings whose stated pay (same currency) tops out below this yearly amount. */
+  minSalary: z.object({ amount: z.number().min(0), currency: z.string() }).optional(),
   /** Companies never to apply to (current employer, stealth list). */
   neverApply: z.array(z.string()).default([]),
   /** Minimum share of required skills (from the posting) you must have, 0..1. */
@@ -68,9 +79,41 @@ export const Config = z.object({
   linkedinAcknowledged: z.string().optional(),
   companies: z.array(Company).default([]),
   rules: Rules.default(Rules.parse({})),
+  /** Used to pick companies from the starter list (data/companies.json). */
+  preferences: z
+    .object({
+      industries: z.array(z.string()).default([]),
+      sizes: z.array(z.enum(["startup", "scaleup", "large"])).default([]),
+    })
+    .default({ industries: [], sizes: [] }),
+  /** How the agent should write cover letters and long answers it tailors from your stored text. */
+  coverLetterStyle: z.enum(["none", "short", "warm", "formal", "template"]).default("short"),
   dashboard: z.object({ port: z.number().int().default(4777) }).default({ port: 4777 }),
 });
 export type Config = z.infer<typeof Config>;
+
+/** Seniority levels and the title words that identify them. Titles with no level word count as "mid". */
+export const SENIORITY: { id: string; label: string; words: string[] }[] = [
+  { id: "intern", label: "Intern", words: ["intern", "internship", "trainee", "apprentice"] },
+  {
+    id: "entry",
+    label: "Entry level / junior",
+    words: ["junior", "jr", "entry level", "graduate", "new grad", "associate"],
+  },
+  { id: "mid", label: "Mid level", words: ["mid level", "intermediate"] },
+  { id: "senior", label: "Senior", words: ["senior", "sr"] },
+  { id: "staff", label: "Staff / principal", words: ["staff", "principal", "distinguished", "fellow"] },
+  {
+    id: "lead",
+    label: "Lead / manager",
+    words: ["lead", "head of", "engineering manager", "manager of", "management"],
+  },
+  {
+    id: "director",
+    label: "Director and above",
+    words: ["director", "vp", "vice president", "chief", "cto", "ceo"],
+  },
+];
 
 export const LINKEDIN_ACK = "I understand LinkedIn forbids automation and my account may be restricted";
 

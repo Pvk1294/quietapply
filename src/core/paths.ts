@@ -20,6 +20,8 @@ export interface Paths {
   siteNotes: string;
   lock: string;
   pauseFlag: string;
+  /** Which `quietapply init` steps are finished, so setup can continue where it stopped. */
+  setupState: string;
 }
 
 export function paths(home = dataHome()): Paths {
@@ -34,6 +36,7 @@ export function paths(home = dataHome()): Paths {
     siteNotes: join(home, "site-notes"),
     lock: join(home, "runner.lock"),
     pauseFlag: join(home, "PAUSED"),
+    setupState: join(home, "setup-state.json"),
   };
 }
 

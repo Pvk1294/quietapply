@@ -33,14 +33,15 @@ program
 
 program
   .command("init")
-  .description("Set up: choose the AI, read your resume, answer the common questions once")
+  .description("Set up step by step: AI, resume, standard answers, targets, companies, safety")
   .option("-r, --resume <file>", "resume file (PDF, DOCX or text)")
   .option("-p, --provider <id>", "claude-code, codex or fake")
-  .option("-y, --yes", "no questions; accept defaults")
-  .option("--full", "ask all standard questions, not only the essential ones")
+  .option("-s, --step <step>", "redo one step: ai, resume, answers, targets, sources, logins, safety")
+  .option("-y, --yes", "no questions; keep defaults and anything already saved")
+  .option("--full", "also ask the optional standard questions")
   .action(async (o) => {
     const { init } = await import("./init.js");
-    await init(o);
+    await init({ ...o, cliPath });
   });
 
 program
