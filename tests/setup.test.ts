@@ -90,3 +90,14 @@ describe("ATS detection", () => {
     expect(out).toEqual([{ name: "acme", ats: "greenhouse", token: "acme" }]);
   });
 });
+
+describe("init explanations", () => {
+  it("has one plain sentence for every question", async () => {
+    const { EXPLAIN } = await import("../src/cli/explain.js");
+    for (const [k, v] of Object.entries(EXPLAIN)) {
+      expect(v.length, k).toBeGreaterThan(40);
+      expect(v.length, k).toBeLessThan(300);
+    }
+    expect(EXPLAIN.linkedin).toMatch(/off by default/);
+  });
+});

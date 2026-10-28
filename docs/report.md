@@ -167,3 +167,10 @@ node scripts/live-dry-run.mjs      # optional: one real dry run with your Claude
 4. Show the agent's screenshot on each application in the dashboard.
 5. A test for the interactive `init` flow; `quietapply add` should fetch the title from the API.
 6. Publish to npm (needs your approval), then record the demo GIF with the fake persona.
+
+## Integration of the three night-2 branches (branch `dot/176-quietapply-combine-170-172-173-into-one`)
+Branches 170 (real-form fixes, dry-run guard, screenshots), 173 (Codex fix, structured "couldn't apply" records, `quietapply phone`) and 172 (opt-in LinkedIn mode, dashboard tour, friendlier init, tutorial) were merged in that order. Conflicts were in `README.md`, `docs/how-it-works.md`, `scripts/live-dry-run.mjs`, `src/cli/index.ts`, `src/mcp/desk.ts`, `src/runner/run.ts` and `web/src/ui.tsx`; every feature was kept.
+- **LinkedIn stop writes the structured reason.** A LinkedIn warning, limit or CAPTCHA (agent report or run-level detection) now records a `linkedin_limit` handoff; the old `linkedin_warning` and `unsupported_site` categories are mapped to `linkedin_limit` and `unsupported_ats`.
+- **Dry run on LinkedIn.** The Playwright network guard does not exist under Claude in Chrome, so `Desk.startSubmit` refuses LinkedIn applications in dry run and review mode (status `dry_run` / `awaiting_review`), and `record_result(submitted)` throws there. Test: `tests/linkedin.test.ts`.
+- **Tour and docs.** Tour step 9 describes the rebuilt Finish yourself page; `docs/tutorial.md` links `docs/phone.md`. Init asks #170's country question and #172's LinkedIn question (default no).
+- 151 tests (78 on the base + 30 + 26 + 17 from the branches + 2 new here, less overlap).

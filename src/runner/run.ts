@@ -15,7 +15,17 @@ import {
   setStatus,
   startRun,
 } from "../core/store.js";
-import { Desk } from "../mcp/desk.js";
+import {
+  isLinkedInApp,
+  LINKEDIN_RUN_NOTE,
+  linkedInEnabled,
+  linkedInSetupProblem,
+  linkedInStop,
+  linkedInUsedToday,
+  looksLikeLinkedInWarning,
+  stopLinkedIn,
+} from "../linkedin/mode.js";
+import { Desk, type DeskOptions } from "../mcp/desk.js";
 import { loadProfile, type Profile } from "../memory/profile.js";
 import { getProvider } from "../providers/index.js";
 import type { AgentRunResult, McpServerSpec } from "../providers/types.js";
@@ -45,6 +55,8 @@ export interface RunOptions {
   p?: Paths;
   fetcher?: Fetcher;
   log?: (line: string) => void;
+  /** Human-pause timing for LinkedIn runs (tests make it instant). */
+  pace?: DeskOptions;
 }
 
 export interface RunSummary {
@@ -74,6 +86,7 @@ export function mcpServers(
   applicationId: number,
   dryRun: boolean,
   outputDir?: string,
+  linkedin = false,
 ): Record<string, McpServerSpec> {
   const guardLog = outputDir && join(outputDir, "blocked-requests.jsonl");
   const cli = join(packageRoot(), "dist", "cli", "index.js");
@@ -84,7 +97,8 @@ export function mcpServers(
       env: { QUIETAPPLY_HOME: p.home },
     },
   };
-  if (config.browser !== "claude-in-chrome") {
+  // LinkedIn runs always use your own logged-in browser through Claude in Chrome.
+  if (config.browser !== "claude-in-chrome" && !linkedin) {
     // Screenshots and page snapshots land in the application's own run folder, where the dashboard finds them.
     const args = ["-y", PLAYWRIGHT_MCP, "--output-dir", outputDir ?? join(p.logsDir, "playwright")];
     if (config.browser === "playwright-extension") args.push("--extension");
@@ -133,31 +147,50 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
     let stopped: RunSummary["status"] | undefined;
     const limit = Math.min(opts.max ?? Number.POSITIVE_INFINITY, config.limits.perDay || 1);
 
+    const notes: string[] = [];
     for (const app of queue) {
       if (processed.length >= limit) break;
       if (isPaused(p)) {
         stopped = "paused";
         break;
       }
-      const fit = checkFit(app, config.rules, profile);
-      if (!fit.fit) {
-        setStatus(db, app.id, "skipped", { reason: fit.reason });
-        recordHandoff(db, {
-          applicationId: app.id,
-          reason: "fit_gate",
-          detail: `Skipped by your rules: ${fit.reason}.`,
-          rule: fit.reason,
-        });
-        processed.push(row(app, "skipped", fit.reason));
-        log(`skip  ${app.company} · ${app.title}: ${fit.reason}`);
-        continue;
+      const linkedin = isLinkedInApp(app);
+      if (linkedin) {
+        // LinkedIn jobs are added by link, so title and company are only known once the agent reads the
+        // page: the fit gate runs then, through job_details. Here: the switch, the setup, the stop and the cap.
+        const gate = linkedInGate(db, config);
+        if (gate.skip) {
+          setStatus(db, app.id, "skipped", { reason: gate.skip });
+          processed.push(row(app, "skipped", gate.skip));
+          log(`skip  LinkedIn #${app.id}: ${gate.skip}`);
+          continue;
+        }
+        if (gate.hold) {
+          log(`wait  LinkedIn #${app.id}: ${gate.hold}`);
+          if (!notes.includes(gate.hold)) notes.push(gate.hold);
+          continue;
+        }
+      } else {
+        const fit = checkFit(app, config.rules, profile);
+        if (!fit.fit) {
+          setStatus(db, app.id, "skipped", { reason: fit.reason });
+          recordHandoff(db, {
+            applicationId: app.id,
+            reason: "fit_gate",
+            detail: `Skipped by your rules: ${fit.reason}.`,
+            rule: fit.reason,
+          });
+          processed.push(row(app, "skipped", fit.reason));
+          log(`skip  ${app.company} · ${app.title}: ${fit.reason}`);
+          continue;
+        }
       }
       if (!dryRun) {
         if (allowance(db, runConfig).remainingToday <= 0) {
           log("Daily limit reached; stopping.");
           break;
         }
-        if (!companyAllowed(db, runConfig, app.company)) {
+        if (!linkedin && !companyAllowed(db, runConfig, app.company)) {
           setStatus(db, app.id, "skipped", {
             reason: `already ${config.limits.perCompany30d} applications to ${app.company} in 30 days`,
           });
@@ -180,8 +213,10 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
         log(`hand over ${app.company} · ${app.title}: ${note}`);
         continue;
       }
-      log(`apply ${app.company} · ${app.title}`);
-      setStatus(db, app.id, "in_progress", { reason: dryRun ? "dry run" : undefined });
+      log(`apply ${app.company} · ${app.title}${linkedin ? " (LinkedIn)" : ""}`);
+      setStatus(db, app.id, "in_progress", {
+        reason: linkedin ? LINKEDIN_RUN_NOTE : dryRun ? "dry run" : undefined,
+      });
       const result = await applyOne({
         db,
         p,
@@ -190,10 +225,43 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
         app,
         fetcher: opts.fetcher ?? defaultFetcher,
         runId,
+        linkedin,
+        pace: opts.pace,
       });
+      // A LinkedIn run that ended without recording anything but mentions a warning is treated as one.
+      if (
+        linkedin &&
+        getApplication(db, app.id)?.status === "in_progress" &&
+        looksLikeLinkedInWarning(result.text)
+      ) {
+        const detail = `LinkedIn showed a warning: ${result.text.slice(0, 200)}`;
+        setStatus(db, app.id, "blocked", { reason: detail, blockedCategory: "linkedin_limit" });
+        recordHandoff(db, {
+          applicationId: app.id,
+          reason: "linkedin_limit",
+          detail,
+          needed: "Look at your LinkedIn account, then resume LinkedIn mode in Settings.",
+          filled: filledFromEvidence(getApplication(db, app.id)?.evidence ?? null),
+        });
+        stopLinkedIn(db, result.text, app.id);
+      }
       const after = settle(db, app.id, result);
       processed.push(row(app, after.status, after.note));
       log(`      → ${after.status}${after.note ? `: ${after.note}` : ""}`);
+      if (linkedin) {
+        const stop = linkedInStop(db);
+        const now = getApplication(db, app.id);
+        if (stop) {
+          const note =
+            "LinkedIn mode stopped after a warning: look at Finish yourself, then resume it in Settings";
+          log(`      ${note}`);
+          if (!notes.includes(note)) notes.push(note);
+        } else if (now?.status === "queued" && !isLinkedInApp(now)) {
+          // "Apply on company website": the same job continues on Greenhouse, Lever or Ashby, in this run.
+          log(`      continues on the company site: ${now.url}`);
+          queue.push(now);
+        }
+      }
       if (result.status === "usage_limit") {
         stopped = "waiting_for_reset";
         break;
@@ -210,6 +278,7 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
         ? "Usage limit reached. The next run after the reset carries on."
         : Object.entries(counts)
             .map(([k, v]) => `${v} ${SUMMARY_LABEL[k] ?? k.replace(/_/g, " ")}`)
+            .concat(notes)
             .join(", ") || "Nothing processed.";
     finishRun(db, runId, status, message);
     return { status, runId, processed, message };
@@ -217,6 +286,18 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
     db.close();
     release();
   }
+}
+
+/** Whether a LinkedIn application may start now: `skip` ends it, `hold` leaves it queued for later. */
+function linkedInGate(db: DB, config: Config): { skip?: string; hold?: string } {
+  if (!linkedInEnabled(config))
+    return { skip: "LinkedIn mode is off; turn it on in Settings to apply to LinkedIn jobs" };
+  const problem = linkedInSetupProblem(config);
+  if (problem) return { skip: problem };
+  if (linkedInStop(db)) return { hold: "LinkedIn mode is stopped after a warning" };
+  if (linkedInUsedToday(db) >= config.linkedin.perDay)
+    return { hold: `LinkedIn daily cap of ${config.linkedin.perDay} reached` };
+  return {};
 }
 
 function pickQueue(db: DB, opts: RunOptions): Application[] {
@@ -238,8 +319,10 @@ async function applyOne(o: {
   app: Application;
   fetcher: Fetcher;
   runId: number;
+  linkedin: boolean;
+  pace?: DeskOptions;
 }): Promise<AgentRunResult> {
-  const desk = new Desk(o.db, o.config, o.profile, o.p, o.app.id);
+  const desk = new Desk(o.db, o.config, o.profile, o.p, o.app.id, o.pace);
   if (o.config.provider === "fake") {
     try {
       return { status: "completed", text: await scriptedAgent(desk, o.fetcher), exitCode: 0 };
@@ -247,7 +330,8 @@ async function applyOne(o: {
       return { status: "failed", text: (err as Error).message, exitCode: 1 };
     }
   }
-  const form = await expectedForm(o.fetcher, o.app.url);
+  // Never fetch LinkedIn pages from here: on LinkedIn only the agent looks, in your own browser.
+  const form = o.linkedin ? undefined : await expectedForm(o.fetcher, o.app.url);
   const work = runFolder(o.p, o.runId, o.app.id);
   mkdirSync(work, { recursive: true, mode: 0o700 });
   // Browser tools may only upload files inside the run's working folder, so stage a copy of the resume there.
@@ -264,13 +348,20 @@ async function applyOne(o: {
     mode: desk.mode(),
     form,
     resumePath,
+    linkedin: o.linkedin
+      ? {
+          remainingToday: Math.max(0, o.config.linkedin.perDay - linkedInUsedToday(o.db) + 1),
+          chromeDevice: o.config.linkedin.chromeDevice,
+        }
+      : undefined,
   });
   // The agent's desk server opens its own connection to the database; close nothing here, SQLite WAL
   // lets both processes work on the same file.
   return getProvider(o.config.provider).runAgent({
     prompt,
-    mcpServers: mcpServers(o.config, o.p, o.app.id, o.config.dryRun, work),
-    browser: o.config.browser,
+    mcpServers: mcpServers(o.config, o.p, o.app.id, o.config.dryRun, work, o.linkedin),
+    browser: o.linkedin ? "claude-in-chrome" : o.config.browser,
+    linkedin: o.linkedin,
     cwd: work,
     timeoutMs: o.config.limits.runTimeoutMinutes * 60_000,
     logPath: join(work, "transcript.jsonl"),

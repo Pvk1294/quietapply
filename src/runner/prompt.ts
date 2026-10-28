@@ -52,6 +52,8 @@ export function buildPrompt(opts: {
   form?: FormInfo;
   /** Where the resume copy for this run lives (inside the agent's working folder). */
   resumePath?: string;
+  /** Set for LinkedIn runs: today's remaining LinkedIn cap (this one included) and the browser to use. */
+  linkedin?: { remainingToday: number; chromeDevice?: string };
 }): string {
   const { db, p, app, profile, mode, form } = opts;
   const ctx = { company: app.company, ats: app.ats };
@@ -87,6 +89,16 @@ export function buildPrompt(opts: {
           location: app.location,
         },
         resumeFile: resume ?? "none on file: ask_human if the form requires a resume",
+        ...(opts.linkedin
+          ? {
+              linkedin: {
+                browserDeviceId:
+                  opts.linkedin.chromeDevice ??
+                  "not set: if more than one browser is connected, mark_blocked (other) and stop",
+                linkedInApplicationsLeftToday: opts.linkedin.remainingToday,
+              },
+            }
+          : {}),
         profile: profileForPrompt(profile),
         knownAnswers: [...answers.values()],
         expectedQuestions: form?.fields.map((f) => ({

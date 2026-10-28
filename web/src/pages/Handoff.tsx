@@ -34,7 +34,11 @@ export function Handoff() {
       </p>
       {ordered.length === 0 && (
         <section className="card">
-          <Empty title={data ? "Nothing to finish" : "Loading…"} />
+          <Empty title={data ? "Nothing to finish" : "Loading…"}>
+            {data
+              ? "Good news: nothing needs you. If a form has a CAPTCHA, a video question or needs an account, it shows up here with the form already filled as far as possible."
+              : ""}
+          </Empty>
         </section>
       )}
       {ordered.map((reason) => {

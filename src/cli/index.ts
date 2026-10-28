@@ -7,7 +7,8 @@ import { Command } from "commander";
 import { loadConfig } from "../core/config.js";
 import { kvGet, kvSet, openDb } from "../core/db.js";
 import { ensureHome, packageRoot, paths } from "../core/paths.js";
-import { listApplications, listQuestions } from "../core/store.js";
+import { addApplication, listApplications, listQuestions } from "../core/store.js";
+import { linkedInEnabled, linkedInJobUrl } from "../linkedin/mode.js";
 import { Desk } from "../mcp/desk.js";
 import { createDeskServer } from "../mcp/server.js";
 import { loadProfile } from "../memory/profile.js";
@@ -71,6 +72,21 @@ program
   .option("--title <title>", "job title (overrides the lookup)")
   .option("--no-fetch", "do not look the job up")
   .action(async (url: string, o: { company?: string; title?: string; fetch: boolean }) => {
+    const li = linkedInJobUrl(url);
+    if (li) {
+      // LinkedIn pages are never fetched from here: only the agent looks, in your own browser.
+      if (!linkedInEnabled(loadConfig()))
+        throw new Error("LinkedIn mode is off. Turn it on in the dashboard (Settings) first.");
+      const r = addApplication(openDb(ensureHome(paths())), {
+        url: li,
+        company: o.company ?? "LinkedIn job",
+        title: o.title ?? `LinkedIn job ${li.match(/\d+/)?.[0]}`,
+        ats: "linkedin",
+        source: "linkedin",
+      });
+      console.log(r.created ? `Queued LinkedIn job #${r.id}.` : `Already in the list as #${r.id}.`);
+      return;
+    }
     const { addJob } = await import("./add.js");
     const p = ensureHome(paths());
     const db = openDb(p);

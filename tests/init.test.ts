@@ -54,6 +54,10 @@ vi.mock("@clack/prompts", () => {
       throw new Error(`${String(v)} is not an option`);
     return v;
   };
+  const confirm = async (o: { message: string; initialValue?: boolean }) => {
+    const v = next(o.message);
+    return v === h.ENTER ? (o.initialValue ?? false) : v;
+  };
   const group = async (
     prompts: Record<string, (o: { results: Record<string, unknown> }) => Promise<unknown>>,
     opts?: { onCancel?: (o: { results: Record<string, unknown> }) => void },
@@ -72,11 +76,12 @@ vi.mock("@clack/prompts", () => {
     outro: quiet,
     note: quiet,
     cancel: quiet,
-    log: { info: quiet, warn: quiet, step: quiet, message: quiet },
+    log: { info: quiet, warn: quiet, step: quiet, message: quiet, success: quiet },
     spinner: () => ({ start: quiet, stop: quiet, message: quiet }),
     isCancel: (v: unknown) => v === h.CANCEL,
     text,
     select,
+    confirm,
     group,
   };
 });
@@ -140,6 +145,7 @@ function firstRun() {
     "https://boards.greenhouse.io/acmerockets, https://jobs.lever.co/globex, https://example.com/jobs",
   );
   say(/per day/, "5");
+  say(/LinkedIn mode now/, false); // off unless you say yes
 }
 
 describe("interactive quietapply init", () => {
@@ -156,7 +162,7 @@ describe("interactive quietapply init", () => {
       "Path to your resume (PDF, DOCX or text)",
       "Path to your resume (PDF, DOCX or text)",
     ]);
-    expect(h.asked).toHaveLength(21);
+    expect(h.asked).toHaveLength(22);
 
     const p = paths(home);
     const config = loadConfig(p);
@@ -172,6 +178,7 @@ describe("interactive quietapply init", () => {
         neverApply: ["Initech"],
       },
     });
+    expect(config.sources.linkedin).toBe(false);
     expect(config.companies).toEqual([
       { name: "acmerockets", ats: "greenhouse", token: "acmerockets" },
       { name: "globex", ats: "lever", token: "globex" },
@@ -216,6 +223,7 @@ describe("interactive quietapply init", () => {
     for (const re of [/Job titles/, /Locations/, /never to apply/]) say(re, h.ENTER);
     say(/Careers pages/, "https://jobs.ashbyhq.com/umbrella");
     say(/per day/, h.ENTER);
+    say(/LinkedIn mode now/, h.ENTER);
     await init({});
 
     expect(h.asked.some((m) => /legally authorized|notice period|Which country/.test(m))).toBe(false);

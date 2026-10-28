@@ -27,6 +27,8 @@ export const BLOCKED_CATEGORIES = [
   "site_error",
   "no_ai_policy",
   "missing_data",
+  "linkedin_warning",
+  "unsupported_site",
   "other",
 ] as const;
 export type BlockedCategory = (typeof BLOCKED_CATEGORIES)[number];
@@ -132,6 +134,28 @@ export function setStatus(
 export function approveReview(db: DB, id: number): void {
   db.prepare("UPDATE applications SET review_approved = 1, updated_at = ? WHERE id = ?").run(now(), id);
   setStatus(db, id, "queued", { reason: "approved in review; will submit next run" });
+}
+
+/** Point an application at another URL (LinkedIn's "Apply on company website" leads to the company's own form). */
+export function moveApplication(db: DB, id: number, to: { url: string; ats: string }): void {
+  db.prepare("UPDATE applications SET url = ?, ats = ?, updated_at = ? WHERE id = ?").run(
+    to.url,
+    to.ats,
+    now(),
+    id,
+  );
+}
+
+/** Fill in company, title and location once the agent has read them on the job page. */
+export function updateJobFacts(
+  db: DB,
+  id: number,
+  facts: { company: string; title: string; location?: string | null; description?: string | null },
+): void {
+  db.prepare(
+    `UPDATE applications SET company = ?, title = ?, location = COALESCE(?, location),
+       description = COALESCE(?, description), updated_at = ? WHERE id = ?`,
+  ).run(facts.company, facts.title, facts.location ?? null, facts.description ?? null, now(), id);
 }
 
 function logEvent(db: DB, applicationId: number, status: string, note?: string): void {

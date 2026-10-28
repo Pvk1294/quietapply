@@ -4,11 +4,13 @@ import * as p from "@clack/prompts";
 import { type Company, defaultConfig, loadConfig, type ProviderId, saveConfig } from "../core/config.js";
 import { openDb } from "../core/db.js";
 import { ensureHome, paths } from "../core/paths.js";
+import { LINKEDIN_RISK, linkedInSetupProblem, turnOnLinkedIn } from "../linkedin/mode.js";
 import { listAnswers, saveAnswer } from "../memory/answers.js";
 import { loadProfile, saveProfile } from "../memory/profile.js";
 import { STANDARD_QUESTIONS } from "../memory/seed.js";
 import { getProvider, PROVIDERS } from "../providers/index.js";
 import { detectAts } from "../sources/detect.js";
+import { EXPLAIN } from "./explain.js";
 import { importResume, seedDefaults } from "./setup.js";
 
 export interface InitOptions {
@@ -31,7 +33,9 @@ export async function init(opts: InitOptions): Promise<void> {
   const config = existsSync(dirs.config) ? loadConfig(dirs) : defaultConfig();
   const interactive = !opts.yes && process.stdin.isTTY;
   p.intro("QuietApply setup");
-  p.log.info(`Your data stays in ${dirs.home} (only you can read it).`);
+  p.log.info(
+    `Welcome! This takes about five minutes. I will say what each question is for before I ask it, and you can stop any time with Ctrl+C.\nYour data stays in ${dirs.home} (only you can read it).`,
+  );
 
   // 1. Provider
   const s = p.spinner();
@@ -45,6 +49,7 @@ export async function init(opts: InitOptions): Promise<void> {
   let provider: ProviderId =
     opts.provider ?? (cc.installed ? "claude-code" : cx.installed ? "codex" : "fake");
   if (interactive && !opts.provider) {
+    p.log.message(EXPLAIN.provider);
     const choice = await p.select({
       message: "Which AI should run the applications?",
       initialValue: provider,
@@ -63,6 +68,7 @@ export async function init(opts: InitOptions): Promise<void> {
   for (const note of det?.notes ?? []) p.log.warn(note);
 
   if (provider === "claude-code" && det?.authMethod !== "api-key" && interactive) {
+    p.log.message(EXPLAIN.browser);
     const browser = await p.select({
       message: "Which browser should the agent drive?",
       initialValue: config.browser,
@@ -81,6 +87,7 @@ export async function init(opts: InitOptions): Promise<void> {
   // 2. Resume → profile
   let resumePath = opts.resume;
   if (!resumePath && interactive) {
+    p.log.message(EXPLAIN.resume);
     const answer = await p.text({
       message: "Path to your resume (PDF, DOCX or text)",
       placeholder: "~/Documents/resume.pdf",
@@ -108,6 +115,7 @@ export async function init(opts: InitOptions): Promise<void> {
       `Profile built${usedAgent ? " by the agent" : ""}: ${profile.name || "name not found"}, ${profile.experience.length} roles, ${profile.skills.length} skills`,
     );
     if (interactive) {
+      p.log.message(EXPLAIN.contact);
       const fixes = await p.group(
         {
           name: () => p.text({ message: "Full name", initialValue: profile.name }),
@@ -133,9 +141,8 @@ export async function init(opts: InitOptions): Promise<void> {
     const todo = STANDARD_QUESTIONS.filter(
       (q) => !q.default && !known.has(q.key) && (opts.full || q.essential),
     );
-    p.log.step(
-      `${todo.length} questions most forms ask. Leave one empty to skip it: the agent will ask in the dashboard when a form needs it.`,
-    );
+    p.log.step(`${todo.length} questions most forms ask.`);
+    p.log.message(EXPLAIN.common);
     for (const q of todo) {
       const v =
         q.type === "yesno"
@@ -156,34 +163,38 @@ export async function init(opts: InitOptions): Promise<void> {
 
   // 4. Targets and companies
   if (interactive) {
+    p.log.message("Now what to apply for. Each question below says what it does.");
+    // Each question is preceded by one line saying why it is asked.
+    const ask = (why: string, q: Parameters<typeof p.text>[0]) => () => {
+      p.log.message(why);
+      return p.text(q);
+    };
     const t = await p.group(
       {
-        roles: () =>
-          p.text({
-            message: "Job titles to look for (comma separated)",
-            placeholder: "software engineer, backend developer",
-            initialValue: config.rules.roles.join(", "),
-          }),
-        locations: () =>
-          p.text({
-            message: "Locations (comma separated; 'remote' for remote roles)",
-            placeholder: "remote, Berlin",
-            initialValue: config.rules.locations.join(", "),
-          }),
-        never: () =>
-          p.text({
-            message: "Companies never to apply to (e.g. your current employer)",
-            initialValue: config.rules.neverApply.join(", "),
-            defaultValue: "",
-          }),
-        companies: () =>
-          p.text({
-            message: "Careers pages to watch (Greenhouse, Lever or Ashby URLs, comma separated)",
-            placeholder: "https://boards.greenhouse.io/acme, https://jobs.lever.co/globex",
-            defaultValue: "",
-          }),
-        perDay: () =>
-          p.text({ message: "Maximum applications per day", initialValue: String(config.limits.perDay) }),
+        roles: ask(EXPLAIN.roles, {
+          message: "Job titles to look for (comma separated)",
+          placeholder: "software engineer, backend developer",
+          initialValue: config.rules.roles.join(", "),
+        }),
+        locations: ask(EXPLAIN.locations, {
+          message: "Locations (comma separated; 'remote' for remote roles)",
+          placeholder: "remote, Berlin",
+          initialValue: config.rules.locations.join(", "),
+        }),
+        never: ask(EXPLAIN.never, {
+          message: "Companies never to apply to (e.g. your current employer)",
+          initialValue: config.rules.neverApply.join(", "),
+          defaultValue: "",
+        }),
+        companies: ask(EXPLAIN.companies, {
+          message: "Careers pages to watch (Greenhouse, Lever or Ashby URLs, comma separated)",
+          placeholder: "https://boards.greenhouse.io/acme, https://jobs.lever.co/globex",
+          defaultValue: "",
+        }),
+        perDay: ask(EXPLAIN.perDay, {
+          message: "Maximum applications per day",
+          initialValue: String(config.limits.perDay),
+        }),
       },
       { onCancel: bail },
     );
@@ -194,13 +205,33 @@ export async function init(opts: InitOptions): Promise<void> {
     config.limits.perDay = Math.max(0, Number(t.perDay) || config.limits.perDay);
   }
 
+  // LinkedIn is opt-in: a plain "no" by default, and a clear risk statement before a "yes".
+  if (interactive && !linkedInSetupProblem(config) && provider === "claude-code") {
+    p.log.message(EXPLAIN.linkedin);
+    const want = await p.confirm({ message: "Turn on LinkedIn mode now?", initialValue: false });
+    if (cancelled(want)) bail();
+    if (want) {
+      p.log.warn(LINKEDIN_RISK.join("\n"));
+      const accept = await p.confirm({
+        message: "I have read this and I accept the risk to my LinkedIn account.",
+        initialValue: false,
+      });
+      if (cancelled(accept)) bail();
+      const r = turnOnLinkedIn(config, { acceptRisk: accept });
+      if (r.ok) {
+        Object.assign(config, r.config);
+        p.log.success("LinkedIn mode is on (5 a day). Turn it off any time in Settings.");
+      } else p.log.info("Left off.");
+    }
+  }
+
   saveConfig(config, dirs);
   p.note(
     [
       "quietapply doctor        check the provider, browser and data folder",
       "quietapply discover      find open roles at your companies",
       "quietapply run           one run now (dry run: nothing is submitted)",
-      "quietapply dashboard     http://127.0.0.1:4777",
+      "quietapply dashboard     http://127.0.0.1:4777 (a short tour opens the first time)",
     ].join("\n"),
     "Next",
   );

@@ -117,6 +117,8 @@ const LEGACY: Record<string, HandoffReason> = {
   site_error: "form_error",
   no_ai_policy: "fit_gate",
   missing_data: "unknown_question",
+  linkedin_warning: "linkedin_limit",
+  unsupported_site: "unsupported_ats",
   other: "other",
 };
 

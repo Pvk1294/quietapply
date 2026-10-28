@@ -8,6 +8,7 @@ import { Questions } from "./pages/Questions";
 import { Runs } from "./pages/Runs";
 import { Settings } from "./pages/Settings";
 import { Today } from "./pages/Today";
+import { STEPS, TOUR_KEY, Tour } from "./Tour";
 import { Toaster, toast, usePoll } from "./ui";
 
 const PAGES = [
@@ -44,6 +45,16 @@ export function App() {
   const [page, query] = useRoute();
   const { data: summary, error, reload } = usePoll(api.summary, 4000);
   const title = PAGES.find((p) => p.id === page)?.label ?? "";
+  // The tour opens by itself the first time, from "Help / Tour", or with ?tour=N in the address.
+  const [tour, setTour] = useState<number | null>(() => {
+    const n = Number(new URLSearchParams(location.hash.split("?")[1]).get("tour"));
+    if (n >= 1 && n <= STEPS.length) return n - 1;
+    return localStorage.getItem(TOUR_KEY) ? null : 0;
+  });
+  const closeTour = () => {
+    localStorage.setItem(TOUR_KEY, "1");
+    setTour(null);
+  };
 
   useEffect(() => {
     document.title = summary?.openQuestions ? `(${summary.openQuestions}) QuietApply` : "QuietApply";
@@ -65,6 +76,9 @@ export function App() {
             </a>
           ))}
         </nav>
+        <button type="button" className="help-link nav-help" onClick={() => setTour(0)}>
+          Help / Tour
+        </button>
         <div className="sidebar-foot muted">
           {summary?.profileName ? `Applying as ${summary.profileName}` : "Not set up yet"}
           <br />
@@ -86,6 +100,12 @@ export function App() {
           <Controls summary={summary} reload={reload} />
         </header>
         {error && <div className="banner banner-red">Cannot reach QuietApply: {error}</div>}
+        {summary?.linkedin?.stopped && (
+          <div className="banner banner-red">
+            <strong>LinkedIn mode is stopped.</strong> LinkedIn showed a warning. Look at your account, then
+            resume it in <a href="#/settings">Settings</a>.
+          </div>
+        )}
         {summary?.dryRun && (
           <div className="banner banner-blue">
             <strong>Dry run is on.</strong> Forms are filled, nothing is submitted. Turn it off in{" "}
@@ -115,6 +135,7 @@ export function App() {
         ))}
       </nav>
       <Toaster />
+      {tour !== null && <Tour step={tour} onStep={setTour} onClose={closeTour} />}
     </div>
   );
 }

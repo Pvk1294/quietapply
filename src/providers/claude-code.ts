@@ -1,5 +1,6 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { LINKEDIN_CHROME_TOOLS, LINKEDIN_DENIED_CHROME_TOOLS } from "../linkedin/mode.js";
 import { run, version } from "./spawn.js";
 import {
   type AgentRunOptions,
@@ -13,9 +14,10 @@ import {
 const BIN = process.env.QUIETAPPLY_CLAUDE_BIN ?? "claude";
 
 /** Tools the agent may call. Built-in file and shell tools are off: it acts only through MCP. */
-export function allowedTools(opts: Pick<AgentRunOptions, "browser" | "mcpServers">): string[] {
+export function allowedTools(opts: Pick<AgentRunOptions, "browser" | "mcpServers" | "linkedin">): string[] {
   const tools = Object.keys(opts.mcpServers).map((name) => `mcp__${name}__*`);
-  if (opts.browser === "claude-in-chrome") tools.push("mcp__claude-in-chrome__*");
+  if (opts.linkedin) tools.push(...LINKEDIN_CHROME_TOOLS);
+  else if (opts.browser === "claude-in-chrome") tools.push("mcp__claude-in-chrome__*");
   return tools;
 }
 
@@ -43,7 +45,8 @@ export function agentArgs(opts: AgentRunOptions, mcpConfigPath: string): string[
     "--allowedTools",
     allowedTools(opts).join(","),
   ];
-  if (opts.browser === "claude-in-chrome") args.push("--chrome");
+  if (opts.linkedin) args.push("--disallowedTools", LINKEDIN_DENIED_CHROME_TOOLS.join(","));
+  if (opts.browser === "claude-in-chrome" || opts.linkedin) args.push("--chrome");
   if (opts.model) args.push("--model", opts.model);
   return args;
 }

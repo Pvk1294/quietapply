@@ -112,10 +112,19 @@ export async function doctor(): Promise<Check[]> {
       ok: config.companies.length ? true : "warn",
       detail: `${config.companies.length} on the watch list`,
     });
+    if (config.sources.linkedin && config.browser !== "claude-in-chrome")
+      checks.push({
+        name: "Claude in Chrome (LinkedIn)",
+        ok: "warn",
+        detail:
+          "LinkedIn runs use your own Chrome through the Claude in Chrome extension, signed in to LinkedIn",
+      });
     checks.push({
       name: "LinkedIn",
       ok: true,
-      detail: config.sources.linkedin ? "ON (you acknowledged the terms-of-service risk)" : "off (default)",
+      detail: config.sources.linkedin
+        ? `ON since ${config.linkedin.acceptedAt} (you accepted the risk); ${config.linkedin.perDay} a day`
+        : "off (default)",
     });
   }
   checks.push({

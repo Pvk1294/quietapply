@@ -115,6 +115,8 @@ export function createDeskServer(desk: Desk, version = "0.1.0"): McpServer {
             "site_error",
             "no_ai_policy",
             "missing_data",
+            "linkedin_warning",
+            "unsupported_site",
           ])
           .describe("The reason"),
         notes: z.string().describe("What happened, in plain words"),
@@ -152,5 +154,54 @@ export function createDeskServer(desk: Desk, version = "0.1.0"): McpServer {
     async (args) => text(desk.addSiteNote(args)),
   );
 
+  if (desk.isLinkedIn()) registerLinkedInTools(server, desk);
   return server;
+}
+
+/** Extra tools for LinkedIn runs: pacing like a person, the fit gate on what the page shows, and the company-site handoff. */
+function registerLinkedInTools(server: McpServer, desk: Desk): void {
+  server.registerTool(
+    "human_pause",
+    {
+      description:
+        "Wait a random, human-like moment. Call it between every two browser actions ('action'), between typed chunks ('typing') and after a new page loads ('page'). Never skip it on LinkedIn.",
+      inputSchema: { kind: z.enum(["action", "typing", "page"]) },
+    },
+    async ({ kind }) => text(await desk.humanPause(kind)),
+  );
+
+  server.registerTool(
+    "typing_plan",
+    {
+      description:
+        "Split a longer answer into the chunks to type, so it is typed like a person types: one type action per chunk with human_pause('typing') in between.",
+      inputSchema: { text: z.string().min(1).max(5000) },
+    },
+    async ({ text: t }) => text(desk.typingPlan(t)),
+  );
+
+  server.registerTool(
+    "job_details",
+    {
+      description:
+        "Report what the LinkedIn job page shows (company, title, location, and the first lines of the description). It is saved and checked against the applicant's rules. Call it before filling anything; stop if it says not a fit.",
+      inputSchema: {
+        company: z.string().min(1),
+        title: z.string().min(1),
+        location: z.string().optional(),
+        description: z.string().max(4000).optional(),
+      },
+    },
+    async (args) => text(desk.jobDetails(args)),
+  );
+
+  server.registerTool(
+    "company_site",
+    {
+      description:
+        "The job's Apply button led to the company's own site (not Easy Apply). Pass the URL of the page it opened. Greenhouse, Lever and Ashby continue with the normal flow; other sites go to the human.",
+      inputSchema: { url: z.string().url() },
+    },
+    async ({ url }) => text(desk.companySite({ url })),
+  );
 }
