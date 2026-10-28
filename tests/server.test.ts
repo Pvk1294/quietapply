@@ -1,7 +1,8 @@
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { openDb } from "../src/core/db.js";
 import { addApplication, askQuestion, getApplication, setStatus } from "../src/core/store.js";
+import { runFolder } from "../src/runner/evidence.js";
 import { createApp } from "../src/server/app.js";
 import { makeHome } from "./helpers/home.js";
 
@@ -132,5 +133,49 @@ describe("dashboard API", () => {
       limits: { perDay: 5, reviewFirst: 10 },
       rules: { roles: ["engineer"] },
     });
+  });
+
+  it("shows the agent's screenshots for an application, and serves nothing outside its run folders", async () => {
+    const { app, p, a, r } = setup();
+    const png = Buffer.from("89504e470d0a1a0a0000000d49484452", "hex");
+    for (const [run, file] of [
+      [1, "page-2026-10-28T07-00-00-000Z.png"],
+      [2, "form.png"],
+    ] as const) {
+      mkdirSync(runFolder(p, run, a), { recursive: true });
+      writeFileSync(`${runFolder(p, run, a)}/${file}`, png);
+    }
+    writeFileSync(`${runFolder(p, 2, a)}/transcript.jsonl`, "{}");
+    writeFileSync(`${runFolder(p, 2, a)}/blocked-requests.jsonl`, '{"method":"POST"}\n{"method":"POST"}\n');
+    mkdirSync(runFolder(p, 2, r), { recursive: true });
+    writeFileSync(`${runFolder(p, 2, r)}/other.png`, png);
+
+    const detail = (await (await app.request(`/api/applications/${a}`, { headers: HOST })).json()) as {
+      screenshots: { run: number; file: string; url: string; blockedRequests: number }[];
+    };
+    expect(detail.screenshots.map((s) => s.file).sort()).toEqual([
+      "form.png",
+      "page-2026-10-28T07-00-00-000Z.png",
+    ]);
+    const form = detail.screenshots.find((s) => s.file === "form.png")!;
+    expect(form).toMatchObject({ run: 2, blockedRequests: 2 });
+
+    const img = await app.request(form.url, { headers: HOST });
+    expect(img.status).toBe(200);
+    expect(img.headers.get("content-type")).toBe("image/png");
+    expect(Buffer.from(await img.arrayBuffer()).equals(png)).toBe(true);
+
+    for (const bad of [
+      `/api/applications/${a}/screenshots/2/transcript.jsonl`,
+      `/api/applications/${a}/screenshots/2/other.png`,
+      `/api/applications/${a}/screenshots/2/..%2F..%2Fapp-${r}%2Fother.png`,
+      `/api/applications/${a}/screenshots/x/form.png`,
+    ])
+      expect((await app.request(bad, { headers: HOST })).status).toBe(404);
+
+    const none = (await (await app.request(`/api/applications/${r}`, { headers: HOST })).json()) as {
+      screenshots: unknown[];
+    };
+    expect(none.screenshots).toHaveLength(1);
   });
 });

@@ -1,4 +1,4 @@
-import { copyFileSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -8,6 +8,7 @@ import { ensureHome, packageRoot, paths } from "../core/paths.js";
 import { addApplication, askQuestion, finishRun, setStatus, startRun } from "../core/store.js";
 import { saveAnswer } from "../memory/answers.js";
 import { Profile, saveProfile } from "../memory/profile.js";
+import { runFolder } from "../runner/evidence.js";
 import { runOnce } from "../runner/run.js";
 import { defaultFetcher } from "../sources/http.js";
 
@@ -128,7 +129,7 @@ export async function createDemo(home = join(tmpdir(), "quietapply-demo")): Prom
     location: "Remote - US",
     source: "greenhouse",
   });
-  addApplication(db2, {
+  const globex = addApplication(db2, {
     company: "Globex Corporation",
     title: "Backend Developer",
     url: fx("lever-globex-apply.html"),
@@ -153,7 +154,13 @@ export async function createDemo(home = join(tmpdir(), "quietapply-demo")): Prom
     source: "greenhouse",
   });
   db2.close();
-  await runOnce({ p, fetcher: defaultFetcher, trigger: "manual" });
+  const run = await runOnce({ p, fetcher: defaultFetcher, trigger: "manual" });
+  // The scripted agent has no browser; give the Globex dry run the screenshot a real agent would have taken.
+  if (run.runId) {
+    const folder = runFolder(p, run.runId, globex.id);
+    mkdirSync(folder, { recursive: true });
+    copyFileSync(join(packageRoot(), "fixtures", "demo", "globex-dry-run.png"), join(folder, "form.png"));
+  }
   return home;
 }
 

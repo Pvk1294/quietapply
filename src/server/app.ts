@@ -25,6 +25,7 @@ import { deleteAnswer, listAnswers, updateAnswer } from "../memory/answers.js";
 import { loadProfile } from "../memory/profile.js";
 import { answerQuestion, dismissQuestion } from "../memory/queue.js";
 import { discover } from "../runner/discover.js";
+import { blockedRequests, screenshotFile, screenshotsFor } from "../runner/evidence.js";
 import { isPaused } from "../runner/run.js";
 import { scheduleInstalled } from "../scheduler/index.js";
 import { defaultFetcher, type Fetcher } from "../sources/http.js";
@@ -43,6 +44,8 @@ const MIME: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
   ".ico": "image/x-icon",
   ".json": "application/json",
   ".woff2": "font/woff2",
@@ -126,7 +129,31 @@ export function createApp(opts: AppOptions): Hono {
     const d = getDb();
     const a = getApplication(d, Number(c.req.param("id")));
     if (!a) return c.json({ error: "not found" }, 404);
-    return c.json({ ...a, events: applicationEvents(d, a.id), questions: openQuestionsFor(d, a.id) });
+    const screenshots = screenshotsFor(p, a.id).map((s) => ({
+      ...s,
+      url: `/api/applications/${a.id}/screenshots/${s.run}/${encodeURIComponent(s.file)}`,
+      blockedRequests: blockedRequests(p, a.id, s.run),
+    }));
+    return c.json({
+      ...a,
+      events: applicationEvents(d, a.id),
+      questions: openQuestionsFor(d, a.id),
+      screenshots,
+    });
+  });
+
+  // The agent's screenshots of the form, from the application's run folders only.
+  app.get("/api/applications/:id/screenshots/:run/:file", (c) => {
+    const file = screenshotFile(
+      p,
+      Number(c.req.param("id")),
+      Number(c.req.param("run")),
+      c.req.param("file"),
+    );
+    if (!file) return c.json({ error: "not found" }, 404);
+    c.header("content-type", MIME[extname(file).toLowerCase()] ?? "image/jpeg");
+    c.header("cache-control", "private, max-age=3600");
+    return c.body(readFileSync(file));
   });
 
   app.post("/api/applications/:id/:action{approve|requeue|dismiss}", (c) => {

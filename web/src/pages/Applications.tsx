@@ -128,9 +128,13 @@ function Detail({ id, onClose, onChange }: { id: number; onClose: () => void; on
     }
   };
 
-  const filled = app?.evidence
-    ? (safeJson(app.evidence) as { filled?: { field: string; value: string; source: string }[] })?.filled
+  const evidence = app?.evidence
+    ? (safeJson(app.evidence) as {
+        filled?: { field: string; value: string; source: string }[];
+        partial?: boolean;
+      })
     : undefined;
+  const filled = evidence?.filled;
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: clicking the backdrop closes the sheet; Escape is handled above
@@ -203,7 +207,9 @@ function Detail({ id, onClose, onChange }: { id: number; onClose: () => void; on
 
             {filled?.length ? (
               <>
-                <h3 className="section-title">What the agent filled in</h3>
+                <h3 className="section-title">
+                  {evidence?.partial ? "Filled so far (waiting on your answers)" : "What the agent filled in"}
+                </h3>
                 <dl className="filled">
                   {filled.map((f) => (
                     <div key={f.field}>
@@ -217,6 +223,29 @@ function Detail({ id, onClose, onChange }: { id: number; onClose: () => void; on
                 </dl>
               </>
             ) : null}
+
+            {app.screenshots.length > 0 && (
+              <>
+                <h3 className="section-title">
+                  What the agent saw
+                  {app.screenshots.length > 1 ? ` (${app.screenshots.length} screenshots)` : ""}
+                </h3>
+                <div className="shots">
+                  {app.screenshots.map((s) => (
+                    <figure key={s.url} className="shot">
+                      <a href={s.url} target="_blank" rel="noreferrer noopener" title="Open full size">
+                        <img src={s.url} alt={`Form screenshot from run ${s.run}`} loading="lazy" />
+                      </a>
+                      <figcaption className="muted small">
+                        Run {s.run} · {new Date(s.at).toLocaleString()}
+                        {s.blockedRequests > 0 &&
+                          ` · dry run blocked ${s.blockedRequests} request${s.blockedRequests > 1 ? "s" : ""}`}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </>
+            )}
 
             <h3 className="section-title">History</h3>
             <ol className="timeline">

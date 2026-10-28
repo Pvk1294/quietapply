@@ -30,9 +30,19 @@ export interface Application {
   openQuestions?: number;
 }
 
+export interface Screenshot {
+  run: number;
+  file: string;
+  at: string;
+  url: string;
+  /** Requests the dry-run guard stopped in that run. */
+  blockedRequests: number;
+}
+
 export interface AppDetail extends Application {
   events: { status: string; note: string | null; at: string }[];
   questions: Question[];
+  screenshots: Screenshot[];
 }
 
 export interface Question {

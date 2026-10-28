@@ -19,6 +19,7 @@ import { loadProfile, type Profile } from "../memory/profile.js";
 import { getProvider } from "../providers/index.js";
 import type { AgentRunResult, McpServerSpec } from "../providers/types.js";
 import { defaultFetcher, type Fetcher } from "../sources/http.js";
+import { runFolder } from "./evidence.js";
 import { expectedForm } from "./expected.js";
 import { buildPrompt } from "./prompt.js";
 import { scriptedAgent } from "./scripted-agent.js";
@@ -225,7 +226,7 @@ async function applyOne(o: {
     }
   }
   const form = await expectedForm(o.fetcher, o.app.url);
-  const work = join(o.p.logsDir, `run-${o.runId}`, `app-${o.app.id}`);
+  const work = runFolder(o.p, o.runId, o.app.id);
   mkdirSync(work, { recursive: true, mode: 0o700 });
   // Browser tools may only upload files inside the run's working folder, so stage a copy of the resume there.
   let resumePath: string | undefined;
