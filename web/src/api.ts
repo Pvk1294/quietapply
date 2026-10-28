@@ -73,7 +73,43 @@ export interface Run {
   summary: string | null;
 }
 
+export type HandoffReason =
+  | "captcha"
+  | "login_required"
+  | "unknown_question"
+  | "file_upload"
+  | "unsupported_ats"
+  | "external_redirect"
+  | "linkedin_limit"
+  | "fit_gate"
+  | "cap"
+  | "form_error"
+  | "unclear_submit"
+  | "other";
+
+export interface Handoff {
+  id: number;
+  reason: HandoffReason;
+  label: string;
+  help: string;
+  detail: string;
+  needed: string;
+  rule: string | null;
+  filled: { field: string; value: string; source?: string }[];
+  state: string;
+  needsYou: boolean;
+  canRetry: boolean;
+  retryBlocker: string | null;
+  created_at: string;
+  application: { id: number; company: string; title: string; url: string; ats: string; status: AppStatus };
+  questions: string[];
+  /** Your own details (name, email, links) to paste into the form. */
+  mine: { label: string; value: string }[];
+}
+
 export interface Summary {
+  today: { done: number; couldnt: number; needYou: number };
+  handoffs: { open: number; needYou: number };
   profileName: string;
   provider: string;
   browser: string;
@@ -134,6 +170,9 @@ export const api = {
   application: (id: number) => request<AppDetail>("GET", `/api/applications/${id}`),
   act: (id: number, action: "approve" | "requeue" | "dismiss") =>
     request<Application>("POST", `/api/applications/${id}/${action}`),
+  handoffs: () => request<Handoff[]>("GET", "/api/handoffs"),
+  handoffAct: (id: number, action: "applied" | "not_interested" | "retry") =>
+    request<Handoff>("POST", `/api/handoffs/${id}/${action}`),
   questions: (status: "open" | "answered" = "open") =>
     request<Question[]>("GET", `/api/questions?status=${status}`),
   answer: (id: number, answer: string, scope: "global" | "company") =>

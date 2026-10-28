@@ -1495,3 +1495,79 @@ textarea {
     transition: none !important;
   }
 }
+
+/* Finish yourself */
+.today-line {
+  margin: 6px 0 2px;
+  font-size: 1.02rem;
+}
+.group-help {
+  margin: -4px 16px 8px;
+  font-size: 0.9rem;
+}
+.handoff {
+  border-top: 1px solid var(--line, rgba(128, 128, 128, 0.2));
+  list-style: none;
+}
+.handoff-body {
+  padding: 0 16px 14px 56px;
+  display: grid;
+  gap: 8px;
+}
+.handoff-body p {
+  margin: 0;
+}
+.handoff-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.link-btn {
+  justify-self: start;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  min-height: 32px;
+}
+.copy-grid {
+  display: grid;
+  gap: 6px;
+}
+.copy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(128, 128, 128, 0.08);
+}
+.copy-text {
+  display: grid;
+  min-width: 0;
+}
+.copy-label {
+  font-size: 0.78rem;
+  opacity: 0.7;
+  text-transform: capitalize;
+}
+.copy-value {
+  overflow-wrap: anywhere;
+}
+.small {
+  font-size: 0.85rem;
+}
+@media (max-width: 640px) {
+  .handoff-body {
+    padding-left: 16px;
+  }
+  .handoff-actions .btn {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+}
