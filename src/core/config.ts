@@ -69,6 +69,8 @@ export const Config = z.object({
   companies: z.array(Company).default([]),
   rules: Rules.default(Rules.parse({})),
   dashboard: z.object({ port: z.number().int().default(4777) }).default({ port: 4777 }),
+  /** Where the Codex CLI is. Unset = PATH, then the copy inside the ChatGPT / Codex desktop app. */
+  codex: z.object({ path: z.string().optional() }).default({}),
 });
 export type Config = z.infer<typeof Config>;
 
