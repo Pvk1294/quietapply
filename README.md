@@ -12,12 +12,14 @@ QuietApply uses the Claude Code or Codex you already have (subscription or API k
 
 ---
 
+**New here? Start with the friendly guide: [Getting started in 10 minutes](docs/tutorial.md).** The dashboard also opens a short step-by-step tour the first time (reopen it from **Help / Tour**).
+
 ## Why another auto-apply tool?
 
 Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That gets accounts restricted and annoys recruiters. QuietApply goes the other way:
 
 - **Asks before it guesses.** An answer it doesn't know goes to a question queue; it never makes one up. Every value it types must cite a stored answer, and the submit step refuses anything that doesn't.
-- **Applies on company job boards, not LinkedIn.** It finds openings through the public Greenhouse, Lever and Ashby job APIs (no scraping, no login) and applies on the company's own form.
+- **Applies on company job boards by default.** (LinkedIn is an opt-in mode with a risk; see [below](#linkedin-mode-opt-in-and-risky).) It finds openings through the public Greenhouse, Lever and Ashby job APIs (no scraping, no login) and applies on the company's own form.
 - **Uses the AI you already pay for.** Claude Code (Pro/Max or an API key) or OpenAI Codex (ChatGPT plan or an API key).
 - **Remembers without bloating.** Answers are stored as small structured entries. Each run gets only the ones the form in front of it needs, so the prompt stays small no matter how much it has learned.
 - **Hands back what it can't do.** CAPTCHAs, video answers, tests, email-only postings and account sign-ups go to a "Finish yourself" list. It never tries to solve a CAPTCHA.
@@ -92,6 +94,21 @@ flowchart TD
 
 The agent can only read and change your data through a small set of MCP tools (`lookup_answers`, `ask_human`, `start_submit`, `record_result`, `mark_blocked`…). The setup is the same whichever AI you use, the rules are enforced in code rather than in a prompt, and you can audit every step. More detail: [docs/how-it-works.md](docs/how-it-works.md).
 
+## LinkedIn mode (opt-in, and risky)
+
+LinkedIn's [User Agreement](https://www.linkedin.com/legal/user-agreement) forbids bots and automated access, and LinkedIn [restricts accounts](https://www.linkedin.com/help/linkedin/answer/a1341387) it believes are automated. **If you turn this mode on, you take that risk for your own account**, even with the small cap and human-like pacing below. QuietApply cannot undo a restriction. It is off by default, and everything else works without it.
+
+If you choose it, QuietApply works the way a careful person would, in **your own logged-in Chrome** through [Claude in Chrome](https://claude.com/chrome) (Claude Code with a Claude plan; not an API key, not Codex):
+
+- applies to LinkedIn jobs you add by link, Easy Apply included; "Apply on company website" leads to Greenhouse, Lever or Ashby and the normal flow
+- random pauses of a few seconds, long answers typed in chunks; no scraping, no scripts, no calls to LinkedIn's APIs (the script and network tools are denied to the agent)
+- its own daily cap: **5 by default, at most 15**
+- **stops at once** on any warning, limit message or CAPTCHA; that job goes to "Finish yourself" and LinkedIn stays stopped until you resume it
+- same answer memory and question queue; unknown answers are asked, never guessed
+- turning it on needs a confirm step with the risk in plain words; the time you accepted is stored in `config.yaml` (`linkedin.acceptedAt`)
+
+Turn it on in **Settings → LinkedIn mode**, or answer yes to the optional question in `quietapply init`. Details: [tutorial](docs/tutorial.md#linkedin-mode-optional). Tests use made-up pages in `fixtures/linkedin`; nothing in the repo ever touches real LinkedIn.
+
 ## Providers
 
 | Your AI | Browser it can use | How QuietApply runs it |
@@ -115,7 +132,8 @@ dryRun: true                   # nothing is submitted while this is true
 schedule: ["09:00", "13:00", "19:00"]
 timezone: auto
 limits: { perDay: 15, perCompany30d: 2, reviewFirst: 10, runTimeoutMinutes: 30 }
-sources: { greenhouse: true, lever: true, ashby: true, linkedin: false }
+sources: { greenhouse: true, lever: true, ashby: true, linkedin: false }   # linkedin: opt-in, see above
+linkedin: { perDay: 5 }        # 1 to 15; acceptedAt is stored when you accept the risk
 companies:
   - { name: Acme Rockets, ats: greenhouse, token: acmerockets }
 rules:
@@ -128,7 +146,7 @@ rules:
 ## Safety, and job-site terms of service
 
 - **It never solves CAPTCHAs, sends emails or messages, creates accounts or invents facts.** Those go to you.
-- **LinkedIn is off by default and not automated in v0.1.** LinkedIn's [User Agreement](https://www.linkedin.com/legal/user-agreement) (section 8.2) forbids bots and automated access, and LinkedIn [restricts accounts](https://www.linkedin.com/help/linkedin/answer/a1341387) that use them. A future opt-in will require a typed acknowledgment and a low cap. The risk would be yours.
+- **LinkedIn is off by default.** It is an opt-in mode with real risk: see [LinkedIn mode](#linkedin-mode-opt-in-and-risky).
 - **Other sites have terms too.** You are responsible for using this within each site's terms and the law where you live.
 - **Postings that ask for no AI tools are skipped.**
 - **Job pages are untrusted input.** The agent is told to ignore instructions on pages, and the rules that matter (no submit in dry run or review, caps, no invented answers, submit once) are enforced by the desk tools, not by the prompt.
@@ -139,7 +157,7 @@ rules:
 
 - **v0.1 (now):** Greenhouse, Lever, Ashby; Claude Code and Codex; dashboard and question queue; answer memory; scheduler; dry run and review mode
 - **v0.2:** Workday (accounts you create, optional OS keychain), reply tracking from your inbox (read-only), drafts for email-only postings, Windows, screenshot evidence in the dashboard
-- **v0.3:** optional LinkedIn with acknowledgment, company watchlist, phone notifications, more ATSs (SmartRecruiters, Workable, Recruitee) and regional job boards
+- **v0.3:** company watchlist, phone notifications, more ATSs (SmartRecruiters, Workable, Recruitee) and regional job boards
 
 ## Contributing
 
