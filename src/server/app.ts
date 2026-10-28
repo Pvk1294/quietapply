@@ -5,8 +5,10 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { Config, loadConfig, saveConfig } from "../core/config.js";
 import { type DB, kvGet, openDb } from "../core/db.js";
-import { allowance, startOfToday } from "../core/limits.js";
+import { closeHandoffs, getHandoff, type Handoff, listHandoffs, REASONS } from "../core/handoffs.js";
+import { allowance, companyAllowed, startOfToday } from "../core/limits.js";
 import { type Paths, packageRoot } from "../core/paths.js";
+import { checkFit } from "../core/rules.js";
 import {
   APP_STATUSES,
   type AppStatus,
@@ -22,7 +24,7 @@ import {
   setStatus,
 } from "../core/store.js";
 import { deleteAnswer, listAnswers, updateAnswer } from "../memory/answers.js";
-import { loadProfile } from "../memory/profile.js";
+import { loadProfile, PROFILE_FIELDS, type Profile } from "../memory/profile.js";
 import { answerQuestion, dismissQuestion } from "../memory/queue.js";
 import { discover } from "../runner/discover.js";
 import { isPaused } from "../runner/run.js";
@@ -86,7 +88,24 @@ export function createApp(opts: AppOptions): Hono {
     for (const a of apps) counts[a.status]++;
     const a = allowance(d, config);
     const last = JSON.parse(kvGet(d, "schedule:last") ?? "{}") as { slot?: string };
+    const today = startOfToday();
+    const doneToday = apps.filter(
+      (x) => ["submitted", "dry_run", "awaiting_review"].includes(x.status) && x.updated_at >= today,
+    ).length;
+    const handoffsToday = listHandoffs(d, "all").filter(
+      (h) => h.created_at >= today && h.state !== "superseded",
+    );
+    const openHandoffs = listHandoffs(d, "open");
     return c.json({
+      today: {
+        done: doneToday,
+        couldnt: handoffsToday.length,
+        needYou: handoffsToday.filter((h) => h.state === "open" && REASONS[h.reason].needsYou).length,
+      },
+      handoffs: {
+        open: openHandoffs.length,
+        needYou: openHandoffs.filter((h) => REASONS[h.reason].needsYou).length,
+      },
       profileName: profile.name,
       provider: config.provider,
       browser: config.browser,
@@ -143,8 +162,96 @@ export function createApp(opts: AppOptions): Hono {
       if (["submitted", "submitting", "unclear"].includes(a.status) && c.req.query("force") !== "1")
         return c.json({ error: "this one may already be submitted; check the site first" }, 400);
       setStatus(d, id, "queued", { reason: "queued again by you" });
-    } else setStatus(d, id, "skipped", { reason: "dismissed by you" });
+      closeHandoffs(d, id, "retried");
+    } else {
+      setStatus(d, id, "skipped", { reason: "dismissed by you" });
+      closeHandoffs(d, id, "not_interested");
+    }
     return c.json(getApplication(d, id));
+  });
+
+  // ---------- Finish yourself ----------
+
+  /** Your own details, ready to copy into a form. */
+  const detailsToCopy = (profile: Profile) =>
+    PROFILE_FIELDS.map((f) => ({ label: f.field.replace(/_/g, " "), value: f.value(profile) })).filter(
+      (x): x is { label: string; value: string } => !!x.value,
+    );
+
+  /** Why a retry would not help right now, or undefined when it may. */
+  const retryBlocker = (d: DB, h: Handoff): string | undefined => {
+    const a = getApplication(d, h.application_id);
+    if (!a) return "the job is gone";
+    if (!REASONS[h.reason].retryable) return "Retrying would not change anything for this reason.";
+    if (h.reason === "unknown_question" && openQuestionsFor(d, a.id).length)
+      return "Answer the open question(s) first.";
+    if (h.reason === "fit_gate") {
+      const fit = checkFit(a, loadConfig(p).rules, loadProfile(p));
+      if (!fit.fit) return `Still blocked by your rules: ${fit.reason}.`;
+    }
+    if (h.reason === "cap" && !loadConfig(p).dryRun) {
+      const config = loadConfig(p);
+      if (allowance(d, config).remainingToday <= 0) return "Today's limit is used up.";
+      if (!companyAllowed(d, config, a.company)) return `The limit for ${a.company} is still used up.`;
+    }
+    return undefined;
+  };
+
+  app.get("/api/handoffs", (c) => {
+    const d = getDb();
+    const profile = loadProfile(p);
+    const mine = detailsToCopy(profile);
+    const state = c.req.query("state") === "all" ? "all" : "open";
+    return c.json(
+      listHandoffs(d, state).flatMap((h) => {
+        const a = getApplication(d, h.application_id);
+        if (!a) return [];
+        const blocker = h.state === "open" ? retryBlocker(d, h) : "Already handled.";
+        return [
+          {
+            ...h,
+            label: REASONS[h.reason].label,
+            help: REASONS[h.reason].help,
+            needsYou: REASONS[h.reason].needsYou,
+            canRetry: !blocker,
+            retryBlocker: blocker ?? null,
+            application: {
+              id: a.id,
+              company: a.company,
+              title: a.title,
+              url: a.url,
+              ats: a.ats,
+              status: a.status,
+            },
+            questions: openQuestionsFor(d, a.id).map((q) => q.question),
+            mine,
+          },
+        ];
+      }),
+    );
+  });
+
+  app.post("/api/handoffs/:id/:action{applied|not_interested|retry}", (c) => {
+    const d = getDb();
+    const h = getHandoff(d, Number(c.req.param("id")));
+    if (!h) return c.json({ error: "not found" }, 404);
+    if (h.state !== "open") return c.json({ error: "already handled" }, 409);
+    const action = c.req.param("action") as "applied" | "not_interested" | "retry";
+    if (action === "retry") {
+      const why = retryBlocker(d, h);
+      if (why) return c.json({ error: why }, 400);
+      setStatus(d, h.application_id, "queued", { reason: "queued again by you" });
+      closeHandoffs(d, h.application_id, "retried");
+    } else if (action === "applied") {
+      // Not "submitted": that would count against the daily cap and the review-first count, which are
+      // about what the agent sent.
+      setStatus(d, h.application_id, "skipped", { reason: "you applied yourself" });
+      closeHandoffs(d, h.application_id, "applied");
+    } else {
+      setStatus(d, h.application_id, "skipped", { reason: "not interested (you)" });
+      closeHandoffs(d, h.application_id, "not_interested");
+    }
+    return c.json(getHandoff(d, h.id));
   });
 
   app.get("/api/questions", (c) => {

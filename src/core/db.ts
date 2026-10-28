@@ -86,6 +86,21 @@ const MIGRATIONS: string[] = [
    );
 
    CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL);`,
+  // Why a job was skipped or handed back ("Finish yourself").
+  `CREATE TABLE handoffs (
+     id INTEGER PRIMARY KEY,
+     application_id INTEGER NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+     reason TEXT NOT NULL,
+     detail TEXT NOT NULL,
+     needed TEXT NOT NULL,
+     rule TEXT,
+     filled TEXT NOT NULL DEFAULT '[]',
+     state TEXT NOT NULL DEFAULT 'open',
+     created_at TEXT NOT NULL,
+     resolved_at TEXT
+   );
+   CREATE INDEX handoffs_state ON handoffs(state);
+   CREATE INDEX handoffs_app ON handoffs(application_id);`,
 ];
 
 export type DB = DatabaseSync;

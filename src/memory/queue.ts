@@ -1,5 +1,6 @@
 import type { DB } from "../core/db.js";
 import { now } from "../core/db.js";
+import { closeHandoffs } from "../core/handoffs.js";
 import {
   getApplication,
   getQuestion,
@@ -52,6 +53,7 @@ export function answerQuestion(
     const app = getApplication(db, appId);
     if (app?.status === "needs_answers" && openQuestionsFor(db, appId).length === 0) {
       setStatus(db, appId, "queued", { reason: "all questions answered" });
+      closeHandoffs(db, appId, "resolved");
       released.push(appId);
     }
   }

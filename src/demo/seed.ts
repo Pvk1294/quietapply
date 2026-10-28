@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Config, saveConfig } from "../core/config.js";
 import { type DB, openDb } from "../core/db.js";
+import { recordHandoff } from "../core/handoffs.js";
 import { ensureHome, packageRoot, paths } from "../core/paths.js";
 import { addApplication, askQuestion, finishRun, setStatus, startRun } from "../core/store.js";
 import { saveAnswer } from "../memory/answers.js";
@@ -227,16 +228,61 @@ function seedHistory(db: DB): void {
   const email = add("Vandelay Industries", "Software Developer", "greenhouse", "Springfield", "vandelay");
   setStatus(db, email, "blocked", {
     reason: "The posting asks for a CV by email to a recruiter.",
-    blockedCategory: "email_only",
+    blockedCategory: "external_redirect",
+  });
+  recordHandoff(db, {
+    applicationId: email,
+    reason: "external_redirect",
+    detail: "The posting asks for a CV by email to a recruiter.",
+    needed: "Email your CV to the recruiter named on the posting.",
+    filled: [{ field: "Email", value: "jane.doe@example.com" }],
   });
   at(email, 20);
 
   const video = add("Prestige Worldwide", "Full-Stack Developer", "ashby", "Remote", "prestige");
   setStatus(db, video, "blocked", {
     reason: "Step 2 asks for a 2-minute video introduction.",
-    blockedCategory: "human_only",
+    blockedCategory: "other",
+  });
+  recordHandoff(db, {
+    applicationId: video,
+    reason: "other",
+    detail: "Step 2 asks for a 2-minute video introduction.",
+    needed: "Record the video and finish the form yourself.",
+    filled: [
+      { field: "First Name", value: "Jane" },
+      { field: "Last Name", value: "Doe" },
+      { field: "Email", value: "jane.doe@example.com" },
+    ],
   });
   at(video, 27);
+
+  const captcha = add("Soylent Corp", "Platform Engineer", "greenhouse", "Remote", "soylent");
+  setStatus(db, captcha, "blocked", { reason: "A visible CAPTCHA on the form.", blockedCategory: "captcha" });
+  recordHandoff(db, {
+    applicationId: captcha,
+    reason: "captcha",
+    detail: "A visible CAPTCHA on the form. QuietApply never solves these.",
+    filled: [
+      { field: "First Name", value: "Jane" },
+      { field: "Last Name", value: "Doe" },
+      { field: "Email", value: "jane.doe@example.com" },
+      { field: "Phone", value: "+1 555 010 0199" },
+    ],
+  });
+  at(captcha, 4);
+
+  const workday = add("Wonka Industries", "Software Engineer II", "unknown", "Remote", "wonka");
+  setStatus(db, workday, "blocked", {
+    reason: "wonka.wd1.myworkdayjobs.com is not automated yet.",
+    blockedCategory: "unsupported_ats",
+  });
+  recordHandoff(db, {
+    applicationId: workday,
+    reason: "unsupported_ats",
+    detail: "wonka.wd1.myworkdayjobs.com is not automated yet.",
+  });
+  at(workday, 5);
 
   const skipped: [string, string, string][] = [
     ["Acme Rockets", "Principal Engineer, Propulsion", 'title contains excluded word "principal"'],
@@ -252,6 +298,12 @@ function seedHistory(db: DB): void {
       `${company}-${title}`.toLowerCase().replace(/\W+/g, "-"),
     );
     setStatus(db, id, "skipped", { reason });
+    recordHandoff(db, {
+      applicationId: id,
+      reason: "fit_gate",
+      detail: `Skipped by your rules: ${reason}.`,
+      rule: reason,
+    });
     at(id, 28);
   }
 

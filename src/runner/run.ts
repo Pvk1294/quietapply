@@ -2,6 +2,7 @@ import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { type Config, loadConfig } from "../core/config.js";
 import { type DB, openDb } from "../core/db.js";
+import { filledFromEvidence, recordHandoff, unsupportedSite } from "../core/handoffs.js";
 import { allowance, companyAllowed } from "../core/limits.js";
 import { acquireLock } from "../core/lock.js";
 import { type Paths, packageRoot, paths } from "../core/paths.js";
@@ -123,6 +124,12 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
       const fit = checkFit(app, config.rules, profile);
       if (!fit.fit) {
         setStatus(db, app.id, "skipped", { reason: fit.reason });
+        recordHandoff(db, {
+          applicationId: app.id,
+          reason: "fit_gate",
+          detail: `Skipped by your rules: ${fit.reason}.`,
+          rule: fit.reason,
+        });
         processed.push(row(app, "skipped", fit.reason));
         log(`skip  ${app.company} · ${app.title}: ${fit.reason}`);
         continue;
@@ -136,9 +143,24 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
           setStatus(db, app.id, "skipped", {
             reason: `already ${config.limits.perCompany30d} applications to ${app.company} in 30 days`,
           });
+          recordHandoff(db, {
+            applicationId: app.id,
+            reason: "cap",
+            detail: `Already ${config.limits.perCompany30d} applications to ${app.company} in the last 30 days.`,
+            rule: `at most ${config.limits.perCompany30d} per company per 30 days`,
+          });
           processed.push(row(app, "skipped", "per-company limit"));
           continue;
         }
+      }
+      const unsupported = unsupportedSite(app.url);
+      if (unsupported) {
+        const note = `${unsupported} is not automated yet.`;
+        setStatus(db, app.id, "blocked", { reason: note, blockedCategory: "unsupported_ats" });
+        recordHandoff(db, { applicationId: app.id, reason: "unsupported_ats", detail: note });
+        processed.push(row(app, "blocked", note));
+        log(`hand over ${app.company} · ${app.title}: ${note}`);
+        continue;
       }
       log(`apply ${app.company} · ${app.title}`);
       setStatus(db, app.id, "in_progress", { reason: dryRun ? "dry run" : undefined });
@@ -244,8 +266,13 @@ export function settle(db: DB, id: number, result: AgentRunResult): { status: st
   const short = result.text.split("\n")[0]?.slice(0, 200) ?? "";
   if (app.status === "submitting") {
     // Submit was approved but no result was recorded: it may or may not have gone through.
-    setStatus(db, id, "unclear", {
-      reason: `run ended after Submit was approved (${result.status}); check before retrying`,
+    const detail = `run ended after Submit was approved (${result.status}); check before retrying`;
+    setStatus(db, id, "unclear", { reason: detail });
+    recordHandoff(db, {
+      applicationId: id,
+      reason: "unclear_submit",
+      detail,
+      filled: filledFromEvidence(app.evidence),
     });
     return { status: "unclear", note: "check the site before retrying" };
   }
@@ -254,7 +281,14 @@ export function settle(db: DB, id: number, result: AgentRunResult): { status: st
       setStatus(db, id, "queued", { reason: "usage limit reached; retried next run" });
       return { status: "queued", note: "usage limit" };
     }
-    setStatus(db, id, "failed", { reason: `${result.status}: ${short || "the agent recorded nothing"}` });
+    const detail = `${result.status}: ${short || "the agent recorded nothing"}`;
+    setStatus(db, id, "failed", { reason: detail });
+    recordHandoff(db, {
+      applicationId: id,
+      reason: "form_error",
+      detail,
+      filled: filledFromEvidence(app.evidence),
+    });
     return { status: "failed", note: short };
   }
   return { status: app.status, note: app.reason ?? short };

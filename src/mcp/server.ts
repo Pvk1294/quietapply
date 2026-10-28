@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { BLOCKED_CATEGORIES } from "../core/store.js";
+import { HANDOFF_REASONS } from "../core/handoffs.js";
 import type { Desk } from "./desk.js";
 
 const text = (value: unknown) => ({
@@ -91,18 +91,53 @@ export function createDeskServer(desk: Desk, version = "0.1.0"): McpServer {
     async (args) => text(desk.recordResult(args)),
   );
 
+  const filledValues = z
+    .array(z.object({ field: z.string(), value: z.string() }))
+    .describe("Fields you already filled in on the form, as label and value");
+
   server.registerTool(
     "mark_blocked",
     {
       description:
-        "Hand the application to the human: CAPTCHA, video or test, email-only, account or password needed, OTP, site error, or a 'no AI' posting.",
+        "Hand the application to the human and say why. reason: captcha (CAPTCHA or human check), login_required (account, password or code), unknown_question, file_upload (special upload form), unsupported_ats (Workday etc.), external_redirect (email-only or another site), linkedin_limit, fit_gate (e.g. a 'no AI' posting; give the rule), cap, form_error (site or form broke), unclear_submit, other.",
       inputSchema: {
-        category: z.enum(BLOCKED_CATEGORIES),
-        notes: z.string(),
+        category: z
+          .enum([
+            ...HANDOFF_REASONS,
+            "human_only",
+            "email_only",
+            "account_required",
+            "otp",
+            "file_upload_form",
+            "site_error",
+            "no_ai_policy",
+            "missing_data",
+          ])
+          .describe("The reason"),
+        notes: z.string().describe("What happened, in plain words"),
+        needed: z.string().optional().describe("What the human has to do"),
+        rule: z.string().optional().describe("For fit_gate: the rule or sentence that applies"),
+        filled: filledValues.optional(),
         prefilled: z.record(z.string(), z.string()).optional(),
       },
     },
     async (args) => text(desk.markBlocked(args)),
+  );
+
+  server.registerTool(
+    "report_outcome",
+    {
+      description:
+        "Call this last, once per run. It is how the dashboard learns what happened; your closing message is not read. outcome: filled (dry run or review, form complete), submitted, handed_over, waiting_for_answers, failed. For handed_over and failed give reason, detail and needed.",
+      inputSchema: {
+        outcome: z.enum(["filled", "submitted", "handed_over", "waiting_for_answers", "failed"]),
+        reason: z.enum(HANDOFF_REASONS).optional(),
+        detail: z.string().optional(),
+        needed: z.string().optional(),
+        filled: filledValues.optional(),
+      },
+    },
+    async (args) => text(desk.reportOutcome(args)),
   );
 
   server.registerTool(
