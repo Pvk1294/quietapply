@@ -30,6 +30,7 @@ import { discover } from "../runner/discover.js";
 import { isPaused } from "../runner/run.js";
 import { scheduleInstalled } from "../scheduler/index.js";
 import { defaultFetcher, type Fetcher } from "../sources/http.js";
+import { checkAccess, originAllowed } from "./guard.js";
 
 export interface AppOptions {
   p: Paths;
@@ -47,6 +48,7 @@ const MIME: Record<string, string> = {
   ".png": "image/png",
   ".ico": "image/x-icon",
   ".json": "application/json",
+  ".webmanifest": "application/manifest+json",
   ".woff2": "font/woff2",
 };
 
@@ -54,27 +56,30 @@ const MIME: Record<string, string> = {
 export function createApp(opts: AppOptions): Hono {
   const { p } = opts;
   const app = new Hono();
-  const allowedHosts = new Set([`127.0.0.1:${opts.port}`, `localhost:${opts.port}`]);
   let db: DB | undefined;
   const getDb = () => {
     db ??= openDb(p);
     return db;
   };
 
-  // DNS-rebinding guard: only our own host names. CSRF guard: writes need a custom header, which a
-  // cross-site form or simple fetch cannot send without a CORS preflight (and we allow no CORS).
+  // DNS-rebinding guard: only our own host names (see guard.ts for the tailnet case). CSRF guard: writes
+  // need a custom header, which a cross-site form or simple fetch cannot send without a CORS preflight
+  // (and we allow no CORS), and an Origin, when present, must be our own.
   app.use("*", async (c, next) => {
-    const host = c.req.header("host") ?? "";
-    if (!allowedHosts.has(host)) return c.text("Forbidden host", 403);
+    const access = checkAccess(
+      { host: c.req.header("host"), login: c.req.header("tailscale-user-login") },
+      { p, port: opts.port },
+    );
+    if (!access.ok) return c.text(access.why, access.status);
     if (c.req.method !== "GET" && c.req.method !== "HEAD") {
       const origin = c.req.header("origin");
       if (c.req.header("x-quietapply") !== "1") return c.text("Missing x-quietapply header", 403);
-      if (origin && !allowedHosts.has(origin.replace(/^https?:\/\//, "")))
-        return c.text("Forbidden origin", 403);
+      if (origin && !originAllowed(origin, access)) return c.text("Forbidden origin", 403);
     }
     await next();
     c.header("x-content-type-options", "nosniff");
     c.header("referrer-policy", "no-referrer");
+    c.header("cache-control", c.res.headers.get("cache-control") ?? "no-store");
   });
 
   const running = () => existsSync(p.lock);

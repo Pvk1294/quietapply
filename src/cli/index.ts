@@ -206,6 +206,19 @@ program
   });
 
 program
+  .command("phone [action]")
+  .description("Open the dashboard on your phone through Tailscale (tailnet only). `phone off` undoes it")
+  .option("--port <n>", "dashboard port", Number)
+  .action(async (action: string | undefined, o: { port?: number }) => {
+    if (action && action !== "off")
+      throw new Error(`Unknown action "${action}". Use: quietapply phone [off]`);
+    const { phoneOff, phoneOn } = await import("./phone.js");
+    const r = await (action === "off" ? phoneOff(o) : phoneOn(o));
+    console.log(r.lines.join("\n"));
+    if (!r.ok) process.exitCode = 1;
+  });
+
+program
   .command("demo")
   .description("Try everything with a fake persona and fixture pages, in a throwaway data folder")
   .option("--port <n>", "port", Number)
