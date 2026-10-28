@@ -31,7 +31,8 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 - **Job sites:** Greenhouse, Lever and Ashby in v0.1; Workday is next.
 - **Local dashboard** at `http://127.0.0.1:4777`: Today, Applications (with every value the agent typed and where it came from), Questions, Finish yourself, Memory, Runs, Settings, plus Run now and Pause. Works on a phone.
 - **Review mode:** the first 10 applications stop before Submit and wait for your OK in the dashboard.
-- **Dry run by default:** nothing is submitted until you turn dry run off.
+- **Dry run by default:** nothing is submitted until you turn dry run off. In dry run the browser itself blocks every request that would send data (form posts, uploads, autosave), so even a stray click on Submit goes nowhere.
+- **Screenshots:** the agent screenshots the form at the end of every run, and each application's page in the dashboard shows them next to what was typed.
 - **Duplicate protection:** an application is marked "submitting" before Submit is clicked, so an unclear result is never resent blindly.
 - **Caps:** 15 a day and 2 per company per 30 days by default.
 - **Scheduler:** launchd (macOS) or a systemd user timer (Linux). Missed runs are coalesced into one; a failed run is retried once; a lock stops overlapping runs; usage limits are waited out.
@@ -62,6 +63,7 @@ npm link                              # makes the `quietapply` command available
 quietapply init                       # AI, resume -> profile, common questions, targets, companies
 quietapply doctor                     # checks the CLI, login, browser and data folder
 quietapply discover                   # finds open roles at your companies
+quietapply add <job-url>              # or queue one job; title and company come from the job site's API
 quietapply run                        # one run now (dry run: forms are filled, nothing is submitted)
 quietapply dashboard                  # http://127.0.0.1:4777
 quietapply schedule on                # runs at the times in config.yaml
@@ -88,7 +90,7 @@ flowchart TD
 2. **Filter:** checks each role against your rules and logs why it skipped the ones it skipped.
 3. **Apply:** the agent opens the form and fills it from your profile and answer memory. Every value has to cite a memory id.
 4. **Ask:** an unknown required question becomes a card in the dashboard, and that application waits for the next run.
-5. **Record:** dry run, review, submitted, or handed to you; the dashboard shows exactly what was typed.
+5. **Record:** dry run, review, submitted, or handed to you; the dashboard shows exactly what was typed, with a screenshot of the form.
 
 The agent can only read and change your data through a small set of MCP tools (`lookup_answers`, `ask_human`, `start_submit`, `record_result`, `mark_blocked`…). The setup is the same whichever AI you use, the rules are enforced in code rather than in a prompt, and you can audit every step. More detail: [docs/how-it-works.md](docs/how-it-works.md).
 
@@ -132,13 +134,14 @@ rules:
 - **Other sites have terms too.** You are responsible for using this within each site's terms and the law where you live.
 - **Postings that ask for no AI tools are skipped.**
 - **Job pages are untrusted input.** The agent is told to ignore instructions on pages, and the rules that matter (no submit in dry run or review, caps, no invented answers, submit once) are enforced by the desk tools, not by the prompt.
+- **Dry run is enforced in the browser too.** With Playwright, dry run loads a network guard that aborts every non-read request before it leaves your machine. Some job sites save what you type as you type (Ashby) or upload the resume the moment it is attached (Greenhouse); the guard stops that too. Claude in Chrome mode has no such guard, so use Playwright for dry runs.
 - **Quality over volume.** The defaults are deliberately low. A few well-matched applications get more replies than hundreds of generic ones, and they don't waste recruiters' time.
 - **You are the applicant.** Everything it submits is in your name. Keep review mode on until you trust it.
 
 ## Roadmap
 
 - **v0.1 (now):** Greenhouse, Lever, Ashby; Claude Code and Codex; dashboard and question queue; answer memory; scheduler; dry run and review mode
-- **v0.2:** Workday (accounts you create, optional OS keychain), reply tracking from your inbox (read-only), drafts for email-only postings, Windows, screenshot evidence in the dashboard
+- **v0.2:** Workday (accounts you create, optional OS keychain), reply tracking from your inbox (read-only), drafts for email-only postings, Windows
 - **v0.3:** optional LinkedIn with acknowledgment, company watchlist, phone notifications, more ATSs (SmartRecruiters, Workable, Recruitee) and regional job boards
 
 ## Contributing

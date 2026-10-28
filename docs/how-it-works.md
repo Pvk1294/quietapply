@@ -36,7 +36,9 @@ sequenceDiagram
 | Providers | `src/providers/` | Build the unattended command line for `claude -p` and `codex exec`, detect usage limits |
 | Runner | `src/runner/run.ts` | Queue, fit gate, caps, one agent run per application, and settling of half-finished work (approved-but-unrecorded submits become "unclear" and are never retried automatically) |
 | Discovery | `src/runner/discover.ts`, `src/sources/` | Public Greenhouse Job Board API, Lever Postings API, Ashby Job Posting API |
-| Form parser | `src/forms/parse.ts` | Reads labels, types, required flags and options from Greenhouse, Lever and rendered Ashby pages; spots visible CAPTCHAs and password fields |
+| Form parser | `src/forms/parse.ts` | Reads labels, types, required flags and options from Greenhouse, Lever and rendered Ashby pages (custom dropdowns, hidden upload inputs, Ashby Yes/No buttons); spots visible CAPTCHAs and password fields. Tested on saved copies of real forms (`fixtures/ats/*-real-form.html`) |
+| Dry-run guard | `browser/dry-run-guard.cjs` | Loaded into Playwright MCP (`--init-page`) while dry run is on: aborts every request that is not a read (GET/HEAD/OPTIONS), except Ashby's read-only GraphQL queries, and logs what it blocked to the application's run folder |
+| Evidence | `src/runner/evidence.ts` | Finds the screenshots in `logs/run-<run>/app-<application>/` for the dashboard |
 | Scripted agent | `src/runner/scripted-agent.ts` | A no-AI stand-in that talks to the real desk server; used by tests and the demo, never submits |
 | Scheduler | `src/scheduler/` | `tick` every 15 minutes through launchd or systemd; runs the latest due slot once |
 | Dashboard | `src/server/`, `web/` | Hono API on 127.0.0.1 and a React app |
