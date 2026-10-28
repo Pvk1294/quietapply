@@ -50,6 +50,10 @@ describe("Codex provider", () => {
     expect(args).toContain('mcp_servers.desk.command="node"');
     expect(args).toContain('mcp_servers.desk.args=["cli.js","mcp","--application","7"]');
     expect(args).toContain('mcp_servers.desk.env={ QUIETAPPLY_HOME="/tmp/qa" }');
+    expect(args).toContain("--ignore-user-config");
+    // codex exec cancels MCP calls that need approval, so our own two servers are pre-approved.
+    expect(args).toContain('mcp_servers.desk.default_tools_approval_mode="approve"');
+    expect(args).toContain('mcp_servers.playwright.default_tools_approval_mode="approve"');
     expect(args.at(-1)).toBe("-");
   });
   it("reads the last agent message and failures from JSONL", () => {

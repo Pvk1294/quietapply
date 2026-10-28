@@ -1,5 +1,6 @@
 // One live dry run with your own Claude Code + Playwright MCP on a local fixture page (fake persona, nothing real).
 // Usage: npm run build && node scripts/live-dry-run.mjs [fixture.html]   (uses your Claude plan; takes about a minute)
+// Codex instead: QUIETAPPLY_PROVIDER=codex node scripts/live-dry-run.mjs
 
 import { copyFileSync, mkdtempSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -35,8 +36,8 @@ const url = `http://127.0.0.1:${srv.address().port}/${fixtureName}`;
 const p = ensureHome(paths(home));
 saveConfig(
   Config.parse({
-    provider: "claude-code",
-    model: "sonnet",
+    provider: process.env.QUIETAPPLY_PROVIDER ?? "claude-code",
+    model: (process.env.QUIETAPPLY_PROVIDER ?? "claude-code") === "claude-code" ? "sonnet" : undefined,
     headless: true,
     dryRun: true,
     limits: { runTimeoutMinutes: 10 },

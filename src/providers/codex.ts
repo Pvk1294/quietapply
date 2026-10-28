@@ -82,13 +82,30 @@ const toml = (v: unknown) => JSON.stringify(v);
 
 /**
  * argv for `codex exec`. MCP servers are passed as `-c mcp_servers.<name>.*` overrides so nothing is
- * written into the user's ~/.codex/config.toml.
+ * written into the user's ~/.codex/config.toml, and that file is not loaded either (login still works), so
+ * the user's own MCP servers and settings stay out of application runs.
+ *
+ * `codex exec` has no one to ask, so an MCP call that needs approval is cancelled
+ * (https://github.com/openai/codex/issues/24135). Our two servers are pre-approved with
+ * `default_tools_approval_mode = "approve"`; nothing else is reachable, and shell commands stay read-only.
  */
 export function agentArgs(opts: AgentRunOptions, lastMessagePath: string): string[] {
-  const args = ["exec", "--json", "--sandbox", "read-only", "--skip-git-repo-check", "-o", lastMessagePath];
+  const args = [
+    "exec",
+    "--json",
+    "--sandbox",
+    "read-only",
+    "--skip-git-repo-check",
+    "--ignore-user-config",
+    "-o",
+    lastMessagePath,
+  ];
   for (const [name, spec] of Object.entries(opts.mcpServers)) {
     args.push("-c", `mcp_servers.${name}.command=${toml(spec.command)}`);
     args.push("-c", `mcp_servers.${name}.args=${toml(spec.args)}`);
+    args.push("-c", `mcp_servers.${name}.default_tools_approval_mode="approve"`);
+    // npx may need a few seconds to start Playwright MCP; the default is 10.
+    args.push("-c", `mcp_servers.${name}.startup_timeout_sec=60`);
     if (spec.env && Object.keys(spec.env).length) {
       const env = Object.entries(spec.env)
         .map(([k, v]) => `${k}=${toml(v)}`)
