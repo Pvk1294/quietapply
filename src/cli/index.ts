@@ -7,7 +7,7 @@ import { Command } from "commander";
 import { loadConfig } from "../core/config.js";
 import { kvGet, kvSet, openDb } from "../core/db.js";
 import { ensureHome, packageRoot, paths } from "../core/paths.js";
-import { addApplication, listApplications, listQuestions } from "../core/store.js";
+import { listApplications, listQuestions } from "../core/store.js";
 import { Desk } from "../mcp/desk.js";
 import { createDeskServer } from "../mcp/server.js";
 import { loadProfile } from "../memory/profile.js";
@@ -16,7 +16,6 @@ import { discover } from "../runner/discover.js";
 import { isPaused, runOnce } from "../runner/run.js";
 import { scheduleInstalled, scheduleOff, scheduleOn } from "../scheduler/index.js";
 import { dueSlot, retryDue } from "../scheduler/slots.js";
-import { detectAts } from "../sources/detect.js";
 import { defaultFetcher } from "../sources/http.js";
 import { doctor } from "./doctor.js";
 
@@ -67,20 +66,19 @@ program
 
 program
   .command("add <url>")
-  .description("Queue one job by URL")
-  .option("--company <name>")
-  .option("--title <title>")
-  .action((url: string, o: { company?: string; title?: string }) => {
-    const ref = detectAts(url);
-    const db = openDb(ensureHome(paths()));
-    const r = addApplication(db, {
-      url,
-      company: o.company ?? ref?.token ?? new URL(url).hostname,
-      title: o.title ?? "Job",
-      ats: ref?.ats ?? "unknown",
-      source: "manual",
-    });
-    console.log(r.created ? `Queued #${r.id}.` : `Already in the list as #${r.id}.`);
+  .description("Queue one job by URL; the title and company come from the job site's public API")
+  .option("--company <name>", "company name (overrides the lookup)")
+  .option("--title <title>", "job title (overrides the lookup)")
+  .option("--no-fetch", "do not look the job up")
+  .action(async (url: string, o: { company?: string; title?: string; fetch: boolean }) => {
+    const { addJob } = await import("./add.js");
+    const p = ensureHome(paths());
+    const db = openDb(p);
+    const r = await addJob(db, url, defaultFetcher, { ...o, companies: loadConfig(p).companies });
+    if (r.lookupError)
+      console.log(`Could not look the job up (${r.lookupError}); queued with what the URL says.`);
+    const what = `${r.title} at ${r.company}${r.location ? ` (${r.location})` : ""}`;
+    console.log(r.created ? `Queued #${r.id}: ${what}.` : `Already in the list as #${r.id}: ${what}.`);
   });
 
 program
