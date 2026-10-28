@@ -91,6 +91,20 @@ export interface Summary {
   scheduleInstalled: boolean;
   lastRun: Run | null;
   companies: number;
+  linkedin: { enabled: boolean; stopped: { reason: string } | null };
+}
+
+export interface LinkedInInfo {
+  enabled: boolean;
+  acceptedAt: string | null;
+  perDay: number;
+  usedToday: number;
+  remainingToday: number;
+  stopped: { at: string; reason: string; applicationId?: number } | null;
+  setupProblem: string | null;
+  chromeDevice: string | null;
+  risk: string[];
+  maxPerDay: number;
 }
 
 export interface Settings {
@@ -149,6 +163,11 @@ export const api = {
   runNow: () => request<{ started: boolean }>("POST", "/api/run"),
   pause: (paused: boolean) => request<{ paused: boolean }>("POST", "/api/pause", { paused }),
   discover: () => request<{ found: number; added: number }>("POST", "/api/discover"),
+  linkedin: () => request<LinkedInInfo>("GET", "/api/linkedin"),
+  saveLinkedIn: (b: { enabled?: boolean; acceptRisk?: boolean; perDay?: number }) =>
+    request<LinkedInInfo>("PUT", "/api/linkedin", b),
+  resumeLinkedIn: () => request<LinkedInInfo>("POST", "/api/linkedin/resume"),
+  addJob: (url: string) => request<{ id: number; created: boolean }>("POST", "/api/applications", { url }),
   settings: () => request<Settings>("GET", "/api/settings"),
   saveSettings: (s: unknown) => request<{ config: Settings["config"] }>("PUT", "/api/settings", s),
 };

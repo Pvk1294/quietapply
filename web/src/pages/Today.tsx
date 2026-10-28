@@ -77,8 +77,8 @@ export function Today({ summary }: { summary?: Summary }) {
               ))}
             </ul>
           ) : (
-            <Empty title="No questions">
-              The agent asks here when a form needs something it does not know.
+            <Empty title="No questions, and that is fine">
+              When a form asks something new, it waits here for you. Answer once and it is remembered.
             </Empty>
           )}
         </section>
@@ -106,7 +106,10 @@ export function Today({ summary }: { summary?: Summary }) {
               ))}
             </ul>
           ) : (
-            <Empty title="No activity yet">Add companies in Settings, then press Run now.</Empty>
+            <Empty title="Nothing has happened yet">
+              Welcome! Run quietapply init to add your resume and companies, then press Run now. In dry run
+              nothing is submitted. Not sure where to start? Open Help / Tour in the sidebar.
+            </Empty>
           )}
         </section>
       </div>

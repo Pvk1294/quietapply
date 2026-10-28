@@ -27,7 +27,9 @@ export function Runs() {
           ))}
         </ul>
       ) : (
-        <Empty title={data ? "No runs yet" : "Loading…"}>Press Run now, or turn on the schedule.</Empty>
+        <Empty title={data ? "No runs yet" : "Loading…"}>
+          Press Run now to try one. To run on its own at set times, use quietapply schedule on.
+        </Empty>
       )}
     </section>
   );

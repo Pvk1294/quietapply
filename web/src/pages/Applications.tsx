@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { type AppDetail, type AppStatus, api } from "../api";
 import { Icon } from "../icons";
 import { Avatar, ago, BLOCKED_LABEL, Empty, Pill, STATUS, toast, usePoll } from "../ui";
+import { AddJob } from "./AddJob";
 
 const FILTERS: { id: string; label: string; statuses?: AppStatus[] }[] = [
   { id: "all", label: "All" },
@@ -40,6 +41,7 @@ export function Applications({ query }: { query: string }) {
 
   return (
     <div className="stack">
+      <AddJob onAdded={reload} />
       <div className="toolbar">
         <div className="chips" role="tablist">
           {FILTERS.map((f) => {
@@ -94,7 +96,13 @@ export function Applications({ query }: { query: string }) {
             ))}
           </ul>
         ) : (
-          <Empty title="Nothing here">{data ? "No applications match this filter." : "Loading…"}</Empty>
+          <Empty title={data?.length ? "Nothing here" : "No applications yet"}>
+            {!data
+              ? "Loading…"
+              : data.length
+                ? "No applications match this filter."
+                : "Nothing to show yet. Add companies with quietapply init (or paste a job link above), then press Run now. While dry run is on, every filled-in form shows up here so you can check it."}
+          </Empty>
         )}
       </section>
       {open !== null && <Detail id={open} onClose={() => setOpen(null)} onChange={reload} />}

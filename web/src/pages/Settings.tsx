@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type Settings as S } from "../api";
 import { toast } from "../ui";
+import { LinkedInCard } from "./LinkedInCard";
 
 const list = (s: string) =>
   s
@@ -174,14 +175,7 @@ export function Settings({ onChange }: { onChange: () => void }) {
         </button>
       </section>
 
-      <section className="card note-card">
-        <h3>LinkedIn: {s.config.sources.linkedin ? "on" : "off"}</h3>
-        <p className="muted">
-          LinkedIn's User Agreement forbids bots and automated access, and LinkedIn restricts accounts that
-          use them. QuietApply keeps it off. It applies on company job boards (Greenhouse, Lever, Ashby)
-          instead.
-        </p>
-      </section>
+      <LinkedInCard onChange={onChange} />
     </div>
   );
 }

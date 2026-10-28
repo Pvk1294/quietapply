@@ -25,7 +25,11 @@ export function Questions({ onChange }: { onChange: () => void }) {
         </div>
       ) : (
         <section className="card">
-          <Empty title={open ? "All caught up" : "Loading…"}>{open ? "No questions are waiting." : ""}</Empty>
+          <Empty title={open ? "All caught up" : "Loading…"}>
+            {open
+              ? "No questions are waiting. When a form asks something QuietApply does not know, it appears here instead of being guessed."
+              : ""}
+          </Empty>
         </section>
       )}
 

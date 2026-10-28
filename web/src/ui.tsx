@@ -27,6 +27,8 @@ export const BLOCKED_LABEL: Record<string, string> = {
   file_upload_form: "Special upload form",
   site_error: "Site error",
   no_ai_policy: "Posting says no AI",
+  linkedin_warning: "LinkedIn showed a warning",
+  unsupported_site: "Company site not supported yet",
   missing_data: "Missing information",
   other: "Other",
 };
