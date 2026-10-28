@@ -10,6 +10,7 @@ import { type Paths, packageRoot } from "../core/paths.js";
 import {
   APP_STATUSES,
   type AppStatus,
+  addApplication,
   applicationEvents,
   approveReview,
   countSubmittedSince,
@@ -21,12 +22,22 @@ import {
   questionApplications,
   setStatus,
 } from "../core/store.js";
+import {
+  clearLinkedInStop,
+  LINKEDIN_MAX_PER_DAY,
+  LINKEDIN_RISK,
+  linkedInJobUrl,
+  linkedInStatus,
+  turnOffLinkedIn,
+  turnOnLinkedIn,
+} from "../linkedin/mode.js";
 import { deleteAnswer, listAnswers, updateAnswer } from "../memory/answers.js";
 import { loadProfile } from "../memory/profile.js";
 import { answerQuestion, dismissQuestion } from "../memory/queue.js";
 import { discover } from "../runner/discover.js";
 import { isPaused } from "../runner/run.js";
 import { scheduleInstalled } from "../scheduler/index.js";
+import { detectAts } from "../sources/detect.js";
 import { defaultFetcher, type Fetcher } from "../sources/http.js";
 
 export interface AppOptions {
@@ -105,6 +116,7 @@ export function createApp(opts: AppOptions): Hono {
       lastSlot: last.slot ?? null,
       lastRun: listRuns(d, 1)[0] ?? null,
       companies: config.companies.length,
+      linkedin: linkedInStatus(d, config),
     });
   });
 
@@ -127,6 +139,45 @@ export function createApp(opts: AppOptions): Hono {
     const a = getApplication(d, Number(c.req.param("id")));
     if (!a) return c.json({ error: "not found" }, 404);
     return c.json({ ...a, events: applicationEvents(d, a.id), questions: openQuestionsFor(d, a.id) });
+  });
+
+  /** Queue one job by its link: a Greenhouse, Lever or Ashby job, or a LinkedIn job when LinkedIn mode is on. */
+  app.post("/api/applications", async (c) => {
+    const body = z
+      .object({
+        url: z.string().min(8).max(2000),
+        company: z.string().optional(),
+        title: z.string().optional(),
+      })
+      .safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) return c.json({ error: "a job link is required" }, 400);
+    const { url, company, title } = body.data;
+    const linkedin = linkedInJobUrl(url);
+    if (linkedin) {
+      if (!linkedInStatus(getDb(), loadConfig(p)).enabled)
+        return c.json({ error: "Turn on LinkedIn mode in Settings first." }, 400);
+      const id = linkedin.match(/\d+/)![0];
+      const r = addApplication(getDb(), {
+        url: linkedin,
+        company: company ?? "LinkedIn job",
+        title: title ?? `LinkedIn job ${id}`,
+        ats: "linkedin",
+        source: "linkedin",
+      });
+      return c.json(r);
+    }
+    const ref = detectAts(url);
+    if (!ref?.jobId)
+      return c.json({ error: "That is not a Greenhouse, Lever, Ashby or LinkedIn job link." }, 400);
+    return c.json(
+      addApplication(getDb(), {
+        url,
+        company: company ?? ref.token.replace(/[-_]/g, " "),
+        title: title ?? "Job",
+        ats: ref.ats,
+        source: "manual",
+      }),
+    );
   });
 
   app.post("/api/applications/:id/:action{approve|requeue|dismiss}", (c) => {
@@ -262,6 +313,43 @@ export function createApp(opts: AppOptions): Hono {
     if (b.rules) config.rules = { ...config.rules, ...b.rules };
     saveConfig(config, p);
     return c.json({ config: loadConfig(p) });
+  });
+
+  app.get("/api/linkedin", (c) =>
+    c.json({
+      ...linkedInStatus(getDb(), loadConfig(p)),
+      risk: LINKEDIN_RISK,
+      maxPerDay: LINKEDIN_MAX_PER_DAY,
+    }),
+  );
+
+  const LinkedInBody = z.object({
+    enabled: z.boolean().optional(),
+    /** Must be true to turn it on: the user ticked "I accept this risk" under the risk statement. */
+    acceptRisk: z.boolean().optional(),
+    perDay: z.number().int().min(1).max(LINKEDIN_MAX_PER_DAY).optional(),
+    chromeDevice: z.string().max(100).nullable().optional(),
+  });
+  app.put("/api/linkedin", async (c) => {
+    const body = LinkedInBody.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success)
+      return c.json({ error: `The daily LinkedIn cap is 1 to ${LINKEDIN_MAX_PER_DAY}.` }, 400);
+    let config = loadConfig(p);
+    const b = body.data;
+    if (b.perDay !== undefined) config.linkedin.perDay = b.perDay;
+    if (b.chromeDevice !== undefined) config.linkedin.chromeDevice = b.chromeDevice?.trim() || undefined;
+    if (b.enabled === true && !config.sources.linkedin) {
+      const r = turnOnLinkedIn(config, { acceptRisk: b.acceptRisk === true });
+      if (!r.ok) return c.json({ error: r.error }, 400);
+      config = r.config;
+    } else if (b.enabled === false) config = turnOffLinkedIn(config);
+    saveConfig(config, p);
+    return c.json(linkedInStatus(getDb(), loadConfig(p)));
+  });
+
+  app.post("/api/linkedin/resume", (c) => {
+    clearLinkedInStop(getDb());
+    return c.json(linkedInStatus(getDb(), loadConfig(p)));
   });
 
   // Static dashboard (built by Vite into dist/web).

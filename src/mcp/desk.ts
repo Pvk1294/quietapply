@@ -4,17 +4,32 @@ import type { Config } from "../core/config.js";
 import type { DB } from "../core/db.js";
 import { allowance, companyAllowed } from "../core/limits.js";
 import type { Paths } from "../core/paths.js";
+import { checkFit } from "../core/rules.js";
 import {
   type Application,
   askQuestion,
   BLOCKED_CATEGORIES,
   type BlockedCategory,
   getApplication,
+  moveApplication,
   openQuestionsFor,
   setStatus,
+  updateJobFacts,
 } from "../core/store.js";
+import {
+  humanDelayMs,
+  isLinkedInApp,
+  linkedInEnabled,
+  linkedInStop,
+  looksLikeLinkedInWarning,
+  type PaceKind,
+  STOP_CATEGORIES,
+  stopLinkedIn,
+  typingChunks,
+} from "../linkedin/mode.js";
 import { getAnswer, type LookupResult, lookupAnswer, markUsed, parseMemoryId } from "../memory/answers.js";
 import { PROFILE_FIELDS, type Profile, profileForPrompt } from "../memory/profile.js";
+import { detectAts } from "../sources/detect.js";
 
 export interface FilledField {
   field: string;
@@ -27,7 +42,7 @@ export type SubmitDecision =
   | { proceed: true; instruction: string }
   | {
       proceed: false;
-      mode: "dry_run" | "review" | "cap" | "questions" | "invalid";
+      mode: "dry_run" | "review" | "cap" | "questions" | "invalid" | "linkedin";
       instruction: string;
       problems?: string[];
     };
@@ -36,14 +51,31 @@ export type SubmitDecision =
  * The desk: everything the agent may read or change, bound to one application per run.
  * The MCP server (server.ts) is a thin wrapper over these methods, so they are tested directly.
  */
+export interface DeskOptions {
+  /** How a human pause is waited out. Tests pass a recorder instead of a real timer. */
+  sleep?: (ms: number) => Promise<void>;
+  random?: () => number;
+}
+
+const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
 export class Desk {
+  /** LinkedIn only: set once the agent has read the job on the page and it passed the fit gate. */
+  private jobChecked = false;
+
   constructor(
     private db: DB,
     private config: Config,
     private profile: Profile,
     private p: Paths,
     readonly applicationId: number,
+    private opts: DeskOptions = {},
   ) {}
+
+  /** Whether this run is a LinkedIn application (decided once, at the start of the run). */
+  isLinkedIn(): boolean {
+    return isLinkedInApp(this.app());
+  }
 
   private app(): Application {
     const a = getApplication(this.db, this.applicationId);
@@ -147,6 +179,22 @@ export class Desk {
         instruction:
           "Some values have no memory id. Do not submit. Use lookup_answers for them, or ask_human, then call start_submit again.",
       };
+    if (isLinkedInApp(a)) {
+      const stop = linkedInStop(this.db);
+      const why = !linkedInEnabled(this.config)
+        ? "LinkedIn mode is off."
+        : stop
+          ? `LinkedIn mode is stopped: ${stop.reason}`
+          : !this.jobChecked
+            ? "Call job_details with what the job page shows first."
+            : undefined;
+      if (why)
+        return {
+          proceed: false,
+          mode: "linkedin",
+          instruction: `${why} Do not submit. End the run.`,
+        };
+    }
     if (openQuestionsFor(this.db, a.id).length)
       return {
         proceed: false,
@@ -207,14 +255,125 @@ export class Desk {
     const category = (BLOCKED_CATEGORIES as readonly string[]).includes(input.category)
       ? (input.category as BlockedCategory)
       : "other";
+    const linkedInStopNow =
+      isLinkedInApp(a) && (STOP_CATEGORIES.includes(category) || looksLikeLinkedInWarning(input.notes));
     setStatus(this.db, a.id, "blocked", {
       reason: input.notes.slice(0, 500),
-      blockedCategory: category,
+      blockedCategory: linkedInStopNow && category === "other" ? "linkedin_warning" : category,
       evidence: input.prefilled ? JSON.stringify({ prefilled: input.prefilled }) : undefined,
     });
+    if (linkedInStopNow) {
+      stopLinkedIn(this.db, input.notes || category, a.id);
+      return {
+        ok: true,
+        instruction:
+          "LinkedIn mode is now stopped for all applications until the human looks. Do not click anything else on LinkedIn. End the run now.",
+      };
+    }
     return {
       ok: true,
       instruction: "Handed to the human (Finish yourself list). Leave the page as it is and end.",
+    };
+  }
+
+  // ---------- LinkedIn mode only ----------
+
+  private linkedInApp(): Application {
+    const a = this.app();
+    if (!isLinkedInApp(a)) throw new Error("This tool is only for LinkedIn applications");
+    return a;
+  }
+
+  /**
+   * A random pause, decided here rather than by the agent, so the rhythm is never machine-regular:
+   * "action" between clicks, "typing" between typed chunks, "page" after opening a new page.
+   */
+  async humanPause(kind: PaceKind): Promise<{ waitedMs: number; instruction?: string }> {
+    this.linkedInApp();
+    const ms = humanDelayMs(kind, this.opts.random);
+    await (this.opts.sleep ?? realSleep)(ms);
+    const stop = linkedInStop(this.db);
+    return stop
+      ? { waitedMs: ms, instruction: `LinkedIn mode was stopped (${stop.reason}). End the run now.` }
+      : { waitedMs: ms };
+  }
+
+  /** How to type a longer answer: in chunks, with a "typing" pause between them. */
+  typingPlan(text: string) {
+    this.linkedInApp();
+    const chunks = typingChunks(text);
+    return {
+      chunks,
+      instruction:
+        chunks.length > 1
+          ? "Type each chunk with one type action, calling human_pause('typing') between chunks."
+          : "Type it in one go.",
+    };
+  }
+
+  /**
+   * What the job page says (company, title, location, a little of the description). Saved on the
+   * application and run through your fit gate before anything is filled in.
+   */
+  jobDetails(input: { company: string; title: string; location?: string; description?: string }) {
+    const a = this.linkedInApp();
+    updateJobFacts(this.db, a.id, {
+      company: input.company.trim().slice(0, 200),
+      title: input.title.trim().slice(0, 200),
+      location: input.location?.trim().slice(0, 200),
+      description: input.description?.slice(0, 4000),
+    });
+    const fit = checkFit(
+      {
+        company: input.company,
+        title: input.title,
+        location: input.location,
+        description: input.description,
+      },
+      this.config.rules,
+      this.profile,
+    );
+    if (!fit.fit) {
+      setStatus(this.db, a.id, "skipped", { reason: fit.reason });
+      return { fit: false, reason: fit.reason, instruction: "Not a fit. Do not apply. End the run." };
+    }
+    this.jobChecked = true;
+    return { fit: true, instruction: "A fit. Carry on with Easy Apply or the company-site link." };
+  }
+
+  /**
+   * LinkedIn sent the applicant to the company's own site. Greenhouse, Lever and Ashby continue with
+   * QuietApply's normal flow (same answers, same rules); anything else goes to Finish yourself.
+   */
+  companySite(input: { url: string }) {
+    const a = this.linkedInApp();
+    const ref = detectAts(input.url);
+    if (!ref) {
+      setStatus(this.db, a.id, "blocked", {
+        reason: `Applies on a site QuietApply does not support yet: ${input.url.slice(0, 200)}`,
+        blockedCategory: "unsupported_site",
+      });
+      return {
+        continues: false,
+        instruction: "Not a supported job site. Handed to the human. Leave the page and end the run.",
+      };
+    }
+    const other = this.db
+      .prepare("SELECT id FROM applications WHERE url = ? AND id != ?")
+      .get(input.url, a.id) as { id: number } | undefined;
+    if (other) {
+      setStatus(this.db, a.id, "skipped", { reason: `same job is already in your list as #${other.id}` });
+      return { continues: false, instruction: "Already in the list. End the run." };
+    }
+    const from = a.url;
+    moveApplication(this.db, a.id, { url: input.url, ats: ref.ats });
+    setStatus(this.db, a.id, "queued", {
+      reason: `LinkedIn sent this to the company's ${ref.ats} page (from ${from}); continues with the normal flow`,
+    });
+    return {
+      continues: true,
+      instruction:
+        "Noted. Stop here: QuietApply continues on the company site with its normal flow. Do not fill that form in this run. End the run.",
     };
   }
 

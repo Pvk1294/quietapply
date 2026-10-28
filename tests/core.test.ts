@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { Config, defaultConfig, LINKEDIN_ACK, loadConfig, saveConfig } from "../src/core/config.js";
+import { Config, defaultConfig, loadConfig, saveConfig } from "../src/core/config.js";
 import { openDb, openMemoryDb } from "../src/core/db.js";
 import { allowance, companyAllowed } from "../src/core/limits.js";
 import { acquireLock } from "../src/core/lock.js";
@@ -28,12 +28,21 @@ describe("config", () => {
     if (process.platform !== "win32") expect(statSync(p.home).mode & 0o777).toBe(0o700);
   });
 
-  it("keeps LinkedIn off unless the acknowledgment was typed exactly", () => {
+  it("keeps LinkedIn off unless the risk was accepted", () => {
     const p = ensureHome(paths(tmp()));
     writeFileSync(p.config, "sources:\n  linkedin: true\n");
     expect(loadConfig(p).sources.linkedin).toBe(false);
-    writeFileSync(p.config, `sources:\n  linkedin: true\nlinkedinAcknowledged: "${LINKEDIN_ACK}"\n`);
+    writeFileSync(
+      p.config,
+      'sources:\n  linkedin: true\nlinkedin:\n  acceptedAt: "2026-10-28T09:00:00.000Z"\n',
+    );
     expect(loadConfig(p).sources.linkedin).toBe(true);
+    expect(loadConfig(p).linkedin.perDay).toBe(5);
+  });
+
+  it("caps LinkedIn at 15 a day", () => {
+    expect(() => Config.parse({ linkedin: { perDay: 16 } })).toThrow();
+    expect(() => Config.parse({ linkedin: { perDay: 0 } })).toThrow();
   });
 
   it("rejects malformed schedule times", () => {

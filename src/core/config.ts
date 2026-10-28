@@ -64,15 +64,25 @@ export const Config = z.object({
       linkedin: z.boolean().default(false),
     })
     .default({ greenhouse: true, lever: true, ashby: true, linkedin: false }),
-  /** Typed acknowledgment required before LinkedIn can be turned on. */
-  linkedinAcknowledged: z.string().optional(),
+  /**
+   * LinkedIn mode (off by default; `sources.linkedin` is the switch). It drives your own logged-in browser
+   * through Claude in Chrome, with its own small daily cap, and only after you accepted the risk.
+   */
+  linkedin: z
+    .object({
+      /** When you accepted the risk statement (ISO time). LinkedIn stays off without it. */
+      acceptedAt: z.string().optional(),
+      /** LinkedIn applications the agent may open per day, dry runs included. */
+      perDay: z.number().int().min(1).max(15).default(5),
+      /** Claude in Chrome deviceId to use when several browsers are connected to your Claude account. */
+      chromeDevice: z.string().optional(),
+    })
+    .default({ perDay: 5 }),
   companies: z.array(Company).default([]),
   rules: Rules.default(Rules.parse({})),
   dashboard: z.object({ port: z.number().int().default(4777) }).default({ port: 4777 }),
 });
 export type Config = z.infer<typeof Config>;
-
-export const LINKEDIN_ACK = "I understand LinkedIn forbids automation and my account may be restricted";
 
 export function defaultConfig(): Config {
   return Config.parse({});
@@ -82,9 +92,8 @@ export function loadConfig(p: Paths = paths()): Config {
   if (!existsSync(p.config)) return defaultConfig();
   const raw = YAML.parse(readFileSync(p.config, "utf8")) ?? {};
   const config = Config.parse(raw);
-  // LinkedIn stays off unless the exact acknowledgment was typed.
-  if (config.sources.linkedin && config.linkedinAcknowledged !== LINKEDIN_ACK)
-    config.sources.linkedin = false;
+  // LinkedIn stays off unless you accepted the risk (the time is stored when you do).
+  if (config.sources.linkedin && !config.linkedin.acceptedAt) config.sources.linkedin = false;
   return config;
 }
 
