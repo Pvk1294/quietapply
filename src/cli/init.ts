@@ -5,7 +5,7 @@ import { type Company, defaultConfig, loadConfig, type ProviderId, saveConfig } 
 import { openDb } from "../core/db.js";
 import { ensureHome, paths } from "../core/paths.js";
 import { listAnswers, saveAnswer } from "../memory/answers.js";
-import { saveProfile } from "../memory/profile.js";
+import { loadProfile, saveProfile } from "../memory/profile.js";
 import { STANDARD_QUESTIONS } from "../memory/seed.js";
 import { getProvider, PROVIDERS } from "../providers/index.js";
 import { detectAts } from "../sources/detect.js";
@@ -95,11 +95,15 @@ export async function init(opts: InitOptions): Promise<void> {
         ? "Reading your resume"
         : `Reading your resume (with ${getProvider(provider).label})`,
     );
+    const before = existsSync(dirs.profile) ? loadProfile(dirs) : undefined;
     const { profile, usedAgent } = await importResume(
       resolve(expandHome(resumePath)),
       dirs,
       getProvider(provider),
     );
+    // Contact details you confirmed in an earlier setup beat what the parser reads from the resume again.
+    for (const k of ["name", "email", "phone", "location"] as const) if (before?.[k]) profile[k] = before[k];
+    saveProfile(profile, dirs);
     s.stop(
       `Profile built${usedAgent ? " by the agent" : ""}: ${profile.name || "name not found"}, ${profile.experience.length} roles, ${profile.skills.length} skills`,
     );
