@@ -8,6 +8,7 @@ import { loadConfig } from "../core/config.js";
 import { kvGet, kvSet, openDb } from "../core/db.js";
 import { ensureHome, packageRoot, paths } from "../core/paths.js";
 import { addApplication, listApplications, listQuestions } from "../core/store.js";
+import { linkedInEnabled, linkedInJobUrl } from "../linkedin/mode.js";
 import { Desk } from "../mcp/desk.js";
 import { createDeskServer } from "../mcp/server.js";
 import { loadProfile } from "../memory/profile.js";
@@ -73,6 +74,20 @@ program
   .action((url: string, o: { company?: string; title?: string }) => {
     const ref = detectAts(url);
     const db = openDb(ensureHome(paths()));
+    const li = linkedInJobUrl(url);
+    if (li) {
+      if (!linkedInEnabled(loadConfig()))
+        throw new Error("LinkedIn mode is off. Turn it on in the dashboard (Settings) first.");
+      const r = addApplication(db, {
+        url: li,
+        company: o.company ?? "LinkedIn job",
+        title: o.title ?? `LinkedIn job ${li.match(/\d+/)?.[0]}`,
+        ats: "linkedin",
+        source: "linkedin",
+      });
+      console.log(r.created ? `Queued LinkedIn job #${r.id}.` : `Already in the list as #${r.id}.`);
+      return;
+    }
     const r = addApplication(db, {
       url,
       company: o.company ?? ref?.token ?? new URL(url).hostname,
