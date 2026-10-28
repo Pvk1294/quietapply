@@ -173,4 +173,4 @@ Branches 170 (real-form fixes, dry-run guard, screenshots), 173 (Codex fix, stru
 - **LinkedIn stop writes the structured reason.** A LinkedIn warning, limit or CAPTCHA (agent report or run-level detection) now records a `linkedin_limit` handoff; the old `linkedin_warning` and `unsupported_site` categories are mapped to `linkedin_limit` and `unsupported_ats`.
 - **Dry run on LinkedIn.** The Playwright network guard does not exist under Claude in Chrome, so `Desk.startSubmit` refuses LinkedIn applications in dry run and review mode (status `dry_run` / `awaiting_review`), and `record_result(submitted)` throws there. Test: `tests/linkedin.test.ts`.
 - **Tour and docs.** Tour step 9 describes the rebuilt Finish yourself page; `docs/tutorial.md` links `docs/phone.md`. Init asks #170's country question and #172's LinkedIn question (default no).
-- 151 tests (78 on the base + 30 + 26 + 17 from the branches + 2 new here, less overlap).
+- 151 tests pass (108 on branch 170, plus the new tests from 173 and 172, plus 1 new here for the LinkedIn dry-run guard).
