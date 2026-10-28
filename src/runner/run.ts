@@ -75,6 +75,11 @@ export function dryRunGuardPath(): string {
   return join(packageRoot(), "browser", "dry-run-guard.cjs");
 }
 
+/** Crops page screenshots to the application form (loaded into Playwright MCP in every run). */
+export function formShotPath(): string {
+  return join(packageRoot(), "browser", "form-shot.cjs");
+}
+
 /**
  * MCP servers for one application: the desk (bound to it) and, unless Claude in Chrome is used, Playwright.
  * In dry run the Playwright browser also loads the network guard, so nothing can be sent even if the agent
@@ -90,20 +95,23 @@ export function mcpServers(
 ): Record<string, McpServerSpec> {
   const guardLog = outputDir && join(outputDir, "blocked-requests.jsonl");
   const cli = join(packageRoot(), "dist", "cli", "index.js");
+  const chrome = config.browser === "claude-in-chrome" || linkedin;
   const servers: Record<string, McpServerSpec> = {
     desk: {
       command: process.execPath,
       args: [cli, "mcp", "--application", String(applicationId), ...(dryRun ? ["--dry-run"] : [])],
-      env: { QUIETAPPLY_HOME: p.home },
+      // With Claude in Chrome the desk also locks the run folder when it refuses the submit step (chrome-guard.ts).
+      env: { QUIETAPPLY_HOME: p.home, ...(chrome && outputDir ? { QUIETAPPLY_RUN_DIR: outputDir } : {}) },
     },
   };
   // LinkedIn runs always use your own logged-in browser through Claude in Chrome.
-  if (config.browser !== "claude-in-chrome" && !linkedin) {
+  if (!chrome) {
     // Screenshots and page snapshots land in the application's own run folder, where the dashboard finds them.
     const args = ["-y", PLAYWRIGHT_MCP, "--output-dir", outputDir ?? join(p.logsDir, "playwright")];
     if (config.browser === "playwright-extension") args.push("--extension");
     else args.push("--user-data-dir", p.browserProfile);
     if (config.headless) args.push("--headless");
+    args.push("--init-page", formShotPath());
     if (dryRun) args.push("--init-page", dryRunGuardPath(), "--block-service-workers");
     servers.playwright = {
       command: "npx",
@@ -322,7 +330,8 @@ async function applyOne(o: {
   linkedin: boolean;
   pace?: DeskOptions;
 }): Promise<AgentRunResult> {
-  const desk = new Desk(o.db, o.config, o.profile, o.p, o.app.id, o.pace);
+  const work = runFolder(o.p, o.runId, o.app.id);
+  const desk = new Desk(o.db, o.config, o.profile, o.p, o.app.id, { ...o.pace, runDir: work });
   if (o.config.provider === "fake") {
     try {
       return { status: "completed", text: await scriptedAgent(desk, o.fetcher), exitCode: 0 };
@@ -332,7 +341,6 @@ async function applyOne(o: {
   }
   // Never fetch LinkedIn pages from here: on LinkedIn only the agent looks, in your own browser.
   const form = o.linkedin ? undefined : await expectedForm(o.fetcher, o.app.url);
-  const work = runFolder(o.p, o.runId, o.app.id);
   mkdirSync(work, { recursive: true, mode: 0o700 });
   // Browser tools may only upload files inside the run's working folder, so stage a copy of the resume there.
   let resumePath: string | undefined;
@@ -357,11 +365,14 @@ async function applyOne(o: {
   });
   // The agent's desk server opens its own connection to the database; close nothing here, SQLite WAL
   // lets both processes work on the same file.
+  const browser = o.linkedin ? "claude-in-chrome" : o.config.browser;
   return getProvider(o.config.provider).runAgent({
     prompt,
     mcpServers: mcpServers(o.config, o.p, o.app.id, o.config.dryRun, work, o.linkedin),
-    browser: o.linkedin ? "claude-in-chrome" : o.config.browser,
+    browser,
     linkedin: o.linkedin,
+    // No network guard exists in Claude in Chrome: in dry run and review the hook guards the browser instead.
+    chromeGuardDir: browser === "claude-in-chrome" && desk.mode() !== "live" ? work : undefined,
     cwd: work,
     timeoutMs: o.config.limits.runTimeoutMinutes * 60_000,
     logPath: join(work, "transcript.jsonl"),

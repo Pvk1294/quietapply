@@ -262,6 +262,7 @@ program
       loadProfile(p),
       p,
       o.application,
+      { runDir: process.env.QUIETAPPLY_RUN_DIR },
     );
     await createDeskServer(desk, pkg.version).connect(new StdioServerTransport());
   });

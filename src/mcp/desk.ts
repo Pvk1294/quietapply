@@ -35,6 +35,7 @@ import {
 } from "../linkedin/mode.js";
 import { getAnswer, type LookupResult, lookupAnswer, markUsed, parseMemoryId } from "../memory/answers.js";
 import { PROFILE_FIELDS, type Profile, profileForPrompt } from "../memory/profile.js";
+import { lockSubmitStep, logSubmitAttempt } from "../runner/chrome-guard.js";
 import { detectAts } from "../sources/detect.js";
 
 export interface FilledField {
@@ -61,6 +62,8 @@ export interface DeskOptions {
   /** How a human pause is waited out. Tests pass a recorder instead of a real timer. */
   sleep?: (ms: number) => Promise<void>;
   random?: () => number;
+  /** The application's run folder. Set when the browser has no network guard (Claude in Chrome). */
+  runDir?: string;
 }
 
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -87,6 +90,16 @@ export class Desk {
     const a = getApplication(this.db, this.applicationId);
     if (!a) throw new Error(`Application ${this.applicationId} not found`);
     return a;
+  }
+
+  /**
+   * The desk never hands out the submit step in dry run or review. Where the browser has no network guard
+   * (Claude in Chrome) it also locks the run folder, so the tool-level hook refuses every later click, and
+   * it logs the attempt.
+   */
+  private refuseSubmitStep(why: string): void {
+    logSubmitAttempt(this.opts.runDir, `start_submit (${why})`);
+    lockSubmitStep(this.opts.runDir, why);
   }
 
   mode(): "dry_run" | "review" | "live" {
@@ -196,6 +209,7 @@ export class Desk {
       // Claude in Chrome has no network guard like the Playwright path, so this check is the whole
       // protection: in dry run (and in review) a LinkedIn application is never submitted from here.
       const dry = this.mode() === "dry_run";
+      this.refuseSubmitStep(dry ? "dry run" : "review");
       setStatus(this.db, a.id, dry ? "dry_run" : "awaiting_review", {
         reason: dry ? "dry run: form filled, not submitted" : "filled; waiting for your OK in the dashboard",
         evidence: JSON.stringify({ filled, at: new Date().toISOString() }),
@@ -237,6 +251,7 @@ export class Desk {
     }
     const mode = this.mode();
     if (mode === "dry_run") {
+      this.refuseSubmitStep("dry run");
       setStatus(this.db, a.id, "dry_run", { reason: "dry run: form filled, not submitted", evidence });
       return {
         proceed: false,
@@ -245,6 +260,7 @@ export class Desk {
       };
     }
     if (mode === "review") {
+      this.refuseSubmitStep("review");
       setStatus(this.db, a.id, "awaiting_review", {
         reason: "filled; waiting for your OK in the dashboard",
         evidence,
@@ -279,10 +295,10 @@ export class Desk {
 
   recordResult(input: { outcome: "submitted" | "unclear" | "failed"; evidence: string }) {
     const a = this.app();
-    if (input.outcome === "submitted" && isLinkedInApp(a) && this.mode() !== "live")
-      throw new Error(
-        "record_result(submitted) on LinkedIn in dry run or review mode: nothing may be submitted",
-      );
+    if (input.outcome === "submitted" && this.mode() !== "live") {
+      logSubmitAttempt(this.opts.runDir, "record_result(submitted)");
+      throw new Error("record_result(submitted) in dry run or review mode: nothing may be submitted");
+    }
     if (input.outcome === "submitted" && a.status !== "submitting")
       throw new Error("record_result(submitted) without start_submit approving it first");
     setStatus(this.db, a.id, input.outcome, {

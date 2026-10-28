@@ -38,6 +38,8 @@ sequenceDiagram
 | Discovery | `src/runner/discover.ts`, `src/sources/` | Public Greenhouse Job Board API, Lever Postings API, Ashby Job Posting API |
 | Form parser | `src/forms/parse.ts` | Reads labels, types, required flags and options from Greenhouse, Lever and rendered Ashby pages (custom dropdowns, hidden upload inputs, Ashby Yes/No buttons); spots visible CAPTCHAs and password fields. Tested on saved copies of real forms (`fixtures/ats/*-real-form.html`) |
 | Dry-run guard | `browser/dry-run-guard.cjs` | Loaded into Playwright MCP (`--init-page`) while dry run is on: aborts every request that is not a read (GET/HEAD/OPTIONS), except Ashby's read-only GraphQL queries, and logs what it blocked to the application's run folder |
+| Form-only screenshots | `browser/form-shot.cjs` | Loaded into Playwright MCP in every run: a page screenshot is cropped in code to the application form (`form#application-form` for Greenhouse and Lever, `.ashby-application-form-container` or the common parent of Ashby's field entries, else the `<form>` with the most fields). With no form on the page (the confirmation after Submit) it takes a viewport shot capped at 2,000 px. Element shots the agent asks for pass through. Tested on the saved real forms |
+| Claude in Chrome guard | `browser/chrome-guard.cjs`, `src/runner/chrome-guard.ts` | A Claude Code `PreToolUse` hook (added with `--settings`) on the Chrome `computer` tool in dry run and review mode; see below |
 | Evidence | `src/runner/evidence.ts` | Finds the screenshots in `logs/run-<run>/app-<application>/` for the dashboard |
 | Handoffs | `src/core/handoffs.ts` | One record for every job skipped or stopped: reason (CAPTCHA, login, unknown question, file upload, unsupported site, redirect, LinkedIn limit, fit gate with its rule, cap, form error, unclear submit), plain-words detail, what is needed, the fields already filled, and when. Written by the runner (rules, caps, unsupported sites, failures) and by the agent through `mark_blocked` / `report_outcome`. |
 | Scripted agent | `src/runner/scripted-agent.ts` | A no-AI stand-in that talks to the real desk server; used by tests and the demo, never submits |
@@ -69,3 +71,19 @@ QuietApply stores each answer once, retrieves only the ones that match the form 
 | unclear | may or may not have gone through: check the site |
 | blocked | handed to you (CAPTCHA, video, email-only, account, …) |
 | failed | the run broke; try again from the dashboard |
+
+## What protects each mode
+
+"Dry run" means nothing may be sent. "Review" means the form is filled and waits for your OK. "Live" means Submit may be clicked once `start_submit` says go. The layers, from the inside out:
+
+| Layer | Playwright browser | Claude in Chrome (including LinkedIn) |
+|---|---|---|
+| Desk, `start_submit` | In dry run and review it never returns `proceed: true`; it only records the filled values. Live: also needs a memory id for every value, no open questions, and the daily and per-company caps. | Same. |
+| Desk, `record_result` | `submitted` is refused unless `start_submit` approved it, so a submit that never happened cannot be recorded. | Also refused in dry run and review whatever the status, and the attempt is logged. |
+| Network | **Dry run only:** `browser/dry-run-guard.cjs` aborts every request that is not a read (GET/HEAD/OPTIONS), except Ashby's read-only GraphQL queries, and blocks service workers. Even a stray click on Submit sends nothing. Review mode has no network guard, so uploads work and the desk is the guard. | None. This is your own browser, and nothing can be intercepted. |
+| Tools | Playwright MCP only. | Dry run and review: `javascript_tool`, `browser_batch` and `shortcuts_execute` are off, so `computer` is the only tool that can click. LinkedIn runs also lose `form_input`, network and console reads and the others in `LINKEDIN_DENIED_CHROME_TOOLS`. |
+| Hook on `computer` | n/a | Dry run and review: Enter/Return and typed line breaks are refused (they submit forms). When the desk refuses the submit step it writes `submit-step.json` in the run folder; from then on every click, drag, key press and typing action is refused for the rest of the run. Screenshots, scrolling and zoom still work. |
+| Log | `blocked-requests.jsonl` in the run folder: each blocked request. | The same file: each refused hook action and each refused `start_submit` / `record_result(submitted)`. The dashboard shows the count. |
+| Live review | Until you have approved ten applications (the first-ten rule), a run ends at `awaiting_review`; your approval in the dashboard lets the next run go. | Same. |
+
+One gap remains, and it is only in Claude in Chrome: a click on a final Submit button *before* the agent has called `start_submit` looks like any other click to the hook, which cannot read button labels. The agent is told to call `start_submit` first, and on LinkedIn the desk will not accept a result for an application it did not approve, so such a submit would show up as a mismatch. Keep LinkedIn dry runs for watching, not for unattended use.

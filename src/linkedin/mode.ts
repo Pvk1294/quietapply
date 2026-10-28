@@ -226,3 +226,12 @@ export const LINKEDIN_DENIED_CHROME_TOOLS = [
   "resize_window",
   "switch_browser",
 ].map((t) => `mcp__claude-in-chrome__${t}`);
+
+/**
+ * Claude in Chrome tools that can click or press keys without going through the `computer` tool (page
+ * scripts, batches, saved shortcuts). They are off in dry run and review mode, so `computer` is the one
+ * tool that can click, and the guard hook (browser/chrome-guard.cjs) watches it.
+ */
+export const CHROME_CLICK_TOOLS = ["javascript_tool", "browser_batch", "shortcuts_execute"].map(
+  (t) => `mcp__claude-in-chrome__${t}`,
+);

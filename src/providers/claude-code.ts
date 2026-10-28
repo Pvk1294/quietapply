@@ -1,6 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { LINKEDIN_CHROME_TOOLS, LINKEDIN_DENIED_CHROME_TOOLS } from "../linkedin/mode.js";
+import { CHROME_CLICK_TOOLS, LINKEDIN_CHROME_TOOLS, LINKEDIN_DENIED_CHROME_TOOLS } from "../linkedin/mode.js";
+import { chromeGuardSettings } from "../runner/chrome-guard.js";
 import { run, version } from "./spawn.js";
 import {
   type AgentRunOptions,
@@ -14,11 +15,18 @@ import {
 const BIN = process.env.QUIETAPPLY_CLAUDE_BIN ?? "claude";
 
 /** Tools the agent may call. Built-in file and shell tools are off: it acts only through MCP. */
-export function allowedTools(opts: Pick<AgentRunOptions, "browser" | "mcpServers" | "linkedin">): string[] {
+export function allowedTools(
+  opts: Pick<AgentRunOptions, "browser" | "mcpServers" | "linkedin" | "chromeGuardDir">,
+): string[] {
   const tools = Object.keys(opts.mcpServers).map((name) => `mcp__${name}__*`);
   if (opts.linkedin) tools.push(...LINKEDIN_CHROME_TOOLS);
   else if (opts.browser === "claude-in-chrome") tools.push("mcp__claude-in-chrome__*");
   return tools;
+}
+
+/** Tools refused outright: LinkedIn's long list, and in dry run or review every tool that can click around `computer`. */
+export function deniedTools(opts: Pick<AgentRunOptions, "linkedin" | "chromeGuardDir">): string[] {
+  return opts.linkedin ? LINKEDIN_DENIED_CHROME_TOOLS : opts.chromeGuardDir ? CHROME_CLICK_TOOLS : [];
 }
 
 export function mcpConfigJson(servers: Record<string, McpServerSpec>): string {
@@ -45,8 +53,10 @@ export function agentArgs(opts: AgentRunOptions, mcpConfigPath: string): string[
     "--allowedTools",
     allowedTools(opts).join(","),
   ];
-  if (opts.linkedin) args.push("--disallowedTools", LINKEDIN_DENIED_CHROME_TOOLS.join(","));
+  const denied = deniedTools(opts);
+  if (denied.length) args.push("--disallowedTools", denied.join(","));
   if (opts.browser === "claude-in-chrome" || opts.linkedin) args.push("--chrome");
+  if (opts.chromeGuardDir) args.push("--settings", chromeGuardSettings(opts.chromeGuardDir));
   if (opts.model) args.push("--model", opts.model);
   return args;
 }
