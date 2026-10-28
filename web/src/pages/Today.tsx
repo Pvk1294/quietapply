@@ -6,7 +6,8 @@ export function Today({ summary }: { summary?: Summary }) {
   const { data: questions } = usePoll(() => api.questions("open"), 6000);
   if (!summary) return <div className="skeleton" />;
   const c = summary.counts;
-  const handoff = c.blocked + c.unclear;
+  const handoff = summary.handoffs.open;
+  const t = summary.today;
   const recent = (apps ?? []).filter((a) => a.status !== "queued" && a.status !== "skipped").slice(0, 6);
 
   return (
@@ -24,6 +25,18 @@ export function Today({ summary }: { summary?: Summary }) {
                 ? `${c.awaiting_review} application${c.awaiting_review > 1 ? "s" : ""} ready for your review`
                 : "Nothing needs you right now"}
           </h2>
+          <p className="today-line">
+            <strong>
+              {summary.dryRun ? "Filled" : "Applied"} {t.done}
+            </strong>
+            , couldn't do {t.couldnt}
+            {t.couldnt > 0 && (
+              <>
+                {" "}
+                (<a href="#/handoff">{t.needYou} need you</a>)
+              </>
+            )}
+          </p>
           <p className="muted">
             Next runs at {summary.schedule.join(", ")}
             {summary.scheduleInstalled ? "" : " (schedule not installed: run quietapply schedule on)"}.
@@ -44,7 +57,12 @@ export function Today({ summary }: { summary?: Summary }) {
           tone="violet"
         />
         <Stat href="#/applications?status=submitted" label="Applied" value={c.submitted} tone="green" />
-        <Stat href="#/handoff" label="Finish yourself" value={handoff} tone="red" />
+        <Stat
+          href="#/handoff"
+          label="Finish yourself"
+          value={summary.handoffs.needYou || handoff}
+          tone="red"
+        />
       </section>
 
       {summary.reviewMode && (

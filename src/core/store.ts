@@ -108,7 +108,7 @@ export function setStatus(
   db: DB,
   id: number,
   status: AppStatus,
-  extra: { reason?: string; blockedCategory?: BlockedCategory; evidence?: string } = {},
+  extra: { reason?: string; blockedCategory?: string; evidence?: string } = {},
 ): void {
   const t = now();
   db.prepare(

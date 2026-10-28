@@ -69,6 +69,22 @@ export const Config = z.object({
   companies: z.array(Company).default([]),
   rules: Rules.default(Rules.parse({})),
   dashboard: z.object({ port: z.number().int().default(4777) }).default({ port: 4777 }),
+  /**
+   * Phone access through Tailscale Serve (`quietapply phone`). The server itself stays on 127.0.0.1; this only
+   * says which tailnet host name and which Tailscale logins the dashboard accepts. Empty logins = nobody.
+   */
+  phone: z
+    .object({
+      /** This Mac's tailnet name, e.g. my-mac.tail1234.ts.net. Set by `quietapply phone`. */
+      host: z.string().optional(),
+      /** HTTPS port for Serve. 8443 by default so 443, which other apps may use, is left alone. */
+      httpsPort: z.number().int().min(1).max(65535).default(8443),
+      /** Tailscale logins (e.g. you@example.com) allowed to open the dashboard from the tailnet. */
+      allowedLogins: z.array(z.string()).default([]),
+    })
+    .default({ httpsPort: 8443, allowedLogins: [] }),
+  /** Where the Codex CLI is. Unset = PATH, then the copy inside the ChatGPT / Codex desktop app. */
+  codex: z.object({ path: z.string().optional() }).default({}),
 });
 export type Config = z.infer<typeof Config>;
 

@@ -124,7 +124,7 @@ function Badge({ page, summary, dot }: { page: PageId; summary?: Summary; dot?: 
     page === "questions"
       ? (summary?.openQuestions ?? 0)
       : page === "handoff"
-        ? (summary?.counts.blocked ?? 0) + (summary?.counts.unclear ?? 0)
+        ? (summary?.handoffs.needYou ?? 0)
         : page === "applications"
           ? (summary?.counts.awaiting_review ?? 0)
           : 0;

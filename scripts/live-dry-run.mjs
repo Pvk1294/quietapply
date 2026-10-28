@@ -3,6 +3,7 @@
 // A fixture page is served on localhost; a real job URL is opened as is. Either way dry run is on, and the
 // browser's network guard blocks every non-read request, so nothing is ever submitted or uploaded.
 // Uses your Claude plan; takes one to five minutes.
+// Codex instead: QUIETAPPLY_PROVIDER=codex node scripts/live-dry-run.mjs
 
 import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync } from "node:fs";
 import { createServer } from "node:http";
@@ -46,8 +47,8 @@ if (!real) {
 const p = ensureHome(paths(home));
 saveConfig(
   Config.parse({
-    provider: "claude-code",
-    model: "sonnet",
+    provider: process.env.QUIETAPPLY_PROVIDER ?? "claude-code",
+    model: (process.env.QUIETAPPLY_PROVIDER ?? "claude-code") === "claude-code" ? "sonnet" : undefined,
     headless: true,
     dryRun: true,
     limits: { runTimeoutMinutes: 12 },

@@ -20,16 +20,36 @@ export const STATUS: Record<
 
 export const BLOCKED_LABEL: Record<string, string> = {
   captcha: "CAPTCHA or human check",
-  human_only: "Video, test or essay",
-  email_only: "Apply by email",
-  account_required: "Needs an account",
-  otp: "Code sent to you",
-  file_upload_form: "Special upload form",
-  site_error: "Site error",
-  no_ai_policy: "Posting says no AI",
-  missing_data: "Missing information",
-  other: "Other",
+  login_required: "Login or account needed",
+  unknown_question: "A question with no answer yet",
+  file_upload: "File upload problem",
+  unsupported_ats: "Job site not supported yet",
+  external_redirect: "Sent to another site or email",
+  linkedin_limit: "LinkedIn limit or warning",
+  fit_gate: "Did not pass your rules",
+  cap: "Daily or per-company limit",
+  form_error: "Form error",
+  unclear_submit: "Unclear whether it was sent",
+  other: "Something else",
 };
+
+/** Copy text to the clipboard; falls back to a hidden textarea where the Clipboard API is unavailable. */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  }
+}
 
 export function Pill({ status }: { status: AppStatus }) {
   const s = STATUS[status] ?? { label: status, tone: "gray" };

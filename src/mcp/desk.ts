@@ -2,17 +2,17 @@ import { appendFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Config } from "../core/config.js";
 import type { DB } from "../core/db.js";
+import {
+  type FilledValue,
+  filledFromEvidence,
+  type HandoffReason,
+  openHandoff,
+  recordHandoff,
+  toReason,
+} from "../core/handoffs.js";
 import { allowance, companyAllowed } from "../core/limits.js";
 import type { Paths } from "../core/paths.js";
-import {
-  type Application,
-  askQuestion,
-  BLOCKED_CATEGORIES,
-  type BlockedCategory,
-  getApplication,
-  openQuestionsFor,
-  setStatus,
-} from "../core/store.js";
+import { type Application, askQuestion, getApplication, openQuestionsFor, setStatus } from "../core/store.js";
 import { getAnswer, type LookupResult, lookupAnswer, markUsed, parseMemoryId } from "../memory/answers.js";
 import { PROFILE_FIELDS, type Profile, profileForPrompt } from "../memory/profile.js";
 
@@ -97,6 +97,12 @@ export class Desk {
     });
     if (a.status !== "needs_answers")
       setStatus(this.db, a.id, "needs_answers", { reason: "waiting for your answers" });
+    const open = openQuestionsFor(this.db, a.id).map((x) => x.question);
+    this.handoff("unknown_question", {
+      detail: `${open.length} question${open.length > 1 ? "s" : ""} with no stored answer: ${open.join(" · ")}`,
+      needed:
+        "Answer the question(s) in Questions. The job is queued again by itself once they are answered.",
+    });
     return {
       questionId: q.id,
       alreadyQueued: q.duplicate,
@@ -185,12 +191,16 @@ export class Desk {
     if (
       allowance(this.db, this.config).remainingToday <= 0 ||
       !companyAllowed(this.db, this.config, a.company)
-    )
+    ) {
+      const reason = "daily or per-company limit reached";
+      setStatus(this.db, a.id, "skipped", { reason: `form filled, but ${reason}`, evidence });
+      this.handoff("cap", { detail: `The form is filled, but the ${reason}.`, filled });
       return {
         proceed: false,
         mode: "cap",
         instruction: "Daily or per-company limit reached. Do not submit.",
       };
+    }
     setStatus(this.db, a.id, "submitting", { reason: "about to click Submit", evidence });
     return {
       proceed: true,
@@ -207,24 +217,90 @@ export class Desk {
       reason: input.evidence.slice(0, 500),
       evidence: input.evidence,
     });
+    if (input.outcome === "unclear")
+      this.handoff("unclear_submit", {
+        detail: input.evidence.slice(0, 300),
+        needed: "Check the company's site or your email to see whether the application arrived.",
+      });
+    else if (input.outcome === "failed") this.handoff("form_error", { detail: input.evidence.slice(0, 300) });
     return { ok: true };
   }
 
-  markBlocked(input: { category: string; notes: string; prefilled?: Record<string, string> }) {
+  markBlocked(input: {
+    category: string;
+    notes: string;
+    needed?: string;
+    filled?: FilledValue[];
+    prefilled?: Record<string, string>;
+    rule?: string;
+  }) {
     const a = this.app();
-    const category = (BLOCKED_CATEGORIES as readonly string[]).includes(input.category)
-      ? (input.category as BlockedCategory)
-      : "other";
+    const reason = toReason(input.category);
+    const filled = [
+      ...(input.filled ?? []),
+      ...Object.entries(input.prefilled ?? {}).map(([field, value]) => ({ field, value })),
+    ];
+    const keep = filled.length ? filled : filledFromEvidence(a.evidence);
     setStatus(this.db, a.id, "blocked", {
       reason: input.notes.slice(0, 500),
-      blockedCategory: category,
-      evidence: input.prefilled ? JSON.stringify({ prefilled: input.prefilled }) : undefined,
+      blockedCategory: reason,
+      evidence: filled.length
+        ? JSON.stringify({ prefilled: Object.fromEntries(filled.map((f) => [f.field, f.value])) })
+        : undefined,
     });
+    this.handoff(reason, { detail: input.notes, needed: input.needed, rule: input.rule, filled: keep });
     return {
       ok: true,
       instruction:
         "Handed to the human (Finish yourself list). Take a screenshot, leave the page as it is and end.",
     };
+  }
+
+  /**
+   * The structured end-of-run report. Call it last: the dashboard reads the reason, what is needed and the
+   * fields you filled from here, not from your closing message. If you have not handed the job over yet, a
+   * non-"done" outcome does it for you.
+   */
+  reportOutcome(input: {
+    outcome: "filled" | "submitted" | "handed_over" | "waiting_for_answers" | "failed";
+    reason?: string;
+    detail?: string;
+    needed?: string;
+    filled?: FilledValue[];
+  }) {
+    const a = this.app();
+    const open = openHandoff(this.db, a.id);
+    const handled = ["blocked", "needs_answers", "failed", "unclear", "skipped"].includes(a.status);
+    if ((input.outcome === "handed_over" || input.outcome === "failed") && !handled)
+      return this.markBlocked({
+        category: input.reason ?? (input.outcome === "failed" ? "form_error" : "other"),
+        notes: input.detail ?? "The agent handed this job back without details.",
+        needed: input.needed,
+        filled: input.filled,
+      });
+    if (open && input.filled?.length)
+      this.handoff(open.reason, {
+        detail: open.detail,
+        needed: input.needed ?? open.needed,
+        filled: input.filled,
+      });
+    return { ok: true, status: this.app().status };
+  }
+
+  /** Write the handoff record, keeping what was already filled when this call does not say. */
+  private handoff(
+    reason: HandoffReason,
+    h: { detail: string; needed?: string; rule?: string; filled?: FilledValue[] },
+  ) {
+    const prev = openHandoff(this.db, this.applicationId);
+    recordHandoff(this.db, {
+      applicationId: this.applicationId,
+      reason,
+      detail: h.detail,
+      needed: h.needed,
+      rule: h.rule,
+      filled: h.filled?.length ? h.filled : prev?.filled,
+    });
   }
 
   /** How-to notes per site ("the resume field is a custom dropzone"). Personal facts are stripped. */

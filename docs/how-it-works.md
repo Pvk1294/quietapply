@@ -39,9 +39,14 @@ sequenceDiagram
 | Form parser | `src/forms/parse.ts` | Reads labels, types, required flags and options from Greenhouse, Lever and rendered Ashby pages (custom dropdowns, hidden upload inputs, Ashby Yes/No buttons); spots visible CAPTCHAs and password fields. Tested on saved copies of real forms (`fixtures/ats/*-real-form.html`) |
 | Dry-run guard | `browser/dry-run-guard.cjs` | Loaded into Playwright MCP (`--init-page`) while dry run is on: aborts every request that is not a read (GET/HEAD/OPTIONS), except Ashby's read-only GraphQL queries, and logs what it blocked to the application's run folder |
 | Evidence | `src/runner/evidence.ts` | Finds the screenshots in `logs/run-<run>/app-<application>/` for the dashboard |
+| Handoffs | `src/core/handoffs.ts` | One record for every job skipped or stopped: reason (CAPTCHA, login, unknown question, file upload, unsupported site, redirect, LinkedIn limit, fit gate with its rule, cap, form error, unclear submit), plain-words detail, what is needed, the fields already filled, and when. Written by the runner (rules, caps, unsupported sites, failures) and by the agent through `mark_blocked` / `report_outcome`. |
 | Scripted agent | `src/runner/scripted-agent.ts` | A no-AI stand-in that talks to the real desk server; used by tests and the demo, never submits |
 | Scheduler | `src/scheduler/` | `tick` every 15 minutes through launchd or systemd; runs the latest due slot once |
-| Dashboard | `src/server/`, `web/` | Hono API on 127.0.0.1 and a React app |
+| Dashboard | `src/server/`, `web/` | Hono API on 127.0.0.1 and a React app; `quietapply phone` shares it over Tailscale Serve ([phone.md](phone.md)) |
+
+## What the agent reports
+
+The agent's last words are not read. It records how the job ended through two desk tools: `mark_blocked` (reason, what happened, what you need to do, fields already filled) when it hands a job back, and `report_outcome` as the structured end-of-run report. If a run ends with nothing recorded, the runner writes a `form_error` record itself, so every job that is not applied to has a reason on the *Finish yourself* page.
 
 ## Why structured memory instead of one big prompt
 
