@@ -89,7 +89,8 @@ export class Desk {
     const a = this.app();
     const q = askQuestion(this.db, {
       applicationId: a.id,
-      question: input.question,
+      // Labels copied off a form keep their required marker ("Cover letter*"); the question is the label.
+      question: input.question.replace(/\s*(\*|✱|\(required\))\s*$/i, "").trim(),
       context: input.context ?? `${a.title} at ${a.company}`,
       options: input.options,
       fieldType: input.fieldType,

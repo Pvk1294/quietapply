@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../src/core/config.js";
 import { openDb, openMemoryDb } from "../src/core/db.js";
-import { addApplication, askQuestion, getApplication } from "../src/core/store.js";
+import { addApplication, askQuestion, getApplication, listQuestions } from "../src/core/store.js";
 import { parseForm } from "../src/forms/parse.js";
 import { Desk } from "../src/mcp/desk.js";
 import { lookupAnswer, saveAnswer } from "../src/memory/answers.js";
@@ -229,6 +229,8 @@ describe("progress when questions are open", () => {
     }).id;
     const desk = new Desk(db, loadConfig(p), JANE, p, id);
     askQuestion(db, { applicationId: id, question: "Have you previously worked at Hooli?" });
+    expect(desk.askHuman({ question: "Cover letter*" }).questionId).toBeGreaterThan(0);
+    expect(listQuestions(db).map((q) => q.question)).toContain("Cover letter");
     const r = desk.startSubmit([{ field: "Email", value: "jane.doe@example.com", source: "profile:email" }]);
     expect(r).toMatchObject({ proceed: false, mode: "questions" });
     const app = getApplication(db, id)!;
