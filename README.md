@@ -29,7 +29,8 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 - **Answer memory** you can see and edit. Each answer can apply everywhere or to one company only.
 - **Fit gate** before every application: job titles, excluded words, locations, never-apply list, years of experience, skill match, and postings that ask for no AI.
 - **Job sites:** Greenhouse, Lever and Ashby in v0.1; Workday is next.
-- **Local dashboard** at `http://127.0.0.1:4777`: Today, Applications (with every value the agent typed and where it came from), Questions, Finish yourself, Memory, Runs, Settings, plus Run now and Pause. Works on a phone.
+- **Local dashboard** at `http://127.0.0.1:4777`: Today, Applications (with every value the agent typed and where it came from), Questions, Finish yourself, Memory, Runs, Settings, plus Run now and Pause. Works on a phone: `quietapply phone` shares it over your private Tailscale network, nothing public ([docs/phone.md](docs/phone.md)).
+- **A reason for everything it skips.** Every job it could not apply to (CAPTCHA, login, a question it cannot answer, a file upload problem, an unsupported site, an outside redirect, your own rules, limits, form errors) is listed under *Finish yourself* with the reason, what is needed, the values to copy, and *I applied myself* / *Not interested* / *Retry* buttons.
 - **Review mode:** the first 10 applications stop before Submit and wait for your OK in the dashboard.
 - **Dry run by default:** nothing is submitted until you turn dry run off.
 - **Duplicate protection:** an application is marked "submitting" before Submit is clicked, so an unclear result is never resent blindly.
@@ -64,6 +65,7 @@ quietapply doctor                     # checks the CLI, login, browser and data 
 quietapply discover                   # finds open roles at your companies
 quietapply run                        # one run now (dry run: forms are filled, nothing is submitted)
 quietapply dashboard                  # http://127.0.0.1:4777
+quietapply phone                      # optional: the same dashboard on your phone, over Tailscale (docs/phone.md)
 quietapply schedule on                # runs at the times in config.yaml
 ```
 
@@ -100,7 +102,7 @@ The agent can only read and change your data through a small set of MCP tools (`
 | Claude Code + API key | Playwright MCP (Claude in Chrome needs a Claude plan) | same, with `ANTHROPIC_API_KEY` |
 | Codex + ChatGPT plan or API key | Playwright MCP | `codex exec --json` with MCP servers passed as `-c` overrides |
 
-With Claude Code, built-in tools (shell, file editing, web search) are switched off for application runs: the agent has only the browser and the desk tools, and your own settings, hooks and MCP servers are not loaded. Codex runs in its read-only sandbox. The Codex path is built and unit-tested but has not yet been run live.
+With Claude Code, built-in tools (shell, file editing, web search) are switched off for application runs: the agent has only the browser and the desk tools, and your own settings, hooks and MCP servers are not loaded. Codex runs in its read-only sandbox, without your own `~/.codex/config.toml`. QuietApply finds the Codex CLI on your PATH, then inside the ChatGPT / Codex desktop app on macOS; set `codex.path` in `config.yaml` to point at one yourself. A live dry run of the Codex path on the bundled Lever fixture worked (Codex CLI 0.163, signed in with ChatGPT).
 
 ## Configuration
 
@@ -116,6 +118,8 @@ schedule: ["09:00", "13:00", "19:00"]
 timezone: auto
 limits: { perDay: 15, perCompany30d: 2, reviewFirst: 10, runTimeoutMinutes: 30 }
 sources: { greenhouse: true, lever: true, ashby: true, linkedin: false }
+codex: { path: /Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex }   # optional; found automatically
+phone: { allowedLogins: [you@example.com] }   # set by `quietapply phone`; see docs/phone.md
 companies:
   - { name: Acme Rockets, ats: greenhouse, token: acmerockets }
 rules:
