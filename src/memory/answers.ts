@@ -1,7 +1,7 @@
 import type { DB } from "../core/db.js";
 import { now } from "../core/db.js";
 import { norm, sameQuestion, similarity } from "../core/text.js";
-import { PROFILE_FIELDS, type Profile } from "./profile.js";
+import { isClosedQuestion, PROFILE_FIELDS, type Profile } from "./profile.js";
 import { STANDARD_QUESTIONS, standardQuestion } from "./seed.js";
 
 /**
@@ -186,7 +186,7 @@ export function lookupAnswer(
 ): LookupResult {
   const n = norm(question);
   const key = keyForQuestion(question);
-  if (!key) {
+  if (!key && !isClosedQuestion(n)) {
     for (const f of PROFILE_FIELDS) {
       const value = f.pattern.test(n) ? f.value(profile) : undefined;
       if (value)

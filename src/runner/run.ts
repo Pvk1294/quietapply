@@ -56,13 +56,24 @@ export function isPaused(p: Paths = paths()): boolean {
   return existsSync(p.pauseFlag);
 }
 
-/** MCP servers for one application: the desk (bound to it) and, unless Claude in Chrome is used, Playwright. */
+/** The browser-side guard that blocks every non-read request while dry run is on. */
+export function dryRunGuardPath(): string {
+  return join(packageRoot(), "browser", "dry-run-guard.cjs");
+}
+
+/**
+ * MCP servers for one application: the desk (bound to it) and, unless Claude in Chrome is used, Playwright.
+ * In dry run the Playwright browser also loads the network guard, so nothing can be sent even if the agent
+ * clicks Submit. Screenshots and the log of blocked requests go to `outputDir` (the application's run folder).
+ */
 export function mcpServers(
   config: Config,
   p: Paths,
   applicationId: number,
   dryRun: boolean,
+  outputDir?: string,
 ): Record<string, McpServerSpec> {
+  const guardLog = outputDir && join(outputDir, "blocked-requests.jsonl");
   const cli = join(packageRoot(), "dist", "cli", "index.js");
   const servers: Record<string, McpServerSpec> = {
     desk: {
@@ -72,11 +83,17 @@ export function mcpServers(
     },
   };
   if (config.browser !== "claude-in-chrome") {
-    const args = ["-y", PLAYWRIGHT_MCP, "--output-dir", join(p.logsDir, "playwright")];
+    // Screenshots and page snapshots land in the application's own run folder, where the dashboard finds them.
+    const args = ["-y", PLAYWRIGHT_MCP, "--output-dir", outputDir ?? join(p.logsDir, "playwright")];
     if (config.browser === "playwright-extension") args.push("--extension");
     else args.push("--user-data-dir", p.browserProfile);
     if (config.headless) args.push("--headless");
-    servers.playwright = { command: "npx", args };
+    if (dryRun) args.push("--init-page", dryRunGuardPath(), "--block-service-workers");
+    servers.playwright = {
+      command: "npx",
+      args,
+      ...(dryRun && guardLog ? { env: { QUIETAPPLY_GUARD_LOG: guardLog } } : {}),
+    };
   }
   return servers;
 }
@@ -229,7 +246,7 @@ async function applyOne(o: {
   // lets both processes work on the same file.
   return getProvider(o.config.provider).runAgent({
     prompt,
-    mcpServers: mcpServers(o.config, o.p, o.app.id, o.config.dryRun),
+    mcpServers: mcpServers(o.config, o.p, o.app.id, o.config.dryRun, work),
     browser: o.config.browser,
     cwd: work,
     timeoutMs: o.config.limits.runTimeoutMinutes * 60_000,

@@ -40,6 +40,18 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
     essential: true,
   },
   {
+    key: "country",
+    question: "Which country do you live in?",
+    patterns: [
+      /country of residence/,
+      /(what|which) country (are|do) you (currently )?(live|living|based|located|reside|residing)/,
+      /^(current )?country$/,
+    ],
+    type: "text",
+    essential: true,
+    hint: "Forms often ask this separately from your city, e.g. 'United States'",
+  },
+  {
     key: "notice_period",
     question: "What is your notice period?",
     patterns: [
@@ -131,7 +143,11 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
   {
     key: "referral",
     question: "How did you hear about this job?",
-    patterns: [/how did you (hear|learn|find out) about/, /^source$/, /where did you (find|see)/],
+    patterns: [
+      /how (did )?you (hear|heard|learn|learned|find out|found out) about/,
+      /^source$/,
+      /where did you (find|see|hear)/,
+    ],
     type: "text",
     default: "Company careers page",
   },

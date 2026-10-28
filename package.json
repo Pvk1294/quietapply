@@ -11,6 +11,7 @@
     "dist",
     "prompts",
     "playbooks",
+    "browser",
     "fixtures",
     "README.md",
     "LICENSE"

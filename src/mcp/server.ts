@@ -40,9 +40,12 @@ export function createDeskServer(desk: Desk, version = "0.1.0"): McpServer {
     "ask_human",
     {
       description:
-        "Queue a question the human must answer (missing facts, unclear required fields). The application waits; do not submit in this run.",
+        "Queue one required question the human must answer. The application waits; do not submit in this run.",
       inputSchema: {
-        question: z.string().min(3),
+        question: z
+          .string()
+          .min(3)
+          .describe("The form's label exactly as written: one question, no added notes (they go in context)"),
         context: z.string().optional(),
         options: z.array(z.string()).optional(),
         field_type: z.enum(["text", "long", "yesno", "choice", "number", "date"]).optional(),
@@ -65,7 +68,7 @@ export function createDeskServer(desk: Desk, version = "0.1.0"): McpServer {
     "start_submit",
     {
       description:
-        "Call when the form is completely filled, right before Submit. List every value you entered with its source memory id. Returns whether to click Submit.",
+        "Call right before Submit, or at the end of the run when questions are open. List every value you entered with its source memory id. Returns whether to click Submit.",
       inputSchema: {
         filled: z.array(
           z.object({

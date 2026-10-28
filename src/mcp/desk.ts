@@ -147,13 +147,19 @@ export class Desk {
         instruction:
           "Some values have no memory id. Do not submit. Use lookup_answers for them, or ask_human, then call start_submit again.",
       };
-    if (openQuestionsFor(this.db, a.id).length)
+    const evidence = JSON.stringify({ filled, at: new Date().toISOString() });
+    if (openQuestionsFor(this.db, a.id).length) {
+      // Keep what was filled so far, so the dashboard shows it next to the open questions.
+      this.db
+        .prepare("UPDATE applications SET evidence = ? WHERE id = ?")
+        .run(JSON.stringify({ filled, at: new Date().toISOString(), partial: true }), a.id);
       return {
         proceed: false,
         mode: "questions",
-        instruction: "This application has open questions for the human. Stop without submitting.",
+        instruction:
+          "This application has open questions for the human. Do not submit. Take a screenshot of the form, then end the run.",
       };
-    const evidence = JSON.stringify({ filled, at: new Date().toISOString() });
+    }
     const mode = this.mode();
     if (mode === "dry_run") {
       setStatus(this.db, a.id, "dry_run", { reason: "dry run: form filled, not submitted", evidence });
@@ -171,7 +177,8 @@ export class Desk {
       return {
         proceed: false,
         mode: "review",
-        instruction: "REVIEW MODE. Do not click Submit. The human approves in the dashboard; end the run.",
+        instruction:
+          "REVIEW MODE. Do not click Submit. Take a screenshot of the filled form; the human approves in the dashboard. End the run.",
       };
     }
     if (
@@ -214,7 +221,8 @@ export class Desk {
     });
     return {
       ok: true,
-      instruction: "Handed to the human (Finish yourself list). Leave the page as it is and end.",
+      instruction:
+        "Handed to the human (Finish yourself list). Take a screenshot, leave the page as it is and end.",
     };
   }
 

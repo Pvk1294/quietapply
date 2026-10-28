@@ -26,6 +26,18 @@ function siteNotes(p: Paths, url: string): string {
   }
 }
 
+/** Long dropdowns (a real form listed 3,301 universities) are cut short; the agent reads the rest on the page. */
+export const MAX_PROMPT_OPTIONS = 25;
+
+function promptOptions(options: string[] | undefined): { options?: string[]; moreOptions?: string } {
+  if (!options?.length) return {};
+  if (options.length <= MAX_PROMPT_OPTIONS) return { options };
+  return {
+    options: options.slice(0, MAX_PROMPT_OPTIONS),
+    moreOptions: `${options.length - MAX_PROMPT_OPTIONS} more on the page: type to search the dropdown`,
+  };
+}
+
 /**
  * The prompt for one application: fixed instructions, the ATS playbook, then only the data this form
  * needs (compact profile, answers matching the expected questions, a few core answers). The full answer
@@ -81,7 +93,7 @@ export function buildPrompt(opts: {
           label: f.label,
           type: f.type,
           required: f.required,
-          options: f.options,
+          ...promptOptions(f.options),
         })),
       },
       null,

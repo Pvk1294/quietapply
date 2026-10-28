@@ -46,12 +46,25 @@ export async function listGreenhouse(
       company: j.company_name ?? company,
       externalId: String(j.id),
       title: j.title,
-      url: j.absolute_url,
+      url: formUrl(token, j),
       location: j.location?.name ?? "",
       remote: /remote/i.test(j.location?.name ?? ""),
       description,
     };
   });
+}
+
+/**
+ * Where the form lives. Boards on a company's own careers site (absolute_url is stripe.com/jobs/...?gh_jid=)
+ * redirect the Greenhouse job page there too, so use Greenhouse's embeddable form, which every board serves.
+ */
+export function formUrl(token: string, job: Pick<GhJob, "id" | "absolute_url">): string {
+  try {
+    if (/(^|\.)greenhouse\.io$/i.test(new URL(job.absolute_url).hostname)) return job.absolute_url;
+  } catch {
+    // no usable absolute_url
+  }
+  return `https://job-boards.greenhouse.io/embed/job_app?for=${encodeURIComponent(token)}&token=${job.id}`;
 }
 
 const TYPE: Record<string, FieldType> = {
