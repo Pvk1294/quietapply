@@ -61,7 +61,7 @@ describe("quietapply import", () => {
       answer: "8",
     });
 
-    expect(s.applications).toEqual({ imported: 3, duplicates: 1, notApplied: 1, invalid: 1 });
+    expect(s.applications).toEqual({ imported: 5, duplicates: 1, notApplied: 1, invalid: 1 });
     const apps = listApplications(db);
     expect(apps.every((a) => a.status === "submitted" && a.source === "import")).toBe(true);
     const acme = apps.find((a) => a.company === "Acme Rockets")!;
@@ -69,6 +69,15 @@ describe("quietapply import", () => {
     expect(acme.submitted_at).toBe("2026-09-16T17:15:00.000Z");
     expect(apps.find((a) => a.company === "Initrode")!.url).toBe(
       "import:old-runner/initrode/full-stack-developer/2026-10-12",
+    );
+    // Two applications that the tracker stored under one search-page link stay two applications.
+    expect(
+      apps.filter((a) => a.url.startsWith("https://jobboard.example.com/search")).map((a) => a.url),
+    ).toEqual(
+      expect.arrayContaining([
+        "https://jobboard.example.com/search?q=backend",
+        "https://jobboard.example.com/search?q=backend#soylent-corp/software-engineer",
+      ]),
     );
 
     const config = loadConfig(p);
@@ -90,10 +99,10 @@ describe("quietapply import", () => {
     importFolder(db, p, FIXTURE);
     const again = importFolder(db, p, FIXTURE);
     expect(again.applications.imported).toBe(0);
-    expect(again.applications.duplicates).toBe(4);
+    expect(again.applications.duplicates).toBe(6);
     expect(again.answers.added).toBe(0);
     expect(again.targets).toEqual({ roles: 0, excludeTitles: 0, locations: 0, neverApply: 0, companies: 0 });
-    expect(listApplications(db)).toHaveLength(3);
+    expect(listApplications(db)).toHaveLength(5);
     db.close();
   });
 
@@ -101,7 +110,7 @@ describe("quietapply import", () => {
     const p = freshHome();
     const db = openDb(p);
     const s = importFolder(db, p, FIXTURE, { dryRun: true });
-    expect(s.applications.imported).toBe(3);
+    expect(s.applications.imported).toBe(5);
     expect(listApplications(db)).toHaveLength(0);
     expect(listAnswers(db)).toHaveLength(0);
     expect(loadProfile(p).name).toBe("");

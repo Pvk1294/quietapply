@@ -1,7 +1,7 @@
 import type { Profile } from "../memory/profile.js";
 import type { Rules } from "./config.js";
 import { remoteOpenTo } from "./regions.js";
-import { norm } from "./text.js";
+import { companyKey, norm } from "./text.js";
 
 export interface JobFacts {
   company: string;
@@ -24,8 +24,9 @@ const includesWord = (hay: string, needle: string) => ` ${norm(hay)} `.includes(
  * homeCountry): "remote" in your locations matches remote roles open to that country, not every remote role.
  */
 export function checkFit(job: JobFacts, rules: Rules, profile?: Profile, home?: string): FitResult {
-  const company = norm(job.company);
-  if (rules.neverApply.some((c) => norm(c) === company))
+  // "Acme" on the list also covers "Acme, Inc." and "Acme (YC W21)".
+  const company = companyKey(job.company);
+  if (rules.neverApply.some((c) => companyKey(c) === company))
     return { fit: false, reason: "company is on your never-apply list" };
 
   const excluded = rules.excludeTitles.find((x) => includesWord(job.title, x));

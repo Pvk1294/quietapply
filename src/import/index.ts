@@ -5,6 +5,7 @@ import { z } from "zod";
 import { type Company, type Config, loadConfig, saveConfig } from "../core/config.js";
 import { type DB, now } from "../core/db.js";
 import type { Paths } from "../core/paths.js";
+import { companyKey, titleKey } from "../core/text.js";
 import { saveAnswer } from "../memory/answers.js";
 import { loadProfile, type Profile, saveProfile } from "../memory/profile.js";
 import { detectAts } from "../sources/detect.js";
@@ -364,7 +365,7 @@ function importApplications(
   sum: ImportSummary,
 ): void {
   const skip = new Set(mapping.skipStatuses.map((s) => s.toLowerCase()));
-  const exists = db.prepare("SELECT id FROM applications WHERE url = ?");
+  const atUrl = db.prepare("SELECT company, title FROM applications WHERE url = ?");
   const insert = db.prepare(
     `INSERT INTO applications(company, title, url, ats, location, source, status, reason, created_at, updated_at, submitted_at)
      VALUES(?, ?, ?, ?, ?, 'import', 'submitted', ?, ?, ?, ?)`,
@@ -372,7 +373,6 @@ function importApplications(
   const event = db.prepare(
     "INSERT INTO application_events(application_id, status, note, at) VALUES(?, 'submitted', ?, ?)",
   );
-  const seen = new Set<string>();
   let undated = 0;
   for (const row of rows) {
     const company = str(field(row, "applications", "company", mapping));
@@ -390,14 +390,24 @@ function importApplications(
     const at = isoOrNow(date);
     if (!validDate(date)) undated++;
     // Rows without a link get a stable made-up one, so importing the same file again adds nothing.
-    const url =
+    let url =
       str(field(row, "applications", "url", mapping)) ||
       `import:${slug(label)}/${slug(company)}/${slug(title)}/${at.slice(0, 10)}`;
-    if (seen.has(url) || exists.get(url)) {
+    // A link is one application only when company and role match too: some trackers store a job board's
+    // search page as the link for many applications. Those get the role added to keep them apart.
+    const same = (u: string) => {
+      const r = atUrl.get(u) as { company: string; title: string } | undefined;
+      return r && (companyKey(r.company) !== companyKey(company) || titleKey(r.title) !== titleKey(title))
+        ? "other"
+        : r
+          ? "same"
+          : undefined;
+    };
+    if (same(url) === "other") url = `${url}#${slug(company)}/${slug(title)}`;
+    if (same(url)) {
       sum.applications.duplicates++;
       continue;
     }
-    seen.add(url);
     const note = `imported from ${label}${status ? `: ${status}` : ""}`;
     const r = insert.run(
       company,

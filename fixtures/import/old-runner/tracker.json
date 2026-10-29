@@ -42,6 +42,22 @@
       "applied_at": ""
     },
     {
+      "company": "Vandelay Industries",
+      "role": "Backend Developer",
+      "location": "Remote",
+      "job_url": "https://jobboard.example.com/search?q=backend",
+      "status": "Applied",
+      "applied_at": "2026-10-03"
+    },
+    {
+      "company": "Soylent Corp",
+      "role": "Software Engineer",
+      "location": "Remote",
+      "job_url": "https://jobboard.example.com/search?q=backend",
+      "status": "Applied",
+      "applied_at": "2026-10-03"
+    },
+    {
       "company": "",
       "role": "Mystery role",
       "job_url": "https://example.com/x",
