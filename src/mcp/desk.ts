@@ -33,6 +33,9 @@ import {
   updateJobFacts,
   withdrawApproval,
 } from "../core/store.js";
+import { emailAsValues } from "../email/apply.js";
+import { cleanAddress, composeApplicationEmail } from "../email/compose.js";
+import { draftMessage, finishMessage, startMessage } from "../linkedin/messages.js";
 import {
   humanDelayMs,
   isLinkedInApp,
@@ -53,8 +56,6 @@ import {
   parseMemoryId,
 } from "../memory/answers.js";
 import { PROFILE_FIELDS, type Profile, profileForPrompt } from "../memory/profile.js";
-import { emailAsValues } from "../email/apply.js";
-import { cleanAddress, composeApplicationEmail } from "../email/compose.js";
 import { lockSubmitStep, logSubmitAttempt } from "../runner/chrome-guard.js";
 import { detectAts } from "../sources/detect.js";
 
@@ -491,7 +492,8 @@ export class Desk {
       });
       this.handoff("email_only", {
         detail: `The posting asks for an email to ${to}. Email applications are off, so the text is ready to copy.`,
-        needed: "Send it from your own mail with your resume attached, or turn on email applications in Settings.",
+        needed:
+          "Send it from your own mail with your resume attached, or turn on email applications in Settings.",
         filled: emailAsValues(email),
       });
       return { ok: true, instruction: "Handed to the human with the email text ready. End the run." };
@@ -688,6 +690,48 @@ export class Desk {
       instruction:
         "Noted. Stop here: QuietApply continues on the company site with its normal flow. Do not fill that form in this run. End the run.",
     };
+  }
+
+  // ---------- recruiter messages (LinkedIn only, off by default) ----------
+
+  /**
+   * Who is hiring, as shown on the job page ("Meet the hiring team"). Reading it is all the agent does: the
+   * desk writes the draft from your profile and decides whether it may ever be sent. Nothing is sent in an
+   * application run.
+   */
+  hiringTeam(input: { name: string; profileUrl: string }) {
+    const a = this.linkedInApp();
+    const r = draftMessage(this.db, this.config, this.profile, a, {
+      name: input.name,
+      profileUrl: input.profileUrl,
+    });
+    return {
+      draft: r.status,
+      reason: r.reason,
+      instruction:
+        "Noted. Do not open messaging or click Message in this run. Carry on and end the run as usual.",
+    };
+  }
+
+  /** In a message run: the approved text to type, after every rule is checked again. */
+  prepareMessage(input: { messageId: number }) {
+    this.linkedInApp();
+    const r = startMessage(this.db, this.config, input.messageId);
+    if (!r.send) return { send: false, instruction: `Do not send: ${r.reason}. End the run.` };
+    return {
+      send: true,
+      text: r.text,
+      chunks: typingChunks(r.text),
+      instruction:
+        "Type the text exactly as given, chunk by chunk with human_pause('typing') between chunks. Pause, then click Send once. Then call record_message.",
+    };
+  }
+
+  recordMessage(input: { messageId: number; outcome: "sent" | "failed"; note: string }) {
+    this.linkedInApp();
+    finishMessage(this.db, input.messageId, input.outcome, input.note);
+    if (looksLikeLinkedInWarning(input.note)) stopLinkedIn(this.db, input.note, this.applicationId);
+    return { ok: true };
   }
 
   /** How-to notes per site ("the resume field is a custom dropzone"). Personal facts are stripped. */

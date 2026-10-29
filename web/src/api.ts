@@ -45,6 +45,60 @@ export interface AppDetail extends Application {
   screenshots: Screenshot[];
   /** Fingerprint of what would be sent. Approving sends it back, so the OK covers exactly this. */
   contentHash: string | null;
+  emails: EmailRecord[];
+  messages: MessageRecord[];
+}
+
+export interface EmailRecord {
+  id: number;
+  to_addr: string;
+  subject: string;
+  body: string;
+  attachment: string | null;
+  status: "dry_run" | "awaiting_review" | "sending" | "sent" | "failed";
+  message_id: string | null;
+  error: string | null;
+  created_at: string;
+  sent_at: string | null;
+}
+
+export interface MessageRecord {
+  id: number;
+  recipient_name: string;
+  profile_url: string;
+  text: string;
+  hash: string;
+  status: "dry_run" | "awaiting_review" | "approved" | "sending" | "sent" | "failed" | "refused";
+  note: string | null;
+  created_at: string;
+  sent_at: string | null;
+}
+
+export interface EmailInfo {
+  enabled: boolean;
+  acceptedAt: string | null;
+  declinedAt: string | null;
+  from: string;
+  smtp: { host: string; port: number; secure: boolean; user: string };
+  hasPassword: boolean;
+  perDay: number;
+  sentToday: number;
+  reviewLeft: number;
+  doNotContact: string[];
+  question: string;
+  risk: string[];
+  storedIn?: string;
+}
+
+export interface MessagesInfo {
+  enabled: boolean;
+  acceptedAt: string | null;
+  declinedAt: string | null;
+  perDay: number;
+  maxPerDay: number;
+  sentToday: number;
+  question: string;
+  risk: string[];
 }
 
 export interface Question {
@@ -233,6 +287,15 @@ export const api = {
   saveLinkedIn: (b: { enabled?: boolean; acceptRisk?: boolean; perDay?: number }) =>
     request<LinkedInInfo>("PUT", "/api/linkedin", b),
   resumeLinkedIn: () => request<LinkedInInfo>("POST", "/api/linkedin/resume"),
+  messagesInfo: () => request<MessagesInfo>("GET", "/api/linkedin/messages"),
+  saveMessages: (b: { enabled?: boolean; accept?: boolean; perDay?: number }) =>
+    request<MessagesInfo>("PUT", "/api/linkedin/messages", b),
+  messageAct: (id: number, action: "approve" | "dismiss", hash?: string) =>
+    request("POST", `/api/messages/${id}/${action}`, hash ? { hash } : undefined),
+  email: () => request<EmailInfo>("GET", "/api/email"),
+  saveEmail: (b: Record<string, unknown>) => request<EmailInfo>("PUT", "/api/email", b),
+  setEmailPassword: (password: string) => request<EmailInfo>("POST", "/api/email/password", { password }),
+  forgetEmailPassword: () => request<EmailInfo>("DELETE", "/api/email/password"),
   addJob: (url: string) => request<{ id: number; created: boolean }>("POST", "/api/applications", { url }),
   phone: () => request<PhoneInfo>("GET", "/api/phone"),
   setPhone: (on: boolean) => request<PhoneInfo>("POST", "/api/phone", { on }),

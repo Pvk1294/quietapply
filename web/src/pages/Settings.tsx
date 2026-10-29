@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type Settings as S } from "../api";
 import { toast } from "../ui";
+import { EmailCard } from "./EmailCard";
 import { LinkedInCard } from "./LinkedInCard";
 import { PhoneCard } from "./PhoneCard";
 
@@ -177,6 +178,8 @@ export function Settings({ onChange }: { onChange: () => void }) {
       </section>
 
       <PhoneCard />
+
+      <EmailCard />
 
       <LinkedInCard onChange={onChange} />
     </div>

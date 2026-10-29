@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { loadConfig } from "../core/config.js";
 import { openDb } from "../core/db.js";
 import { packageRoot, paths } from "../core/paths.js";
+import { messagesEnabled } from "../linkedin/messages.js";
 import { loadProfile } from "../memory/profile.js";
 import { getProvider } from "../providers/index.js";
 import { version } from "../providers/spawn.js";
@@ -131,6 +132,26 @@ export async function doctor(): Promise<Check[]> {
           : "location and common questions set",
       });
     }
+    checks.push({
+      name: "Email applications",
+      ok: !config.email.enabled
+        ? true
+        : config.email.from && config.email.smtp.host && config.email.smtp.user
+          ? true
+          : "warn",
+      detail: !config.email.enabled
+        ? "off (default): no mail is ever sent"
+        : config.email.from && config.email.smtp.host
+          ? `on since ${config.email.acceptedAt}, from ${config.email.from}, ${config.email.perDay} a day`
+          : "on, but the address or mail server is missing: finish the Email card in Settings",
+    });
+    checks.push({
+      name: "Recruiter messages",
+      ok: true,
+      detail: messagesEnabled(config)
+        ? `on since ${config.linkedin.messages.acceptedAt}, ${config.linkedin.messages.perDay} a day`
+        : "off (default): no LinkedIn messages are sent",
+    });
     checks.push({
       name: "LinkedIn",
       ok: true,

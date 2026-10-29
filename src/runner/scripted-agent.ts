@@ -172,7 +172,12 @@ async function linkedIn(call: Call, job: Job, fetcher: Fetcher): Promise<string>
     return "No apply button.";
   }
   await call("human_pause", { kind: "page" });
-  return await fill(call, job, parseForm(dialog.toString()), true);
+  const result = await fill(call, job, parseForm(dialog.toString()), true);
+  // Who is hiring is only reported: the desk decides about any message, never in this run.
+  const person = root.querySelector(".hiring-team .hiring-person");
+  if (person?.getAttribute("href"))
+    await call("hiring_team", { name: person.text.trim(), profile_url: person.getAttribute("href") });
+  return result;
 }
 
 function kind(f: FormField): string {

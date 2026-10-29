@@ -127,11 +127,51 @@ export function createDeskServer(desk: Desk, version = "0.1.0"): McpServer {
         rule: z.string().optional().describe("For fit_gate: the rule or sentence that applies"),
         filled: filledValues.optional(),
         prefilled: z.record(z.string(), z.string()).optional(),
-        email: z.string().optional().describe("For email_only: the address the posting says to send applications to"),
+        email: z
+          .string()
+          .optional()
+          .describe("For email_only: the address the posting says to send applications to"),
       },
     },
     async (args) => text(desk.markBlocked(args)),
   );
+
+  if (desk.isLinkedIn()) {
+    server.registerTool(
+      "hiring_team",
+      {
+        description:
+          "LinkedIn only, after the application: who the job page shows under 'Meet the hiring team'. Only report it: never click Message. QuietApply decides about any message itself.",
+        inputSchema: {
+          name: z.string().min(2),
+          profile_url: z.string().describe("The person's linkedin.com/in/... link, as shown on the page"),
+        },
+      },
+      async ({ name, profile_url }) => text(desk.hiringTeam({ name, profileUrl: profile_url })),
+    );
+    server.registerTool(
+      "prepare_message",
+      {
+        description:
+          "Message runs only: the approved message text for message_id, or why it may not be sent. Send only when send is true.",
+        inputSchema: { message_id: z.number().int() },
+      },
+      async ({ message_id }) => text(desk.prepareMessage({ messageId: message_id })),
+    );
+    server.registerTool(
+      "record_message",
+      {
+        description: "Message runs only: after clicking Send (sent) or when it could not be sent (failed).",
+        inputSchema: {
+          message_id: z.number().int(),
+          outcome: z.enum(["sent", "failed"]),
+          note: z.string().describe("What the page showed"),
+        },
+      },
+      async ({ message_id, outcome, note }) =>
+        text(desk.recordMessage({ messageId: message_id, outcome, note })),
+    );
+  }
 
   server.registerTool(
     "report_outcome",

@@ -42,7 +42,7 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 - **Applies on company job boards by default.** (LinkedIn is an opt-in mode with a risk; see [below](#linkedin-mode-opt-in-and-risky).) It finds openings through the public Greenhouse, Lever and Ashby job APIs (no scraping, no login) and applies on the company's own form.
 - **Uses the AI you already pay for.** Claude Code (Pro/Max or an API key) or OpenAI Codex (ChatGPT plan or an API key).
 - **Remembers without bloating.** Answers are stored as small structured entries. Each run gets only the ones the form in front of it needs, so the prompt stays small no matter how much it has learned.
-- **Hands back what it can't do.** CAPTCHAs, video answers, tests, email-only postings and account sign-ups go to a "Finish yourself" list. It never tries to solve a CAPTCHA.
+- **Hands back what it can't do.** CAPTCHAs, video answers, tests and account sign-ups go to a "Finish yourself" list. Email-only postings go there too, with the email ready to copy, unless you turned on email applications. It never tries to solve a CAPTCHA.
 - **Local and private.** Your data stays in `~/.quietapply` (readable only by you). No account, no server, no telemetry.
 
 ## Features
@@ -53,7 +53,8 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 - **Job sites:** Greenhouse, Lever and Ashby in v0.1; Workday is next.
 - **Local dashboard** at `http://127.0.0.1:4777`: Today, Applications (with every value the agent typed and where it came from), Questions, Finish yourself, Memory, Runs, Settings, plus Run now and Pause. Works on a phone: `quietapply phone` shares it over your private Tailscale network, nothing public ([docs/phone.md](docs/phone.md)).
 - **A reason for everything it skips.** Every job it could not apply to (CAPTCHA, login, a question it cannot answer, a file upload problem, an unsupported site, an outside redirect, your own rules, limits, form errors) is listed under *Finish yourself* with the reason, what is needed, the values to copy, and *I applied myself* / *Not interested* / *Retry* buttons.
-- **Review mode:** the first 10 applications stop before Submit and wait for your OK in the dashboard.
+- **Review mode:** the first 10 applications stop before Submit and wait for your OK in the dashboard. The OK covers exactly what you saw: if a value changes before Submit, it waits for you again.
+- **Email applications and recruiter messages (both off by default):** for postings that ask for an email, and one short note to a LinkedIn recruiter after applying. Each needs its own yes. See [Sending email and messages](#sending-email-and-messages).
 - **Dry run by default:** nothing is submitted until you turn dry run off. In dry run the browser itself blocks every request that would send data (form posts, uploads, autosave), so even a stray click on Submit goes nowhere.
 - **Screenshots:** the agent screenshots the form at the end of every run, and each application's page in the dashboard shows them next to what was typed.
 - **Duplicate protection:** an application is marked "submitting" before Submit is clicked, so an unclear result is never resent blindly.
@@ -178,9 +179,23 @@ rules:
   neverApply: [My Current Employer]
 ```
 
+## Sending email and messages
+
+Both are **off by default**, and QuietApply asks you first (in `quietapply init` and in Settings). If you say no, it never sends any mail or message.
+
+- **Email applications.** For postings that say "send your resume to …". A short, plain email built from your profile and saved answers only (no AI writes it), resume attached, subject `Application: <role>, <name>`. Sent over SMTP with an app password (Gmail and others, no Google sign-in), kept in your OS keychain or a file only you can read. Your first 10 emails wait for your OK, where you see the exact email. 10 a day, never twice to the same address in 30 days, and never to anyone on your do-not-contact list. Each sent email is recorded with To, Subject, Body and Message-ID. With email off, those postings go to Finish yourself with the text ready to copy.
+- **Messages to recruiters (LinkedIn only).** Needs LinkedIn mode and a second yes, because it adds risk to your LinkedIn account. One paragraph of 40 to 90 words from your profile, sent in your own browser at a human pace. 3 a day (at most 10), at most one message per person ever, no follow-ups, your OK on the first 10, and it stops at any LinkedIn warning.
+- **Risks.** Mail from software can be marked as spam and get your account limited. LinkedIn restricts accounts it thinks are automated. Turn either off any time in Settings. Nothing is sent while dry run is on.
+
+Details: [docs/email.md](docs/email.md).
+
 ## Safety, and job-site terms of service
 
-- **It never solves CAPTCHAs, sends emails or messages, creates accounts or invents facts.** Those go to you.
+- **It never solves CAPTCHAs, creates accounts or invents facts.** Those go to you.
+- **It sends no email or message unless you said yes.** Both are off by default and asked first. See [Sending email and messages](#sending-email-and-messages).
+- **Your OK is bound to the content.** Approving in review stores a fingerprint of the exact values (or the exact email or message). Anything different before Submit needs a new OK.
+- **Pages that talk to the AI are handed to you.** A posting or form with text aimed at an AI ("ignore your previous instructions", "if you are an AI…") goes to Finish yourself, and Submit is only clicked on Greenhouse, Lever, Ashby or the job link's own site. Anything else is handed back.
+- **Sensitive questions always come back to you,** even with a saved answer: work authorization and visa sponsorship, demographics and EEO, criminal history, legal statements you certify, NDAs and consent boxes. You confirm the saved answer for each application. The list is `safety.alwaysAsk` in `config.yaml`.
 - **LinkedIn is off by default.** It is an opt-in mode with real risk: see [LinkedIn mode](#linkedin-mode-opt-in-and-risky).
 - **Other sites have terms too.** You are responsible for using this within each site's terms and the law where you live.
 - **Postings that ask for no AI tools are skipped.**
@@ -193,7 +208,7 @@ rules:
 ## Roadmap
 
 - **v0.1 (now):** Greenhouse, Lever, Ashby; Claude Code and Codex; dashboard and question queue; answer memory; scheduler; dry run and review mode
-- **v0.2:** Workday (accounts you create, optional OS keychain), reply tracking from your inbox (read-only), drafts for email-only postings, Windows
+- **v0.2:** Workday (accounts you create, optional OS keychain), reply tracking from your inbox (read-only)
 - **v0.3:** company watchlist, phone notifications, more ATSs (SmartRecruiters, Workable, Recruitee) and regional job boards
 
 ## Contributing

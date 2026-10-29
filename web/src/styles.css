@@ -1750,3 +1750,22 @@ textarea {
   width: auto;
   margin: 10px 0 0;
 }
+
+.email-body {
+  white-space: pre-wrap;
+  font: inherit;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 8px 0 12px;
+  overflow-wrap: anywhere;
+}
+.messages-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.messages-section h4 {
+  margin: 0 0 6px;
+}

@@ -1,15 +1,13 @@
-import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { type Config, loadConfig } from "../core/config.js";
 import { type DB, openDb } from "../core/db.js";
 import { filledFromEvidence, recordHandoff, unsupportedSite } from "../core/handoffs.js";
-import { allowance, companyAllowed } from "../core/limits.js";
+import { allowance, companyAllowed, startOfToday } from "../core/limits.js";
 import { acquireLock } from "../core/lock.js";
 import { type Paths, packageRoot, paths } from "../core/paths.js";
 import { checkFit } from "../core/rules.js";
 import { injectionSignals } from "../core/safety.js";
-import { applyByEmail, emailTarget } from "../email/apply.js";
-import type { Sender } from "../email/send.js";
 import {
   type Application,
   finishRun,
@@ -18,6 +16,9 @@ import {
   setStatus,
   startRun,
 } from "../core/store.js";
+import { applyByEmail, emailTarget } from "../email/apply.js";
+import type { Sender } from "../email/send.js";
+import { approvedMessages, messagesEnabled, messagesSentSince } from "../linkedin/messages.js";
 import {
   isLinkedInApp,
   LINKEDIN_RUN_NOTE,
@@ -304,6 +305,12 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
       }
     }
 
+    // Recruiter messages you approved go out in their own short runs, after the applications.
+    if (!stopped && !dryRun && messagesEnabled(config)) {
+      const sent = await sendApprovedMessages({ db, p, config: runConfig, profile, runId, pace: opts.pace });
+      if (sent) notes.push(`${sent} recruiter message${sent > 1 ? "s" : ""} handled`);
+    }
+
     const status = stopped ?? "completed";
     const counts = processed.reduce<Record<string, number>>((acc, r) => {
       acc[r.status] = (acc[r.status] ?? 0) + 1;
@@ -406,6 +413,57 @@ async function applyOne(o: {
     logPath: join(work, "transcript.jsonl"),
     model: o.config.model,
   });
+}
+
+/**
+ * One Claude in Chrome run per approved recruiter message, within the daily cap. The agent can only send
+ * the exact approved text: prepare_message checks every rule again before it hands the text over.
+ */
+async function sendApprovedMessages(o: {
+  db: DB;
+  p: Paths;
+  config: Config;
+  profile: Profile;
+  runId: number;
+  pace?: DeskOptions;
+}): Promise<number> {
+  if (o.config.provider !== "claude-code") return 0; // Claude in Chrome only
+  let handled = 0;
+  for (const m of approvedMessages(o.db)) {
+    if (linkedInStop(o.db)) break;
+    if (messagesSentSince(o.db, startOfToday()) >= o.config.linkedin.messages.perDay) break;
+    const work = join(runFolder(o.p, o.runId, m.application_id), `message-${m.id}`);
+    mkdirSync(work, { recursive: true, mode: 0o700 });
+    const prompt = [
+      readFileSync(join(packageRoot(), "prompts", "message.md"), "utf8"),
+      "## This run",
+      "```json",
+      JSON.stringify(
+        {
+          messageId: m.id,
+          recipient: m.recipient_name,
+          profileUrl: m.profile_url,
+          browserDeviceId:
+            o.config.linkedin.chromeDevice ?? "not set: if more than one browser is connected, end the run",
+        },
+        null,
+        2,
+      ),
+      "```",
+    ].join("\n\n");
+    await getProvider(o.config.provider).runAgent({
+      prompt,
+      mcpServers: mcpServers(o.config, o.p, m.application_id, false, work, true),
+      browser: "claude-in-chrome",
+      linkedin: true,
+      cwd: work,
+      timeoutMs: 10 * 60_000,
+      logPath: join(work, "transcript.jsonl"),
+      model: o.config.model,
+    });
+    handled++;
+  }
+  return handled;
 }
 
 /** Turn whatever state the agent left into a final status. */

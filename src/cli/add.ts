@@ -38,7 +38,13 @@ export async function addJob(db: DB, url: string, fetcher: Fetcher, o: AddOption
     if (!o.company || !o.title) throw new Error("For an email application give --company and --title too.");
     // One address can take applications for several roles, so the role is part of the job's key.
     const key = `mailto:${to}?role=${encodeURIComponent(o.title.toLowerCase())}`;
-    const r = addApplication(db, { url: key, company: o.company, title: o.title, ats: "email", source: "manual" });
+    const r = addApplication(db, {
+      url: key,
+      company: o.company,
+      title: o.title,
+      ats: "email",
+      source: "manual",
+    });
     setApplyEmail(db, r.id, to);
     return { ...r, company: o.company, title: o.title };
   }

@@ -140,8 +140,18 @@ function Detail({ id, onClose, onChange }: { id: number; onClose: () => void; on
     ? (safeJson(app.evidence) as {
         filled?: { field: string; value: string; source: string }[];
         partial?: boolean;
+        email?: { to: string; subject: string; body: string; attachment: string | null };
       })
     : undefined;
+  const messageAct = async (id: number, action: "approve" | "dismiss", hash: string, msg: string) => {
+    try {
+      await api.messageAct(id, action, hash);
+      toast(msg);
+      load();
+    } catch (e) {
+      toast((e as Error).message);
+    }
+  };
   const filled = evidence?.filled;
 
   return (
@@ -213,6 +223,76 @@ function Detail({ id, onClose, onChange }: { id: number; onClose: () => void; on
               </div>
             )}
 
+            {evidence?.email && (
+              <>
+                <h3 className="section-title">
+                  {app.status === "awaiting_review"
+                    ? "The email, exactly as it would be sent"
+                    : app.status === "submitted"
+                      ? "The email that was sent"
+                      : "The email"}
+                </h3>
+                <dl className="filled">
+                  <div>
+                    <dt>To</dt>
+                    <dd>{evidence.email.to}</dd>
+                  </div>
+                  <div>
+                    <dt>Subject</dt>
+                    <dd>{evidence.email.subject}</dd>
+                  </div>
+                  <div>
+                    <dt>Attached</dt>
+                    <dd>{evidence.email.attachment ?? "nothing"}</dd>
+                  </div>
+                </dl>
+                <pre className="email-body">{evidence.email.body}</pre>
+                {app.emails
+                  .filter((e) => e.message_id)
+                  .map((e) => (
+                    <p key={e.id} className="muted small">
+                      Sent {e.sent_at ? new Date(e.sent_at).toLocaleString() : ""} · Message-ID {e.message_id}
+                    </p>
+                  ))}
+              </>
+            )}
+
+            {app.messages.length > 0 && (
+              <>
+                <h3 className="section-title">Message to the hiring team</h3>
+                {app.messages.map((m) => (
+                  <div key={m.id} className="note">
+                    <strong>{m.recipient_name}</strong>{" "}
+                    <span className="muted small">
+                      · {MESSAGE_STATUS[m.status]}
+                      {m.note ? ` · ${m.note}` : ""}
+                    </span>
+                    <p>{m.text}</p>
+                    {m.status === "awaiting_review" && (
+                      <div className="linkedin-row">
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() =>
+                            messageAct(m.id, "approve", m.hash, "Approved: sent in the next run")
+                          }
+                        >
+                          <Icon.check /> Approve this message
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() => messageAct(m.id, "dismiss", m.hash, "Dismissed. It is never sent")}
+                        >
+                          Do not send
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+
             {filled?.length ? (
               <>
                 <h3 className="section-title">
@@ -277,6 +357,16 @@ function Detail({ id, onClose, onChange }: { id: number; onClose: () => void; on
     </div>
   );
 }
+
+const MESSAGE_STATUS: Record<string, string> = {
+  dry_run: "dry run draft, never sent",
+  awaiting_review: "waits for your OK",
+  approved: "approved, goes out in the next run",
+  sending: "being sent",
+  sent: "sent",
+  failed: "not sent",
+  refused: "not sent",
+};
 
 function safeJson(s: string): unknown {
   try {

@@ -31,6 +31,7 @@ export const STEPS: Step[] = [
     body: [
       "Every answer you give is saved once in Memory. After that the agent reuses it on every form that asks the same thing, and it has to point to the saved answer for every value it types.",
       "When a form asks something new, the application waits on the Questions page. Answer it once, choose whether it applies to every company or just this one, and the application carries on at the next run.",
+      "Some questions always come back to you, even with a saved answer: work authorization and visa, gender and other EEO questions, criminal history, statements you certify, agreements and consent boxes. You see the saved answer and confirm it for that job. You can change this list in config.yaml (safety.alwaysAsk).",
     ],
     link: { label: "Open Questions", href: "#/questions" },
   },
@@ -39,6 +40,7 @@ export const STEPS: Step[] = [
     body: [
       "Dry run is on at the start. The agent fills the forms but never presses Submit, so you can look at what it typed on the Applications page.",
       "When you turn dry run off, the first 10 applications still stop right before Submit and wait for your OK. That is the review. After 10 good ones, it applies on its own, up to your daily limit.",
+      "Your OK covers exactly what you saw. If a value changes before it is sent, it waits for you again. Email applications work the same way, and they are off until you say yes in Settings.",
     ],
     link: { label: "Open Applications", href: "#/applications" },
   },
@@ -62,6 +64,7 @@ export const STEPS: Step[] = [
     body: [
       "LinkedIn mode is off. It lets the agent apply to LinkedIn jobs, Easy Apply included, in your own logged-in browser, at a human pace and with a small daily limit of 5 (at most 15). It stops straight away on any warning or CAPTCHA and hands that job to you.",
       "Be clear about the risk: LinkedIn's User Agreement forbids automation. Accounts can be restricted, even with a small limit. If you turn it on, that risk is yours. Many people skip it, and that is a fine choice: Greenhouse, Lever and Ashby need none of this.",
+      "Messages to recruiters are a second, separate yes on top of LinkedIn mode, and they add more risk. They are off by default: one short message per person at most, 3 a day, and your OK on the first 10.",
     ],
     link: { label: "LinkedIn settings", href: "#/settings" },
   },

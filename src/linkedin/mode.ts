@@ -99,7 +99,9 @@ export function turnOnLinkedIn(
 /** Turn it off. The acceptance is cleared, so turning it on again asks again. */
 export function turnOffLinkedIn(config: Config): Config {
   const { acceptedAt: _, ...rest } = config.linkedin;
-  return { ...config, sources: { ...config.sources, linkedin: false }, linkedin: rest };
+  // Recruiter messages ride on LinkedIn mode: they go off with it and need their own yes again.
+  const messages = { ...rest.messages, enabled: false, acceptedAt: undefined };
+  return { ...config, sources: { ...config.sources, linkedin: false }, linkedin: { ...rest, messages } };
 }
 
 /** LinkedIn applications the agent opened today (dry runs count too: LinkedIn sees the visit either way). */

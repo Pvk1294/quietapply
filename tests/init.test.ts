@@ -87,6 +87,8 @@ vi.mock("@clack/prompts", () => {
     spinner: () => ({ start: quiet, stop: quiet, message: quiet }),
     isCancel: (v: unknown) => v === h.CANCEL,
     text,
+    // Password prompts behave like text prompts here.
+    password: text,
     select,
     confirm,
     group,
@@ -154,6 +156,7 @@ function firstRun() {
   );
   say(/per day/, "5");
   say(/LinkedIn mode now/, false); // off unless you say yes
+  say(/send application emails/, false); // no: nothing is ever mailed
 }
 
 describe("interactive quietapply init", () => {
@@ -170,7 +173,7 @@ describe("interactive quietapply init", () => {
       "Path to your resume (PDF, DOCX or text)",
       "Path to your resume (PDF, DOCX or text)",
     ]);
-    expect(h.asked).toHaveLength(22);
+    expect(h.asked).toHaveLength(23);
 
     const p = paths(home);
     const config = loadConfig(p);
@@ -270,6 +273,7 @@ describe("interactive quietapply init", () => {
       say(re, "");
     say(/Job titles/, "engineer");
     for (const re of [/Locations/, /never to apply/, /Careers pages/, /per day/]) say(re, h.ENTER);
+    say(/send application emails/, h.ENTER);
     await init({});
 
     expect(h.asked).not.toContain("Which browser should the agent drive?");
@@ -296,6 +300,51 @@ describe("interactive quietapply init", () => {
     expect(warning).toContain("8 common questions");
     expect(warning).toContain("job titles");
     expect(warning).toContain("without --yes");
+  });
+
+  it("asks once about email applications, defaults to no and remembers the answer", async () => {
+    firstRun();
+    h.script.find((x) => String(x.re) === String(/send application emails/))!.value = h.ENTER;
+    await init({});
+    const c = loadConfig(paths(home));
+    expect(c.email.enabled).toBe(false);
+    expect(c.email.declinedAt).toMatch(/^\d{4}-/);
+    h.asked.length = 0;
+    h.script.length = 0;
+    for (const re of [/Which AI/, /Which browser/, /Path to your resume/])
+      say(re, re.source.includes("resume") ? RESUME : h.ENTER);
+    for (const re of [
+      /Full name/,
+      /Email/,
+      /Phone/,
+      /City, country/,
+      /Job titles/,
+      /Locations/,
+      /never to apply/,
+      /Careers pages/,
+      /per day/,
+      /LinkedIn mode now/,
+      /salary expectations/,
+      /relocate/,
+    ])
+      say(re, h.ENTER);
+    await init({});
+    expect(h.asked.some((m) => /send application emails/.test(m))).toBe(false);
+  });
+
+  it("with a yes, stores the time and sets up the mail server from the address", async () => {
+    firstRun();
+    h.script.find((x) => String(x.re) === String(/send application emails/))!.value = true;
+    say(/Your email address/, "jane.doe@gmail.com");
+    say(/App password/, ""); // added later in Settings: no keychain is touched in this test
+    await init({});
+    const c = loadConfig(paths(home));
+    expect(c.email).toMatchObject({
+      enabled: true,
+      from: "jane.doe@gmail.com",
+      smtp: { host: "smtp.gmail.com", port: 465, secure: true, user: "jane.doe@gmail.com" },
+    });
+    expect(c.email.acceptedAt).toMatch(/^\d{4}-/);
   });
 
   it("does not accept an empty list of job titles", async () => {

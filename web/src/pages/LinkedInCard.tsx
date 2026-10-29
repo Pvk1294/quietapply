@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api, type LinkedInInfo } from "../api";
+import { api, type LinkedInInfo, type MessagesInfo } from "../api";
 import { toast, usePoll } from "../ui";
 
 /** Settings → LinkedIn mode: off by default, a plain risk statement, and the small daily cap. */
@@ -129,8 +129,102 @@ export function LinkedInCard({ onChange }: { onChange: () => void }) {
             Add a LinkedIn job on the Applications page by pasting its link. Jobs that lead to a company site
             on Greenhouse, Lever or Ashby continue with the normal flow.
           </p>
+          <MessagesSection />
         </>
       )}
     </section>
+  );
+}
+
+/** Recruiter messages after applying: a second, separate yes on top of LinkedIn mode. Off by default. */
+function MessagesSection() {
+  const { data, reload } = usePoll(api.messagesInfo, 15000);
+  const [asking, setAsking] = useState(false);
+  const [cap, setCap] = useState<string>();
+  if (!data) return null;
+  const m: MessagesInfo = data;
+  const run = async (fn: () => Promise<unknown>, ok: string) => {
+    try {
+      await fn();
+      toast(ok);
+      setAsking(false);
+      setCap(undefined);
+      reload();
+    } catch (e) {
+      toast((e as Error).message);
+    }
+  };
+  return (
+    <div className="messages-section">
+      <h4>Messages to recruiters: {m.enabled ? "on" : "off"}</h4>
+      {!m.enabled && !asking && (
+        <>
+          <p className="muted small">
+            Off unless you choose it. QuietApply never messages anyone while this is off.
+          </p>
+          <button type="button" className="btn" onClick={() => setAsking(true)}>
+            Set up recruiter messages…
+          </button>
+        </>
+      )}
+      {!m.enabled && asking && (
+        <div className="risk-box">
+          <strong>{m.question}</strong>
+          <ul>
+            {m.risk.map((r) => (
+              <li key={r}>{r}</li>
+            ))}
+          </ul>
+          <div className="linkedin-row">
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() =>
+                run(() => api.saveMessages({ enabled: true, accept: true }), "Recruiter messages are on")
+              }
+            >
+              Yes, it may message them
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={() => setAsking(false)}>
+              No
+            </button>
+          </div>
+        </div>
+      )}
+      {m.enabled && (
+        <div className="linkedin-row">
+          <label className="field">
+            <span className="field-label">
+              Messages per day{" "}
+              <span className="muted">
+                · 1 to {m.maxPerDay}, sent today {m.sentToday}
+              </span>
+            </span>
+            <input
+              type="number"
+              min={1}
+              max={m.maxPerDay}
+              value={cap ?? String(m.perDay)}
+              onChange={(e) => setCap(e.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            className="btn"
+            disabled={cap === undefined}
+            onClick={() => run(() => api.saveMessages({ perDay: Number(cap) }), "Saved")}
+          >
+            Save cap
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost danger"
+            onClick={() => run(() => api.saveMessages({ enabled: false }), "Recruiter messages are off")}
+          >
+            Turn off
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

@@ -26,6 +26,22 @@ import {
   questionApplications,
   setStatus,
 } from "../core/store.js";
+import { emailsFor } from "../email/apply.js";
+import { cleanAddress } from "../email/compose.js";
+import { declineEmail, emailStatus, smtpPreset, turnOffEmail, turnOnEmail } from "../email/mode.js";
+import { forgetPassword, type SecretDeps, savePassword } from "../email/secret.js";
+import {
+  approveMessage,
+  dismissMessage,
+  MESSAGE_MAX_PER_DAY,
+  MESSAGE_QUESTION,
+  MESSAGE_RISK,
+  messagesEnabled,
+  messagesFor,
+  messagesSentSince,
+  turnOffMessages,
+  turnOnMessages,
+} from "../linkedin/messages.js";
 import {
   clearLinkedInStop,
   LINKEDIN_MAX_PER_DAY,
@@ -54,6 +70,8 @@ export interface AppOptions {
   fetcher?: Fetcher;
   /** The tailscale CLI for phone access. Undefined: look it up. Null: behave as if it is not installed. */
   tailscaleBin?: string | null;
+  /** Where the SMTP password is kept. Tests pass a fake keychain. */
+  secretDeps?: SecretDeps;
 }
 
 const MIME: Record<string, string> = {
@@ -181,6 +199,8 @@ export function createApp(opts: AppOptions): Hono {
       questions: openQuestionsFor(d, a.id),
       screenshots,
       contentHash: evidenceHash(a.evidence) ?? null,
+      emails: emailsFor(d, a.id),
+      messages: messagesFor(d, a.id),
     });
   });
 
@@ -532,6 +552,121 @@ export function createApp(opts: AppOptions): Hono {
     } else if (b.enabled === false) config = turnOffLinkedIn(config);
     saveConfig(config, p);
     return c.json(linkedInStatus(getDb(), loadConfig(p)));
+  });
+
+  // ---------- recruiter messages (LinkedIn) ----------
+
+  const messageInfo = () => {
+    const config = loadConfig(p);
+    return {
+      enabled: messagesEnabled(config),
+      acceptedAt: config.linkedin.messages.acceptedAt ?? null,
+      declinedAt: config.linkedin.messages.declinedAt ?? null,
+      perDay: config.linkedin.messages.perDay,
+      maxPerDay: MESSAGE_MAX_PER_DAY,
+      sentToday: messagesSentSince(getDb(), startOfToday()),
+      question: MESSAGE_QUESTION,
+      risk: MESSAGE_RISK,
+    };
+  };
+  app.get("/api/linkedin/messages", (c) => c.json(messageInfo()));
+  const MessagesBody = z.object({
+    enabled: z.boolean().optional(),
+    /** Must be true to turn messages on: the user said yes under the risk statement. */
+    accept: z.boolean().optional(),
+    perDay: z.number().int().min(1).max(MESSAGE_MAX_PER_DAY).optional(),
+  });
+  app.put("/api/linkedin/messages", async (c) => {
+    const body = MessagesBody.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) return c.json({ error: `The daily message cap is 1 to ${MESSAGE_MAX_PER_DAY}.` }, 400);
+    let config = loadConfig(p);
+    const b = body.data;
+    if (b.perDay !== undefined) config.linkedin.messages.perDay = b.perDay;
+    if (b.enabled === true) {
+      const r = turnOnMessages(config, { accept: b.accept === true });
+      if (!r.ok) return c.json({ error: r.error }, 400);
+      config = r.config;
+    } else if (b.enabled === false) config = turnOffMessages(config);
+    saveConfig(config, p);
+    return c.json(messageInfo());
+  });
+  app.post("/api/messages/:id/:action{approve|dismiss}", async (c) => {
+    const id = Number(c.req.param("id"));
+    try {
+      if (c.req.param("action") === "approve") {
+        const hash = ((await c.req.json().catch(() => ({}))) as { hash?: string }).hash ?? "";
+        return c.json(approveMessage(getDb(), id, hash));
+      }
+      dismissMessage(getDb(), id);
+      return c.json({ ok: true });
+    } catch (err) {
+      return c.json({ error: (err as Error).message }, 400);
+    }
+  });
+
+  // ---------- email applications ----------
+
+  app.get("/api/email", (c) => c.json(emailStatus(getDb(), loadConfig(p), p, opts.secretDeps)));
+  const EmailBody = z.object({
+    enabled: z.boolean().optional(),
+    /** Must be true to turn email on: the user said yes to the question under the risk statement. */
+    accept: z.boolean().optional(),
+    /** The user said no: stored with its time, nothing is ever sent. */
+    decline: z.boolean().optional(),
+    from: z.string().max(200).optional(),
+    host: z.string().max(200).optional(),
+    port: z.number().int().min(1).max(65535).optional(),
+    secure: z.boolean().optional(),
+    user: z.string().max(200).optional(),
+    perDay: z.number().int().min(1).max(50).optional(),
+    doNotContact: z.array(z.string().max(300)).max(1000).optional(),
+  });
+  app.put("/api/email", async (c) => {
+    const body = EmailBody.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) return c.json({ error: "Check the email settings: something is not valid." }, 400);
+    const b = body.data;
+    let config = loadConfig(p);
+    if (b.from !== undefined) {
+      if (b.from && !cleanAddress(b.from)) return c.json({ error: "That is not an email address." }, 400);
+      config.email.from = cleanAddress(b.from);
+      const preset = config.email.from ? smtpPreset(config.email.from) : undefined;
+      if (preset && !config.email.smtp.host) config.email.smtp = { ...config.email.smtp, ...preset };
+      if (config.email.from && !config.email.smtp.user) config.email.smtp.user = config.email.from;
+    }
+    if (b.host !== undefined) config.email.smtp.host = b.host.trim() || undefined;
+    if (b.port !== undefined) config.email.smtp.port = b.port;
+    if (b.secure !== undefined) config.email.smtp.secure = b.secure;
+    if (b.user !== undefined) config.email.smtp.user = b.user.trim() || undefined;
+    if (b.perDay !== undefined) config.email.perDay = b.perDay;
+    if (b.doNotContact !== undefined)
+      config.doNotContact = [...new Set(b.doNotContact.map((x) => x.trim()).filter(Boolean))];
+    if (b.enabled === true) {
+      if (b.accept !== true) return c.json({ error: "Say yes to the question to turn email on." }, 400);
+      config = turnOnEmail(config, { accept: true });
+    } else if (b.enabled === false) config = turnOffEmail(config, p, opts.secretDeps);
+    if (b.decline === true) config = declineEmail(config);
+    saveConfig(config, p);
+    return c.json(emailStatus(getDb(), loadConfig(p), p, opts.secretDeps));
+  });
+  app.post("/api/email/password", async (c) => {
+    const body = z
+      .object({ password: z.string().min(4).max(200) })
+      .safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) return c.json({ error: "Paste the app password from your mail provider." }, 400);
+    const config = loadConfig(p);
+    if (!config.email.smtp.user) return c.json({ error: "Save your address first." }, 400);
+    try {
+      const where = savePassword(p, config.email.smtp.user, body.data.password, opts.secretDeps);
+      // The password itself is never sent back.
+      return c.json({ ...emailStatus(getDb(), config, p, opts.secretDeps), storedIn: where });
+    } catch (err) {
+      return c.json({ error: (err as Error).message }, 400);
+    }
+  });
+  app.delete("/api/email/password", (c) => {
+    const config = loadConfig(p);
+    forgetPassword(p, config.email.smtp.user, opts.secretDeps);
+    return c.json(emailStatus(getDb(), config, p, opts.secretDeps));
   });
 
   app.post("/api/linkedin/resume", (c) => {

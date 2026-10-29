@@ -1,10 +1,21 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import * as p from "@clack/prompts";
-import { type Company, defaultConfig, loadConfig, type ProviderId, saveConfig } from "../core/config.js";
+import {
+  type Company,
+  type Config,
+  defaultConfig,
+  loadConfig,
+  type ProviderId,
+  saveConfig,
+} from "../core/config.js";
 import { openDb } from "../core/db.js";
 import { ensureHome, paths } from "../core/paths.js";
-import { LINKEDIN_RISK, linkedInSetupProblem, turnOnLinkedIn } from "../linkedin/mode.js";
+import { cleanAddress } from "../email/compose.js";
+import { declineEmail, EMAIL_QUESTION, EMAIL_RISK, smtpPreset, turnOnEmail } from "../email/mode.js";
+import { savePassword } from "../email/secret.js";
+import { declineMessages, MESSAGE_QUESTION, MESSAGE_RISK, turnOnMessages } from "../linkedin/messages.js";
+import { LINKEDIN_RISK, linkedInEnabled, linkedInSetupProblem, turnOnLinkedIn } from "../linkedin/mode.js";
 import { listAnswers, saveAnswer } from "../memory/answers.js";
 import { loadProfile, type Profile, saveProfile } from "../memory/profile.js";
 import { STANDARD_QUESTIONS } from "../memory/seed.js";
@@ -219,6 +230,34 @@ export async function init(opts: InitOptions): Promise<void> {
     }
   }
 
+  // Recruiter messages: only with LinkedIn mode on, as a separate yes. A no is remembered.
+  const msg = config.linkedin.messages;
+  if (interactive && linkedInEnabled(config) && !msg.acceptedAt && !msg.declinedAt) {
+    p.log.warn(MESSAGE_RISK.join("\n"));
+    const yes = await p.confirm({ message: MESSAGE_QUESTION, initialValue: false });
+    if (cancelled(yes)) bail();
+    const r = yes ? turnOnMessages(config, { accept: true }) : undefined;
+    if (r?.ok) {
+      Object.assign(config, r.config);
+      p.log.success(
+        "Recruiter messages are on (3 a day, your OK on the first 10). Turn them off in Settings.",
+      );
+    } else Object.assign(config, declineMessages(config));
+  }
+
+  // Email applications: off unless you say yes. A no is remembered, and then no mail is ever sent.
+  if (interactive && !config.email.acceptedAt && !config.email.declinedAt) {
+    p.log.message(EXPLAIN.email);
+    const yes = await p.confirm({ message: EMAIL_QUESTION, initialValue: false });
+    if (cancelled(yes)) bail();
+    if (!yes) Object.assign(config, declineEmail(config));
+    else {
+      p.log.warn(EMAIL_RISK.join("\n"));
+      Object.assign(config, turnOnEmail(config, { accept: true }));
+      await askEmailSetup(config, dirs);
+    }
+  }
+
   saveConfig(config, dirs);
   const gaps = setupGaps(db, loadProfile(dirs), config);
   if (gaps.length)
@@ -243,6 +282,50 @@ export async function init(opts: InitOptions): Promise<void> {
   p.outro(
     `Dry run is ON and the first ${config.limits.reviewFirst} applications wait for your OK. Change both in Settings.`,
   );
+}
+
+/** The address, mail server and app password for email applications. Each can be finished later in Settings. */
+async function askEmailSetup(config: Config, dirs: ReturnType<typeof paths>): Promise<void> {
+  const from = await p.text({
+    message: "Your email address (applications are sent from it)",
+    initialValue: loadProfile(dirs).email,
+    validate: (v) => (cleanAddress(v) ? undefined : "That is not an email address"),
+  });
+  if (cancelled(from)) bail();
+  const address = cleanAddress(from)!;
+  const preset = smtpPreset(address);
+  let host = preset?.host;
+  if (!host) {
+    const h = await p.text({ message: "Your mail server (SMTP host)", placeholder: "smtp.example.com" });
+    if (cancelled(h)) bail();
+    host = h.trim() || undefined;
+  }
+  config.email = {
+    ...config.email,
+    from: address,
+    smtp: {
+      ...config.email.smtp,
+      host,
+      port: preset?.port ?? 587,
+      secure: preset?.secure ?? false,
+      user: address,
+    },
+  };
+  const pw = await p.password({
+    message:
+      "App password (made in your mail account's security settings, not your normal password). Empty to add it later",
+  });
+  if (cancelled(pw)) bail();
+  if (pw) {
+    try {
+      const where = savePassword(dirs, address, pw);
+      p.log.success(
+        `App password stored (${where === "file" ? "in a file only you can read" : "in your keychain"}).`,
+      );
+    } catch (err) {
+      p.log.warn(`Could not store the password: ${(err as Error).message}. Add it in Settings.`);
+    }
+  }
 }
 
 /** Name, email, phone and city: they go into every form, so they are checked by you, not guessed. */

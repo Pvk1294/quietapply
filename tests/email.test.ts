@@ -348,3 +348,68 @@ describe("the app password", () => {
     expect(readFileSync(p.config, "utf8")).not.toContain("pw");
   });
 });
+
+describe("dashboard API for email and messages", () => {
+  const H = { host: "127.0.0.1:4777", "x-quietapply": "1", "content-type": "application/json" };
+  const keychain = new Map<string, string>();
+  const fakeKeychain = {
+    platform: "darwin" as const,
+    run: (cmd: string, args: string[], input?: string) => {
+      if (args[0] === "-i") {
+        const m = input!.match(/-a "([^"]+)" -w "([^"]+)"/)!;
+        keychain.set(m[1]!, m[2]!);
+        return "";
+      }
+      if (args[0] === "find-generic-password") {
+        const v = keychain.get(args[args.indexOf("-a") + 1]!);
+        if (!v) throw new Error("not found");
+        return `${v}\n`;
+      }
+      if (args[0] === "delete-generic-password") keychain.delete(args[args.indexOf("-a") + 1]!);
+      return cmd ? "" : "";
+    },
+  };
+
+  it("needs the yes, sets the server from the address, and never returns the password", async () => {
+    const { createApp } = await import("../src/server/app.js");
+    const p = makeHome();
+    const app = createApp({ p, port: 4777, secretDeps: fakeKeychain });
+    const put = (b: unknown) =>
+      app.request("/api/email", { method: "PUT", headers: H, body: JSON.stringify(b) });
+
+    expect((await put({ enabled: true })).status).toBe(400);
+    expect(
+      ((await (await put({ enabled: true, accept: true })).json()) as { enabled: boolean }).enabled,
+    ).toBe(true);
+    const set = (await (await put({ from: "Jane.Doe@gmail.com" })).json()) as {
+      smtp: { host: string; user: string };
+    };
+    expect(set.smtp).toMatchObject({ host: "smtp.gmail.com", user: "jane.doe@gmail.com" });
+
+    const stored = await app.request("/api/email/password", {
+      method: "POST",
+      headers: H,
+      body: JSON.stringify({ password: "abcd efgh ijkl mnop" }),
+    });
+    const body = await stored.text();
+    expect(JSON.parse(body)).toMatchObject({ hasPassword: true, storedIn: "keychain" });
+    expect(body).not.toContain("abcd");
+    expect(await (await app.request("/api/email", { headers: H })).text()).not.toContain("abcd");
+    expect(readFileSync(p.config, "utf8")).not.toContain("abcd");
+
+    // Off at once, and the password is gone.
+    const off = (await (await put({ enabled: false })).json()) as { enabled: boolean; hasPassword: boolean };
+    expect(off).toMatchObject({ enabled: false, hasPassword: false });
+  });
+
+  it("recruiter messages need LinkedIn mode and their own yes", async () => {
+    const { createApp } = await import("../src/server/app.js");
+    const p = makeHome();
+    const app = createApp({ p, port: 4777, secretDeps: fakeKeychain });
+    const put = (b: unknown) =>
+      app.request("/api/linkedin/messages", { method: "PUT", headers: H, body: JSON.stringify(b) });
+    const r = await put({ enabled: true, accept: true });
+    expect(r.status).toBe(400);
+    expect(((await r.json()) as { error: string }).error).toContain("LinkedIn mode first");
+  });
+});
