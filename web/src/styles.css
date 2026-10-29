@@ -1718,6 +1718,11 @@ textarea {
 
 /* ---------- Settings → Phone access ---------- */
 
+/* Opened from the tour: keep the card's title clear of the sticky header. */
+#phone {
+  scroll-margin-top: 88px;
+}
+
 .phone-setup ol {
   margin: 6px 0 0 18px;
   padding: 0;

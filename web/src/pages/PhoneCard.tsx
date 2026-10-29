@@ -88,7 +88,7 @@ export function PhoneCard() {
                 </a>
                 <button
                   type="button"
-                  className="btn btn-ghost btn-sm"
+                  className="btn btn-sm"
                   onClick={async () => toast((await copyText(i.url ?? "")) ? "Copied" : "Could not copy")}
                 >
                   Copy
