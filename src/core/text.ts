@@ -51,7 +51,7 @@ export function similarity(a: string, b: string): number {
 }
 
 /**
- * A company name reduced to what identifies it, so "ClickHouse, Inc.", "Clickhouse" and "ClickHouse (YC W16)"
+ * A company name reduced to what identifies it, so "Hooli, Inc.", "Hooli" and "Hooli (YC W16)"
  * are one company for the duplicate check and the per-company cap.
  */
 export function companyKey(name: string): string {

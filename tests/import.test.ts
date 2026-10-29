@@ -160,7 +160,7 @@ describe("imported history and the limits", () => {
       alreadyApplied(db, { company: "Globex", title: "Backend Engineer (Remote)" }, again.id)?.company,
     ).toBe("Globex, Inc.");
     expect(alreadyApplied(db, { company: "Globex", title: "Frontend Engineer" })).toBeUndefined();
-    expect(companyKey("ClickHouse, Inc. (YC W16)")).toBe(companyKey("Clickhouse"));
+    expect(companyKey("Hooli, Inc. (YC W16)")).toBe(companyKey("hooli"));
     expect(titleKey("Software Engineer - Backend (Remote)")).toBe(titleKey("Software Engineer, Backend"));
     db.close();
   });
