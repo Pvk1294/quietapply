@@ -46,7 +46,8 @@ export interface NewAnswer {
   scope?: Scope;
   scopeValue?: string | null;
   sensitive?: boolean;
-  source?: "resume" | "setup" | "you" | "default" | "demo";
+  /** "import" or "import: <where from>" for answers brought in with `quietapply import`. */
+  source?: "resume" | "setup" | "you" | "default" | "demo" | "import" | `import: ${string}`;
 }
 
 /** Save an answer. An answer with the same key (or same question) and scope is updated instead of duplicated. */

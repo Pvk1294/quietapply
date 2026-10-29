@@ -23,8 +23,10 @@ import {
 } from "../core/safety.js";
 import {
   type Application,
+  alreadyApplied,
   askQuestion,
   confirmationFor,
+  duplicateReason,
   getApplication,
   moveApplication,
   openQuestionsFor,
@@ -643,6 +645,12 @@ export class Desk {
     if (!fit.fit) {
       setStatus(this.db, a.id, "skipped", { reason: fit.reason });
       return { fit: false, reason: fit.reason, instruction: "Not a fit. Do not apply. End the run." };
+    }
+    const dup = alreadyApplied(this.db, input, a.id);
+    if (dup) {
+      const reason = duplicateReason(dup);
+      setStatus(this.db, a.id, "skipped", { reason });
+      return { fit: false, reason, instruction: "Already applied to this role. Do not apply. End the run." };
     }
     const injected = injectionSignals(input.description);
     if (injected.length) {

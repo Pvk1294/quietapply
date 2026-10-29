@@ -1,0 +1,9 @@
+{
+  "full_name": "Jane Doe",
+  "email": "jane.doe@example.com",
+  "contact": { "mobile": "+1 555 010 0199" },
+  "home": { "city": "Springfield", "country": "United States" },
+  "linkedin": "https://www.linkedin.com/in/jane-doe-example",
+  "github": "https://github.com/janedoe-example",
+  "years_of_experience": 5
+}

@@ -1,0 +1,16 @@
+# Example mapping for `quietapply import fixtures/import/old-runner` (fake data, persona Jane Doe).
+label: old runner
+files:
+  profile: me.json
+  answers: answers.csv
+  applications: tracker.json#applications
+  targets: targets.yaml
+fields:
+  applications:
+    title: role
+    url: job_url
+    appliedAt: applied_at
+  profile:
+    phone: contact.mobile
+    city: home.city
+    country: home.country

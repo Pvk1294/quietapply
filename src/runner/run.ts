@@ -10,6 +10,8 @@ import { checkFit } from "../core/rules.js";
 import { injectionSignals } from "../core/safety.js";
 import {
   type Application,
+  alreadyApplied,
+  duplicateReason,
   finishRun,
   getApplication,
   listApplications,
@@ -199,6 +201,15 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
           });
           processed.push(row(app, "skipped", fit.reason));
           log(`skip  ${app.company} · ${app.title}: ${fit.reason}`);
+          continue;
+        }
+        // Never twice to the same company and role, whatever the link (imported history included).
+        const dup = alreadyApplied(db, app, app.id);
+        if (dup) {
+          const reason = duplicateReason(dup);
+          setStatus(db, app.id, "skipped", { reason });
+          processed.push(row(app, "skipped", reason));
+          log(`skip  ${app.company} · ${app.title}: ${reason}`);
           continue;
         }
       }

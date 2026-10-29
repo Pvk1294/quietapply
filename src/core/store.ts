@@ -1,5 +1,5 @@
 import { type DB, now } from "./db.js";
-import { sameQuestion } from "./text.js";
+import { companyKey, sameQuestion, titleKey } from "./text.js";
 
 export const APP_STATUSES = [
   "queued",
@@ -187,21 +187,61 @@ export function applicationEvents(db: DB, id: number): { status: string; note: s
     .all(id) as unknown as { status: string; note: string | null; at: string }[];
 }
 
-/** Submitted (or in-flight) applications since a moment, for daily and per-company caps. */
+/**
+ * Submitted (or in-flight) applications since a moment, for daily and per-company caps. A submitted one
+ * counts from when it was sent (so a later status change does not move it), and companies match by
+ * companyKey, so "Acme" and "Acme, Inc." share one cap. Imported history counts too.
+ */
 export function countSubmittedSince(db: DB, sinceIso: string, company?: string): number {
-  const sql =
-    "SELECT COUNT(*) AS n FROM applications WHERE status IN ('submitted','submitting','unclear') AND updated_at >= ?" +
-    (company ? " AND lower(company) = lower(?)" : "");
-  const row = (company ? db.prepare(sql).get(sinceIso, company) : db.prepare(sql).get(sinceIso)) as {
-    n: number;
-  };
-  return row.n;
+  const rows = db
+    .prepare(
+      `SELECT company FROM applications WHERE status IN ('submitted','submitting','unclear')
+         AND COALESCE(submitted_at, updated_at) >= ?`,
+    )
+    .all(sinceIso) as { company: string }[];
+  if (!company) return rows.length;
+  const key = companyKey(company);
+  return rows.filter((r) => companyKey(r.company) === key).length;
 }
 
+/**
+ * Applications QuietApply itself submitted. Imported history is left out: it says where you applied, not
+ * that QuietApply has earned your trust, so review mode still covers its first applications.
+ */
 export function countEverSubmitted(db: DB): number {
   return (
-    db.prepare("SELECT COUNT(*) AS n FROM applications WHERE status = 'submitted'").get() as { n: number }
+    db
+      .prepare("SELECT COUNT(*) AS n FROM applications WHERE status = 'submitted' AND source != 'import'")
+      .get() as { n: number }
   ).n;
+}
+
+/**
+ * An earlier application to the same company and role (submitted, being submitted, or imported from
+ * another tracker), other than `exceptId`. Matching is by companyKey and titleKey, not by URL, because the
+ * same opening is often posted under several links.
+ */
+export function alreadyApplied(
+  db: DB,
+  job: { company: string; title: string },
+  exceptId?: number,
+): Application | undefined {
+  const c = companyKey(job.company);
+  const t = titleKey(job.title);
+  if (!c || !t) return undefined;
+  const rows = db
+    .prepare(
+      `SELECT * FROM applications WHERE status IN ('submitted','submitting','unclear') AND id != ?
+         ORDER BY COALESCE(submitted_at, updated_at)`,
+    )
+    .all(exceptId ?? -1) as unknown as Application[];
+  return rows.find((r) => companyKey(r.company) === c && titleKey(r.title) === t);
+}
+
+/** "already applied to this role on 2026-09-16 (#12, imported)": the skip reason for a duplicate. */
+export function duplicateReason(earlier: Application): string {
+  const when = (earlier.submitted_at ?? earlier.updated_at).slice(0, 10);
+  return `already applied to this role on ${when} (#${earlier.id}${earlier.source === "import" ? ", imported" : ""})`;
 }
 
 // ---------- questions ----------

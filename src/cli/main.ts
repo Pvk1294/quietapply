@@ -54,6 +54,31 @@ program
   });
 
 program
+  .command("import <folder>")
+  .description(
+    "Bring in another tracker's data: profile, answers, past applications and targets (JSON, YAML or CSV; see docs/import.md)",
+  )
+  .option("--dry-run", "show what would be imported without writing anything")
+  .action(async (folder: string, o: { dryRun?: boolean }) => {
+    const { importFolder } = await import("../import/index.js");
+    const p = ensureHome(paths());
+    const db = openDb(p);
+    const s = importFolder(db, p, folder, { dryRun: o.dryRun });
+    db.close();
+    const t = s.targets;
+    console.log(
+      [
+        `${s.dryRun ? "Would import" : "Imported"} from ${s.label}:`,
+        `  profile:      ${s.profile.updated.length ? s.profile.updated.join(", ") : "nothing"}`,
+        `  answers:      ${s.answers.added} new, ${s.answers.updated} updated, ${s.answers.skipped} empty rows skipped`,
+        `  applications: ${s.applications.imported} as already applied, ${s.applications.duplicates} already here, ${s.applications.notApplied} not sent (drafts), ${s.applications.invalid} without company or title`,
+        `  targets:      +${t.roles} titles, +${t.excludeTitles} excluded words, +${t.locations} locations, +${t.neverApply} never-apply, +${t.companies} companies`,
+        ...s.warnings.map((w) => `  note: ${w}`),
+      ].join("\n"),
+    );
+  });
+
+program
   .command("discover")
   .description("Find open roles at your companies through the public Greenhouse, Lever and Ashby APIs")
   .action(async () => {
@@ -61,7 +86,9 @@ program
     const db = openDb(p);
     const config = loadConfig(p);
     const s = await discover(db, config, loadProfile(p), defaultFetcher);
-    console.log(`Found ${s.found} open roles, queued ${s.added} new (${s.alreadyKnown} already known).`);
+    console.log(
+      `Found ${s.found} open roles, queued ${s.added} new (${s.alreadyKnown} already known, ${s.alreadyApplied} already applied to).`,
+    );
     if (!config.rules.roles.length && s.added)
       console.log(
         "  Note: no job titles are set, so every role passed the title check. Add titles in Settings or `quietapply init`.",
