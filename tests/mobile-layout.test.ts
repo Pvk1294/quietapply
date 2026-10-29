@@ -9,8 +9,9 @@ import { createDemo } from "../src/demo/seed.js";
 import { createApp } from "../src/server/app.js";
 
 /**
- * The dashboard on a 390 px phone screen, with the demo data: no page may scroll sideways. Needs the built
- * dashboard (npm run build) and a Chromium or Chrome; skipped without them.
+ * The dashboard layout with the demo data: on a 390 px phone no page may scroll sideways, and on a wide
+ * screen every block lines up in one centered column. Needs the built dashboard (npm run build) and a
+ * Chromium or Chrome; skipped without them.
  */
 const built = existsSync(join(packageRoot(), "dist", "web", "index.html"));
 
@@ -77,6 +78,32 @@ describe("dashboard on a phone (390 px)", () => {
     const banner = await page.locator(".tour-banner").boundingBox();
     expect(banner && banner.x >= 0 && banner.x + banner.width <= 390).toBe(true);
     expect(await width()).toBeLessThanOrEqual(390);
+    await page.close();
+  }, 60_000);
+
+  it("on a wide screen the header, banners and every block share one centered column", async (ctx) => {
+    if (!browser) return ctx.skip();
+    const page = await browser.newPage({ viewport: { width: 1920, height: 1100 } });
+    await page.addInitScript(() => localStorage.setItem("quietapply-tour-done", "1"));
+    await page.goto(`${base}/#/today`);
+    await page.waitForSelector(".two-col");
+    const edges = await page.evaluate<{ left: number[]; right: number[]; main: number[] }>(`(() => {
+      const box = (el) => el.getBoundingClientRect();
+      const blocks = [...document.querySelectorAll(".main > .banner"), ...document.querySelector(".content > .stack").children];
+      const r = (x) => Math.round(x);
+      const main = box(document.querySelector(".main"));
+      return {
+        left: [box(document.querySelector(".topbar h1")).left, ...blocks.map((b) => box(b).left)].map(r),
+        right: [box(document.querySelector(".controls")).right, ...blocks.map((b) => box(b).right)].map(r),
+        main: [main.left, main.right].map(r),
+      };
+    })()`);
+    expect(new Set(edges.left).size, `left edges ${edges.left}`).toBe(1);
+    expect(new Set(edges.right).size, `right edges ${edges.right}`).toBe(1);
+    // Centered in the area right of the sidebar, at most 1200 px wide.
+    const [l, r] = [edges.left[0]!, edges.right[0]!];
+    expect(r - l).toBe(1200);
+    expect(Math.abs(l - edges.main[0]! - (edges.main[1]! - r))).toBeLessThanOrEqual(1);
     await page.close();
   }, 60_000);
 });
