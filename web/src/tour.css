@@ -167,6 +167,29 @@
   bottom: 84px;
 }
 @media (max-width: 760px) {
+  .tour {
+    padding: 18px 18px 14px;
+  }
+  .tour h2 {
+    font-size: 19px;
+  }
+  /* Dots on their own line, buttons below, so nothing is pushed off the screen. */
+  .tour-foot {
+    flex-wrap: wrap;
+  }
+  .tour-dots {
+    width: 100%;
+    justify-content: center;
+  }
+  .tour-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+  .tour-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
   .tour-banner {
     right: 12px;
     bottom: calc(84px + env(safe-area-inset-bottom));
