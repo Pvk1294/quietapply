@@ -327,7 +327,8 @@ describe("the app password", () => {
     };
     expect(savePassword(p, "jane@example.com", "pw", { platform: "linux", run: fail })).toBe("file");
     const file = join(p.home, "smtp-password.json");
-    expect(statSync(file).mode & 0o777).toBe(0o600);
+    // Windows has no POSIX modes; a file in the user's profile is already private to that user.
+    if (process.platform !== "win32") expect(statSync(file).mode & 0o777).toBe(0o600);
     expect(readPassword(p, "jane@example.com", { platform: "linux", run: fail })).toBe("pw");
     expect(readPassword(p, "someone@else.example", { platform: "linux", run: fail })).toBe(undefined);
     forgetPassword(p, "jane@example.com", { platform: "linux", run: fail });

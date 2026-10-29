@@ -1,6 +1,6 @@
 import { accessSync, constants, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { delimiter, join, win32 } from "node:path";
+import { join, posix, win32 } from "node:path";
 import { loadConfig } from "../core/config.js";
 import { run, version } from "./spawn.js";
 import {
@@ -56,17 +56,18 @@ export function locateCodex(
   const platform = o.platform ?? process.platform;
   const win = platform === "win32";
   const names = win ? ["codex.exe", "codex.cmd"] : ["codex"];
-  const pathJoin = win ? win32.join : join;
-  const dirs = (env.PATH ?? env.Path ?? "").split(win ? ";" : delimiter).filter(Boolean);
+  // The target platform's own separators, so a lookup for another platform (tests) reads paths the same way.
+  const pathJoin = win ? win32.join : posix.join;
+  const dirs = (env.PATH ?? env.Path ?? "").split(win ? ";" : ":").filter(Boolean);
   // npm's global folder on Windows, for a terminal opened before the install put it on PATH.
   if (win && env.APPDATA) dirs.push(win32.join(env.APPDATA, "npm"));
   for (const dir of dirs)
     for (const name of names)
       if (exists(pathJoin(dir, name))) return { path: pathJoin(dir, name), via: "path" };
   if (platform === "darwin")
-    for (const root of ["/Applications", join(o.home ?? homedir(), "Applications")])
+    for (const root of ["/Applications", posix.join(o.home ?? homedir(), "Applications")])
       for (const rel of MAC_APP_BUNDLES)
-        if (exists(join(root, rel))) return { path: join(root, rel), via: "app" };
+        if (exists(posix.join(root, rel))) return { path: posix.join(root, rel), via: "app" };
   return undefined;
 }
 
