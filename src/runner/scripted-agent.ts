@@ -113,7 +113,7 @@ async function fill(call: Call, job: Job, form: FormInfo, pace = false): Promise
     // The scripted agent has no browser: it never clicks Submit, so an approved submit is recorded as unclear.
     await call("record_result", {
       outcome: "unclear",
-      evidence: "Scripted agent cannot submit; finish this one yourself.",
+      evidence: "Scripted agent cannot submit. Finish this one yourself.",
     });
     return "Approved for submit, but the scripted agent does not submit.";
   }
@@ -128,7 +128,7 @@ async function linkedIn(call: Call, job: Job, fetcher: Fetcher): Promise<string>
   if (isLinkedInUrl(job.url)) {
     await call("mark_blocked", {
       category: "other",
-      notes: "The demo agent only opens saved fixture pages; it never visits LinkedIn.",
+      notes: "The demo agent only opens saved fixture pages. It never visits LinkedIn.",
     });
     return "Real LinkedIn page: the demo agent does not open it.";
   }

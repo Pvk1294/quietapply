@@ -30,7 +30,7 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
     ],
     type: "yesno",
     essential: true,
-    hint: "Name the countries if it differs, e.g. 'Yes in India; no in the US'.",
+    hint: "Name the countries if it differs, e.g. 'Yes in India, no in the US'.",
   },
   {
     key: "sponsorship",
@@ -168,7 +168,7 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
     question: "In two or three sentences, what kind of role are you looking for and why?",
     patterns: [/why (are you|do you want|this role|interested)/, /what (interests|excites) you/],
     type: "long",
-    hint: "Used as a base; the agent tailors it to each company without adding facts.",
+    hint: "Used as a base. The agent tailors it to each company without adding facts.",
   },
   {
     key: "proudest_work",

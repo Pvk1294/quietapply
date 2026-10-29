@@ -86,7 +86,7 @@ export async function doctor(): Promise<Check[]> {
       checks.push({
         name: "Browser (Chrome/Edge)",
         ok: chrome ? true : "warn",
-        detail: chrome ?? "not found in the usual places; Playwright can install its own",
+        detail: chrome ?? "not found in the usual places, Playwright can install its own",
       });
       const npx = await version("npx");
       checks.push({ name: "npx (for Playwright MCP)", ok: !!npx, detail: npx ?? "not found" });
@@ -97,7 +97,7 @@ export async function doctor(): Promise<Check[]> {
         detail:
           config.auth === "subscription"
             ? "needs the Claude in Chrome extension signed in to your Claude plan"
-            : "not available with an API key; use playwright-profile",
+            : "not available with an API key, use playwright-profile",
       });
     }
     checks.push({

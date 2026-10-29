@@ -8,7 +8,8 @@ import { Questions } from "./pages/Questions";
 import { Runs } from "./pages/Runs";
 import { Settings } from "./pages/Settings";
 import { Today } from "./pages/Today";
-import { STEPS, TOUR_KEY, Tour } from "./Tour";
+import { STEPS, Tour, TourBanner } from "./Tour";
+import { finishTour, initialTour, pauseTour, rememberStep, type TourState } from "./tourState";
 import { Toaster, toast, usePoll } from "./ui";
 
 const PAGES = [
@@ -46,22 +47,19 @@ export function App() {
   const { data: summary, error, reload } = usePoll(api.summary, 4000);
   const title = PAGES.find((p) => p.id === page)?.label ?? "";
   // The tour opens by itself the first time, from "Help / Tour", or with ?tour=N in the address.
-  const [tour, setTour] = useState<number | null>(() => {
-    const n = Number(new URLSearchParams(location.hash.split("?")[1]).get("tour"));
-    if (n >= 1 && n <= STEPS.length) return n - 1;
-    return localStorage.getItem(TOUR_KEY) ? null : 0;
-  });
-  const closeTour = () => {
-    localStorage.setItem(TOUR_KEY, "1");
-    setTour(null);
-  };
+  // Left unfinished, it waits in a "Continue quick tour" banner until it is finished or dismissed.
+  const [tour, setTour] = useState<TourState>(() => initialTour(localStorage, location.hash, STEPS.length));
+  useEffect(() => {
+    if (tour.open !== null) rememberStep(localStorage, tour.open);
+  }, [tour.open]);
+  const openTour = (step: number) => setTour({ open: step, paused: null });
 
   useEffect(() => {
     document.title = summary?.openQuestions ? `(${summary.openQuestions}) QuietApply` : "QuietApply";
   }, [summary?.openQuestions]);
 
   return (
-    <div className="shell">
+    <div className={`shell ${tour.paused !== null ? "tour-paused" : ""}`}>
       <aside className="sidebar">
         <a className="brand" href="#/today">
           <Icon.logo />
@@ -76,7 +74,7 @@ export function App() {
             </a>
           ))}
         </nav>
-        <button type="button" className="help-link nav-help" onClick={() => setTour(0)}>
+        <button type="button" className="help-link nav-help" onClick={() => openTour(0)}>
           Help / Tour
         </button>
         <div className="sidebar-foot muted">
@@ -135,7 +133,21 @@ export function App() {
         ))}
       </nav>
       <Toaster />
-      {tour !== null && <Tour step={tour} onStep={setTour} onClose={closeTour} />}
+      {tour.open !== null && (
+        <Tour
+          step={tour.open}
+          onStep={openTour}
+          onClose={() => setTour(pauseTour(localStorage, tour.open ?? 0))}
+          onDone={() => setTour(finishTour(localStorage))}
+        />
+      )}
+      {tour.paused !== null && (
+        <TourBanner
+          step={tour.paused}
+          onResume={() => openTour(tour.paused ?? 0)}
+          onDismiss={() => setTour(finishTour(localStorage))}
+        />
+      )}
     </div>
   );
 }

@@ -14,7 +14,7 @@ export const INSTALL_STEPS = [
   "Phone access uses Tailscale: a private network between your devices. Nothing is opened to the internet.",
   "",
   "1. Install Tailscale on this Mac:  https://tailscale.com/download   (or: brew install --cask tailscale)",
-  "2. Open it and sign in (Google, Microsoft, GitHub or Apple; free for personal use).",
+  "2. Open it and sign in with Google, Microsoft, GitHub or Apple. It is free for personal use.",
   "3. Install the Tailscale app on your phone and sign in with the same account.",
   "4. In the Tailscale admin page, turn on MagicDNS and HTTPS Certificates:  https://login.tailscale.com/admin/dns",
   "5. Run  quietapply phone  again.",
@@ -139,7 +139,7 @@ export async function phoneOff(o: { port?: number; bin?: string | null } = {}): 
     return {
       ok: false,
       lines: [
-        `HTTPS port ${config.phone.httpsPort} serves something that is not QuietApply (${was.target}); left alone.`,
+        `HTTPS port ${config.phone.httpsPort} serves something that is not QuietApply (${was.target}), so it was left alone.`,
       ],
     };
   if (was) {

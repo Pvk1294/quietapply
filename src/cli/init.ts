@@ -23,7 +23,7 @@ export interface InitOptions {
 const cancelled = (v: unknown): v is symbol => p.isCancel(v);
 
 function bail(): never {
-  p.cancel("Setup stopped. Run `quietapply init` again any time; nothing you entered so far is lost.");
+  p.cancel("Setup stopped. Run `quietapply init` again any time. Nothing you entered so far is lost.");
   process.exit(1);
 }
 

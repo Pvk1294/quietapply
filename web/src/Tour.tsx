@@ -22,7 +22,7 @@ export const STEPS: Step[] = [
     title: "Your profile comes from your resume",
     body: [
       "In the terminal, run quietapply init and give it your resume (PDF, Word or text). It builds your profile: name, contact details, past roles and skills.",
-      "It also asks a few questions almost every form asks, like work authorization and notice period. Skip any you are unsure about; you will be asked later, only if a form needs it.",
+      "It also asks a few questions almost every form asks, like work authorization and notice period. Skip any you are unsure about. You will be asked later, only if a form needs it.",
     ],
     link: { label: "See your settings", href: "#/settings" },
   },
@@ -69,7 +69,7 @@ export const STEPS: Step[] = [
     title: "Limits and the schedule",
     body: [
       "Limits keep things calm: 15 applications a day and 2 per company every 30 days by default. Fewer, well-matched applications get more replies.",
-      "Run now starts a run whenever you like. To run on its own, use quietapply schedule on; it runs at the times in Settings (09:00, 13:00 and 19:00 to begin with). Pause stops everything until you resume.",
+      "Run now starts a run whenever you like. To run on its own, use quietapply schedule on. It then runs at the times in Settings (09:00, 13:00 and 19:00 to begin with). Pause stops everything until you resume.",
     ],
     link: { label: "Open Settings", href: "#/settings" },
   },
@@ -77,23 +77,24 @@ export const STEPS: Step[] = [
     title: "What “Finish yourself” means",
     body: [
       "Every job QuietApply skipped or stopped on lands on the Finish yourself page, grouped by the reason: a CAPTCHA, a login, a video answer, a site it does not support, your own rules or limits, or a LinkedIn limit or warning.",
-      "Each entry says what happened and what is needed, and lists the answers already filled in, with a Copy button for each. Open the job, finish it, then press I applied myself. Not interested leaves it alone; Retry queues it again when that makes sense. Entries marked Unclear may already have gone through, so look at the site first.",
+      "Each entry says what happened and what is needed, and lists the answers already filled in, with a Copy button for each. Open the job, finish it, then press I applied myself. Not interested leaves it alone. Retry queues it again when that makes sense. Entries marked Unclear may already have gone through, so look at the site first.",
       "That is everything. You can reopen this tour any time from Help / Tour in the sidebar.",
     ],
     link: { label: "Open Finish yourself", href: "#/handoff" },
   },
 ];
 
-export const TOUR_KEY = "quietapply-tour-done";
-
+/** The tour dialog. `onClose` leaves it unfinished (Skip, Escape, a link in a step); `onDone` finishes it. */
 export function Tour({
   step,
   onStep,
   onClose,
+  onDone,
 }: {
   step: number;
   onStep: (n: number) => void;
   onClose: () => void;
+  onDone: () => void;
 }) {
   const s = STEPS[step]!;
   const last = step === STEPS.length - 1;
@@ -139,13 +140,43 @@ export function Tour({
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => (last ? onClose() : onStep(step + 1))}
+              onClick={() => (last ? onDone() : onStep(step + 1))}
             >
               {last ? "Done" : "Next"}
             </button>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Bottom-right offer to pick a tour left unfinished back up where it was. */
+export function TourBanner({
+  step,
+  onResume,
+  onDismiss,
+}: {
+  step: number;
+  onResume: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="tour-banner">
+      <button type="button" className="tour-banner-resume" onClick={onResume}>
+        <span className="tour-banner-title">Continue quick tour</span>
+        <span className="tour-banner-step">
+          Step {step + 1} of {STEPS.length}
+        </span>
+      </button>
+      <button
+        type="button"
+        className="tour-banner-close"
+        aria-label="Close the tour for good"
+        onClick={onDismiss}
+      >
+        ×
+      </button>
     </div>
   );
 }

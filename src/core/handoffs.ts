@@ -88,7 +88,7 @@ export const REASONS: Record<HandoffReason, ReasonInfo> = {
   },
   form_error: {
     label: "Form error",
-    help: "The form broke or the run failed. Retry once; if it keeps happening, finish it yourself.",
+    help: "The form broke or the run failed. Retry once. If it keeps happening, finish it yourself.",
     needsYou: false,
     retryable: true,
   },

@@ -195,7 +195,7 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
       }
       if (!dryRun) {
         if (allowance(db, runConfig).remainingToday <= 0) {
-          log("Daily limit reached; stopping.");
+          log("Daily limit reached, stopping.");
           break;
         }
         if (!linkedin && !companyAllowed(db, runConfig, app.company)) {
@@ -299,7 +299,7 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
 /** Whether a LinkedIn application may start now: `skip` ends it, `hold` leaves it queued for later. */
 function linkedInGate(db: DB, config: Config): { skip?: string; hold?: string } {
   if (!linkedInEnabled(config))
-    return { skip: "LinkedIn mode is off; turn it on in Settings to apply to LinkedIn jobs" };
+    return { skip: "LinkedIn mode is off. Turn it on in Settings to apply to LinkedIn jobs" };
   const problem = linkedInSetupProblem(config);
   if (problem) return { skip: problem };
   if (linkedInStop(db)) return { hold: "LinkedIn mode is stopped after a warning" };
@@ -386,7 +386,7 @@ export function settle(db: DB, id: number, result: AgentRunResult): { status: st
   const short = result.text.split("\n")[0]?.slice(0, 200) ?? "";
   if (app.status === "submitting") {
     // Submit was approved but no result was recorded: it may or may not have gone through.
-    const detail = `run ended after Submit was approved (${result.status}); check before retrying`;
+    const detail = `run ended after Submit was approved (${result.status}), check before retrying`;
     setStatus(db, id, "unclear", { reason: detail });
     recordHandoff(db, {
       applicationId: id,
@@ -398,7 +398,7 @@ export function settle(db: DB, id: number, result: AgentRunResult): { status: st
   }
   if (app.status === "in_progress") {
     if (result.status === "usage_limit") {
-      setStatus(db, id, "queued", { reason: "usage limit reached; retried next run" });
+      setStatus(db, id, "queued", { reason: "usage limit reached, retried next run" });
       return { status: "queued", note: "usage limit" };
     }
     const detail = `${result.status}: ${short || "the agent recorded nothing"}`;

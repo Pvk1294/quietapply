@@ -48,7 +48,7 @@ export function checkFit(job: JobFacts, rules: Rules, profile?: Profile): FitRes
   const years = requiredYears(job.description ?? "");
   if (years !== undefined && profile?.totalYears !== undefined) {
     if (years > profile.totalYears + 1)
-      return { fit: false, reason: `asks for ${years}+ years; you have ${profile.totalYears}` };
+      return { fit: false, reason: `asks for ${years}+ years, you have ${profile.totalYears}` };
   }
   if (years !== undefined && (years < rules.experienceYears.min || years > rules.experienceYears.max))
     return { fit: false, reason: `asks for ${years}+ years, outside your range` };

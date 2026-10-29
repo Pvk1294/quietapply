@@ -139,7 +139,7 @@ export async function serveOn(
   const after = servedOn(await serveStatus(bin), host, httpsPort);
   if (after?.funnel) {
     await serveOff(bin, httpsPort, dashboardPort);
-    return { ok: false, error: "Tailscale reports this port as public (Funnel); it was switched off again." };
+    return { ok: false, error: "Tailscale reports this port as public (Funnel). It was switched off again." };
   }
   return { ok: true, url: `https://${host}${httpsPort === 443 ? "" : `:${httpsPort}`}` };
 }

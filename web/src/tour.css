@@ -114,3 +114,64 @@
 .nav-help + .sidebar-foot {
   margin-top: 12px;
 }
+.tour-banner {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+}
+.tour-banner-resume {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  background: none;
+  border: 0;
+  padding: 10px 6px 10px 16px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.tour-banner-title {
+  color: var(--accent);
+  font-weight: 700;
+}
+.tour-banner-step {
+  color: var(--muted);
+  font-size: 12px;
+}
+.tour-banner-close {
+  align-self: stretch;
+  background: none;
+  border: 0;
+  padding: 0 14px;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.tour-banner-close:hover,
+.tour-banner-resume:hover .tour-banner-step {
+  color: var(--text);
+}
+/* Keep the Settings save button clear of the banner. */
+.tour-paused .save-bar {
+  bottom: 84px;
+}
+@media (max-width: 760px) {
+  .tour-banner {
+    right: 12px;
+    bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+  .tour-paused .save-bar {
+    bottom: calc(148px + env(safe-area-inset-bottom));
+  }
+}

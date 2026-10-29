@@ -174,7 +174,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
           if (await copyText(value)) {
             setDone(true);
             setTimeout(() => setDone(false), 1500);
-          } else toast("Could not copy; select the text instead");
+          } else toast("Could not copy. Select the text instead");
         }}
       >
         {done ? "Copied" : "Copy"}

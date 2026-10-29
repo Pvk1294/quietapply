@@ -212,7 +212,7 @@ export class Desk {
       const dry = this.mode() === "dry_run";
       this.refuseSubmitStep(dry ? "dry run" : "review");
       setStatus(this.db, a.id, dry ? "dry_run" : "awaiting_review", {
-        reason: dry ? "dry run: form filled, not submitted" : "filled; waiting for your OK in the dashboard",
+        reason: dry ? "dry run: form filled, not submitted" : "filled, waiting for your OK in the dashboard",
         evidence: JSON.stringify({ filled, at: new Date().toISOString() }),
       });
       return {
@@ -263,7 +263,7 @@ export class Desk {
     if (mode === "review") {
       this.refuseSubmitStep("review");
       setStatus(this.db, a.id, "awaiting_review", {
-        reason: "filled; waiting for your OK in the dashboard",
+        reason: "filled, waiting for your OK in the dashboard",
         evidence,
       });
       return {
@@ -499,7 +499,7 @@ export class Desk {
     const from = a.url;
     moveApplication(this.db, a.id, { url: input.url, ats: ref.ats });
     setStatus(this.db, a.id, "queued", {
-      reason: `LinkedIn sent this to the company's ${ref.ats} page (from ${from}); continues with the normal flow`,
+      reason: `LinkedIn sent this to the company's ${ref.ats} page (from ${from}), continues with the normal flow`,
     });
     return {
       continues: true,

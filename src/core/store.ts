@@ -133,7 +133,7 @@ export function setStatus(
 
 export function approveReview(db: DB, id: number): void {
   db.prepare("UPDATE applications SET review_approved = 1, updated_at = ? WHERE id = ?").run(now(), id);
-  setStatus(db, id, "queued", { reason: "approved in review; will submit next run" });
+  setStatus(db, id, "queued", { reason: "approved in review, will submit next run" });
 }
 
 /** Point an application at another URL (LinkedIn's "Apply on company website" leads to the company's own form). */

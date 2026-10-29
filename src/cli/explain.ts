@@ -1,7 +1,7 @@
 /** One plain line shown before each `init` question, so nobody has to guess why it is being asked. */
 export const EXPLAIN = {
   provider:
-    "QuietApply runs on an AI you already have: Claude Code or OpenAI Codex. Pick the one you use; it does the typing, QuietApply keeps the rules.",
+    "QuietApply runs on an AI you already have: Claude Code or OpenAI Codex. Pick the one you use. It does the typing, QuietApply keeps the rules.",
   browser:
     "The agent needs a browser to fill in forms. A separate Chrome profile is the safest: it keeps your everyday browser out of it.",
   resume:
@@ -17,7 +17,7 @@ export const EXPLAIN = {
   companies:
     "Paste careers-page links of companies you like (Greenhouse, Lever or Ashby). QuietApply checks them for new jobs. You can add more later.",
   perDay:
-    "A daily limit keeps applications careful and your account calm. 15 is the default; fewer, well-matched applications usually get more replies.",
+    "A daily limit keeps applications careful and your account calm. 15 is the default. Fewer, well-matched applications usually get more replies.",
   linkedin:
     "LinkedIn mode is optional and off by default. It applies to LinkedIn jobs in your own Chrome, a few a day. Most people skip it. If you are curious, you can turn it on later in the dashboard, under Settings.",
 } as const;

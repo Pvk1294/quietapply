@@ -203,7 +203,7 @@ function seedHistory(db: DB): void {
 
   const review = add("Cyberdyne", "Software Engineer, Billing", "greenhouse", "Remote - US", "cyberdyne");
   setStatus(db, review, "awaiting_review", {
-    reason: "filled; waiting for your OK in the dashboard",
+    reason: "filled, waiting for your OK in the dashboard",
     evidence: JSON.stringify({
       filled: [
         { field: "First Name", value: "Jane", source: "profile:first_name" },

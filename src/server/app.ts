@@ -244,7 +244,7 @@ export function createApp(opts: AppOptions): Hono {
       approveReview(d, id);
     } else if (action === "requeue") {
       if (["submitted", "submitting", "unclear"].includes(a.status) && c.req.query("force") !== "1")
-        return c.json({ error: "this one may already be submitted; check the site first" }, 400);
+        return c.json({ error: "this one may already be submitted, so check the site first" }, 400);
       setStatus(d, id, "queued", { reason: "queued again by you" });
       closeHandoffs(d, id, "retried");
     } else {

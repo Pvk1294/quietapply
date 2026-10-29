@@ -15,7 +15,7 @@ export function Questions({ onChange }: { onChange: () => void }) {
     <div className="stack">
       <p className="lead muted">
         The agent never guesses. When a form asks something it does not know, the application waits here.
-        Answer once; it is saved to your memory and reused on every form that asks the same thing.
+        Answer once. It is saved to your memory and reused on every form that asks the same thing.
       </p>
       {open?.length ? (
         <div className="cards">

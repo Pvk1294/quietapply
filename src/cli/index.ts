@@ -36,7 +36,7 @@ program
   .description("Set up: choose the AI, read your resume, answer the common questions once")
   .option("-r, --resume <file>", "resume file (PDF, DOCX or text)")
   .option("-p, --provider <id>", "claude-code, codex or fake")
-  .option("-y, --yes", "no questions; accept defaults")
+  .option("-y, --yes", "no questions, accept defaults")
   .option("--full", "ask all standard questions, not only the essential ones")
   .action(async (o) => {
     const { init } = await import("./init.js");
@@ -60,7 +60,7 @@ program
     const p = ensureHome(paths());
     const db = openDb(p);
     const s = await discover(db, loadConfig(p), loadProfile(p), defaultFetcher);
-    console.log(`Found ${s.found} open roles; queued ${s.added} new (${s.alreadyKnown} already known).`);
+    console.log(`Found ${s.found} open roles, queued ${s.added} new (${s.alreadyKnown} already known).`);
     for (const [reason, n] of Object.entries(s.skipped)) console.log(`  skipped ${n}: ${reason}`);
     for (const e of s.errors) console.log(`  error at ${e.company}: ${e.error}`);
   });
@@ -92,7 +92,7 @@ program
     const db = openDb(p);
     const r = await addJob(db, url, defaultFetcher, { ...o, companies: loadConfig(p).companies });
     if (r.lookupError)
-      console.log(`Could not look the job up (${r.lookupError}); queued with what the URL says.`);
+      console.log(`Could not look the job up (${r.lookupError}), so it was queued with what the URL says.`);
     const what = `${r.title} at ${r.company}${r.location ? ` (${r.location})` : ""}`;
     console.log(r.created ? `Queued #${r.id}: ${what}.` : `Already in the list as #${r.id}: ${what}.`);
   });
@@ -240,7 +240,7 @@ program
   .action(async (o: { port?: number; serve: boolean }) => {
     const { createDemo } = await import("../demo/seed.js");
     const home = await createDemo();
-    console.log(`Demo data in ${home} (fake persona Jane Doe; nothing real).`);
+    console.log(`Demo data in ${home} (fake persona Jane Doe, nothing real).`);
     if (o.serve) {
       const { startDashboard } = await import("../server/index.js");
       await startDashboard({ port: o.port });
