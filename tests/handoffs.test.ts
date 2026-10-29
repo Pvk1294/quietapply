@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { Config, loadConfig } from "../src/core/config.js";
+import { Config, defaultConfig, loadConfig } from "../src/core/config.js";
 import { openDb } from "../src/core/db.js";
 import { getHandoff, listHandoffs, openHandoff, toReason, unsupportedSite } from "../src/core/handoffs.js";
-import { addApplication, getApplication, listQuestions } from "../src/core/store.js";
+import { addApplication, getApplication, listQuestions, setStatus } from "../src/core/store.js";
 import { Desk } from "../src/mcp/desk.js";
 import { loadProfile } from "../src/memory/profile.js";
 import { answerQuestion } from "../src/memory/queue.js";
@@ -156,6 +156,22 @@ describe("desk tools write the reason in a structured form", () => {
     d.recordResult({ outcome: "unclear", evidence: "The page just spun." });
     expect(openHandoff(db, id)).toMatchObject({ reason: "unclear_submit" });
   });
+
+  it("a submit closes the record of a job that was handed back earlier", () => {
+    const p = makeHome({ dryRun: false, limits: { ...defaultConfig().limits, reviewFirst: 0 } });
+    const db = openDb(p);
+    const id = addApplication(db, {
+      company: "Acme Rockets",
+      title: "Engineer",
+      url: "https://example.com/j",
+    }).id;
+    const d = new Desk(db, loadConfig(p), loadProfile(p), p, id);
+    d.markBlocked({ category: "other", notes: "Skipped by a rule." });
+    setStatus(db, id, "submitting");
+    d.recordResult({ outcome: "submitted", evidence: "Thanks for applying!" });
+    expect(openHandoff(db, id)).toBeUndefined();
+    expect(listHandoffs(db, "all").find((h) => h.application_id === id)?.state).toBe("applied");
+  });
 });
 
 describe("Finish yourself API", () => {
@@ -228,6 +244,17 @@ describe("Finish yourself API", () => {
     expect(getApplication(db, ids.cap)).toMatchObject({ status: "skipped", reason: "you applied yourself" });
     db.close();
     expect(((await get("/api/handoffs")) as H[]).map((h) => h.id)).not.toContain(cap.id);
+  });
+
+  it("hides an open record whose job was submitted since", async () => {
+    const { p, ids, get } = await setup();
+    const open = async () => ((await get("/api/summary")) as { handoffs: { open: number } }).handoffs.open;
+    const before = await open();
+    const db = openDb(p);
+    setStatus(db, ids.wd, "submitted");
+    db.close();
+    expect(((await get("/api/handoffs")) as H[]).map((h) => h.application.id)).not.toContain(ids.wd);
+    expect(await open()).toBe(before - 1);
   });
 
   it("Today gets one summary: done, couldn't do, how many need you", async () => {

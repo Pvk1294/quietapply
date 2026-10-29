@@ -3,6 +3,7 @@ import { join } from "node:path";
 import type { Config } from "../core/config.js";
 import type { DB } from "../core/db.js";
 import {
+  closeHandoffs,
   type FilledValue,
   filledFromEvidence,
   type HandoffReason,
@@ -305,7 +306,9 @@ export class Desk {
       reason: input.evidence.slice(0, 500),
       evidence: input.evidence,
     });
-    if (input.outcome === "unclear")
+    // A job that was handed back earlier (a rule, a question) and then went through is done.
+    if (input.outcome === "submitted") closeHandoffs(this.db, a.id, "applied");
+    else if (input.outcome === "unclear")
       this.handoff("unclear_submit", {
         detail: input.evidence.slice(0, 300),
         needed: "Check the company's site or your email to see whether the application arrived.",

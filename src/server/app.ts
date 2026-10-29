@@ -114,7 +114,8 @@ export function createApp(opts: AppOptions): Hono {
     const handoffsToday = listHandoffs(d, "all").filter(
       (h) => h.created_at >= today && h.state !== "superseded",
     );
-    const openHandoffs = listHandoffs(d, "open");
+    const submitted = new Set(apps.filter((x) => x.status === "submitted").map((x) => x.id));
+    const openHandoffs = listHandoffs(d, "open").filter((h) => !submitted.has(h.application_id));
     return c.json({
       today: {
         done: doneToday,
@@ -288,7 +289,8 @@ export function createApp(opts: AppOptions): Hono {
     return c.json(
       listHandoffs(d, state).flatMap((h) => {
         const a = getApplication(d, h.application_id);
-        if (!a) return [];
+        // An open record whose job was submitted since (re-queued by hand, older data) needs nothing.
+        if (!a || (h.state === "open" && a.status === "submitted")) return [];
         const blocker = h.state === "open" ? retryBlocker(d, h) : "Already handled.";
         return [
           {

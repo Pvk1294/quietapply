@@ -240,6 +240,7 @@ describe("discovery and prompt", () => {
     expect(prompt).toContain("30 days"); // core answer
     expect(prompt).not.toContain("Veteran"); // not asked by this form
     expect(prompt).toContain("do NOT click Submit");
+    expect(prompt).toContain("click the field's upload button first"); // Codex dry run hit this
     expect(prompt.length).toBeLessThan(12_000);
   });
 });
