@@ -189,6 +189,7 @@ describe("sensitive questions always come back to you", () => {
     expect(notice).toMatchObject({ status: "known", answer: "30 days" });
     const q = listQuestions(db).find((x) => x.kind === "confirm")!;
     expect(q.context).toContain('Your stored answer: "Yes"');
+    expect(q.suggested).toBe("Yes");
     expect(getApplication(db, id)?.status).toBe("needs_answers");
 
     // You confirm it: this application may use it now.

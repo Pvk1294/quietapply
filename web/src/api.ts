@@ -111,6 +111,9 @@ export interface Question {
   answer: string | null;
   created_at: string;
   answered_at: string | null;
+  /** "confirm": a sensitive question with a saved answer to check for this job. */
+  kind: "ask" | "confirm";
+  suggested: string | null;
   applications: { id: number; company: string; title: string }[];
 }
 

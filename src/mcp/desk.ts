@@ -208,6 +208,7 @@ export class Desk {
         context: stored
           ? `Your stored answer: "${stored}". Sensitive questions are checked with you for each application (${a.title} at ${a.company}). Confirm it or change it.`
           : `Sensitive question for ${a.title} at ${a.company}. It is always checked with you.`,
+        suggested: stored,
       },
       "confirm",
     );
@@ -218,7 +219,7 @@ export class Desk {
   }
 
   private queueQuestion(
-    input: { question: string; context?: string; options?: string[]; fieldType?: string },
+    input: { question: string; context?: string; options?: string[]; fieldType?: string; suggested?: string },
     kind: "ask" | "confirm",
   ) {
     const a = this.app();
@@ -230,6 +231,7 @@ export class Desk {
       options: input.options,
       fieldType: input.fieldType,
       kind,
+      suggested: input.suggested,
     });
     if (a.status !== "needs_answers")
       setStatus(this.db, a.id, "needs_answers", { reason: "waiting for your answers" });

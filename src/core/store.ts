@@ -218,6 +218,8 @@ export interface Question {
   memory_id: number | null;
   /** "ask": no answer yet. "confirm": a sensitive question with a stored answer you confirm per application. */
   kind: "ask" | "confirm";
+  /** For "confirm": the stored answer, shown pre-filled for you to confirm or change. */
+  suggested: string | null;
   created_at: string;
   answered_at: string | null;
 }
@@ -230,6 +232,7 @@ export interface NewQuestion {
   fieldType?: string;
   /** "confirm": a sensitive question for one application; never merged with other applications' cards. */
   kind?: "ask" | "confirm";
+  suggested?: string;
 }
 
 /**
@@ -256,8 +259,8 @@ export function askQuestion(db: DB, q: NewQuestion): { id: number; duplicate: bo
   }
   const res = db
     .prepare(
-      `INSERT INTO questions(application_id, question, context, options, field_type, status, created_at, kind)
-       VALUES(?, ?, ?, ?, ?, 'open', ?, ?)`,
+      `INSERT INTO questions(application_id, question, context, options, field_type, status, created_at, kind, suggested)
+       VALUES(?, ?, ?, ?, ?, 'open', ?, ?, ?)`,
     )
     .run(
       q.applicationId ?? null,
@@ -267,6 +270,7 @@ export function askQuestion(db: DB, q: NewQuestion): { id: number; duplicate: bo
       q.fieldType ?? "text",
       now(),
       kind,
+      q.suggested ?? null,
     );
   const id = Number(res.lastInsertRowid);
   if (q.applicationId) linkQuestion(db, id, q.applicationId);

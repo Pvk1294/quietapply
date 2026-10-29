@@ -113,7 +113,7 @@ export function Settings({ onChange }: { onChange: () => void }) {
         <Field label="Skip titles containing" value={form.exclude} onChange={set("exclude")} />
         <Field
           label="Locations"
-          hint="'remote' matches remote roles"
+          hint="'remote' matches remote roles open in your country"
           value={form.locations}
           onChange={set("locations")}
         />

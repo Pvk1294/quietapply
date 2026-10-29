@@ -105,6 +105,7 @@ const MIGRATIONS: string[] = [
   `ALTER TABLE applications ADD COLUMN approved_hash TEXT;
    ALTER TABLE applications ADD COLUMN apply_email TEXT;
    ALTER TABLE questions ADD COLUMN kind TEXT NOT NULL DEFAULT 'ask';
+   ALTER TABLE questions ADD COLUMN suggested TEXT;
 
    CREATE TABLE confirmations (
      application_id INTEGER NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
