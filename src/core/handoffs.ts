@@ -12,6 +12,8 @@ export const HANDOFF_REASONS = [
   "file_upload",
   "unsupported_ats",
   "external_redirect",
+  "email_only",
+  "suspicious_page",
   "linkedin_limit",
   "fit_gate",
   "cap",
@@ -68,6 +70,18 @@ export const REASONS: Record<HandoffReason, ReasonInfo> = {
     needsYou: true,
     retryable: false,
   },
+  email_only: {
+    label: "Apply by email",
+    help: "The posting asks for an email. The text below is ready to copy, or turn on email applications in Settings.",
+    needsYou: true,
+    retryable: true,
+  },
+  suspicious_page: {
+    label: "Page talks to the AI",
+    help: "The posting or form has text aimed at an AI (for example ignore your instructions). Read it yourself before applying.",
+    needsYou: true,
+    retryable: false,
+  },
   linkedin_limit: {
     label: "LinkedIn limit or warning",
     help: "LinkedIn showed a limit or a warning. Stop and check your account before anything else.",
@@ -110,7 +124,7 @@ export const REASONS: Record<HandoffReason, ReasonInfo> = {
 const LEGACY: Record<string, HandoffReason> = {
   captcha: "captcha",
   human_only: "other",
-  email_only: "external_redirect",
+  email_only: "email_only",
   account_required: "login_required",
   otp: "login_required",
   file_upload_form: "file_upload",

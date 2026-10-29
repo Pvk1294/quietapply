@@ -127,7 +127,7 @@ function Detail({ id, onClose, onChange }: { id: number; onClose: () => void; on
 
   const act = async (action: "approve" | "requeue" | "dismiss", msg: string) => {
     try {
-      await api.act(id, action);
+      await api.act(id, action, action === "approve" ? (app?.contentHash ?? undefined) : undefined);
       toast(msg);
       onChange();
       load();

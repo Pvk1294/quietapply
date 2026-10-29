@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import YAML from "yaml";
 import { z } from "zod";
 import { type Paths, paths } from "./paths.js";
+import { SENSITIVE_CATEGORIES } from "./safety.js";
 
 export const ProviderId = z.enum(["claude-code", "codex", "fake"]);
 export type ProviderId = z.infer<typeof ProviderId>;
@@ -76,8 +77,59 @@ export const Config = z.object({
       perDay: z.number().int().min(1).max(15).default(5),
       /** Claude in Chrome deviceId to use when several browsers are connected to your Claude account. */
       chromeDevice: z.string().optional(),
+      /**
+       * Messages to a recruiter or hiring manager after applying (LinkedIn only, off by default). Needs
+       * LinkedIn mode and its own yes. At most one message per person, ever.
+       */
+      messages: z
+        .object({
+          enabled: z.boolean().default(false),
+          /** When you said yes to the risk statement (ISO time). Messages stay off without it. */
+          acceptedAt: z.string().optional(),
+          /** When you said no (ISO time), so setup does not ask again. */
+          declinedAt: z.string().optional(),
+          perDay: z.number().int().min(1).max(10).default(3),
+        })
+        .default({ enabled: false, perDay: 3 }),
     })
-    .default({ perDay: 5 }),
+    .default({ perDay: 5, messages: { enabled: false, perDay: 3 } }),
+  /**
+   * Applying by email, for postings that say "send your resume to ...". Off by default: QuietApply sends
+   * no mail unless you said yes. SMTP with an app password, kept in the OS keychain (or a 0600 file).
+   */
+  email: z
+    .object({
+      enabled: z.boolean().default(false),
+      /** When you said yes (ISO time). Email stays off without it. */
+      acceptedAt: z.string().optional(),
+      /** When you said no (ISO time), so setup does not ask again. */
+      declinedAt: z.string().optional(),
+      /** Your address, the one applications are sent from. */
+      from: z.string().optional(),
+      smtp: z
+        .object({
+          host: z.string().optional(),
+          /** 587 with STARTTLS (secure: false) or 465 with TLS from the start (secure: true). */
+          port: z.number().int().min(1).max(65535).default(587),
+          secure: z.boolean().default(false),
+          /** Login name, usually your address. The password is never stored here. */
+          user: z.string().optional(),
+        })
+        .default({ port: 587, secure: false }),
+      perDay: z.number().int().min(1).max(50).default(10),
+    })
+    .default({ enabled: false, smtp: { port: 587, secure: false }, perDay: 10 }),
+  /** People and addresses QuietApply never writes to: emails, LinkedIn profile links or names. */
+  doNotContact: z.array(z.string()).default([]),
+  /**
+   * Questions that always stop for you, even when an answer is stored: the stored answer is shown and you
+   * confirm it for that application. Remove a category to let it be filled from memory again.
+   */
+  safety: z
+    .object({
+      alwaysAsk: z.array(z.enum(SENSITIVE_CATEGORIES)).default([...SENSITIVE_CATEGORIES]),
+    })
+    .default({ alwaysAsk: [...SENSITIVE_CATEGORIES] }),
   companies: z.array(Company).default([]),
   rules: Rules.default(Rules.parse({})),
   dashboard: z.object({ port: z.number().int().default(4777) }).default({ port: 4777 }),
@@ -110,6 +162,10 @@ export function loadConfig(p: Paths = paths()): Config {
   const config = Config.parse(raw);
   // LinkedIn stays off unless you accepted the risk (the time is stored when you do).
   if (config.sources.linkedin && !config.linkedin.acceptedAt) config.sources.linkedin = false;
+  // Sending mail or messages needs its own yes, stored with its time.
+  if (config.email.enabled && !config.email.acceptedAt) config.email.enabled = false;
+  if (config.linkedin.messages.enabled && (!config.linkedin.messages.acceptedAt || !config.sources.linkedin))
+    config.linkedin.messages.enabled = false;
   return config;
 }
 

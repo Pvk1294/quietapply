@@ -1,6 +1,7 @@
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
+import type { z } from "zod";
 import { Config, loadConfig, saveConfig } from "../src/core/config.js";
 import { openDb } from "../src/core/db.js";
 import { openHandoff } from "../src/core/handoffs.js";
@@ -25,9 +26,9 @@ import { JANE, makeHome } from "./helpers/home.js";
 const LI = join(FIXTURES, "../linkedin");
 const liUrl = (f: string) => pathToFileURL(join(LI, f)).toString();
 const accepted = { linkedin: { acceptedAt: "2026-10-28T09:00:00.000Z", perDay: 5 } };
-const on = (extra: Partial<Config> = {}) =>
+const on = (extra: Partial<z.input<typeof Config>> = {}) =>
   makeHome({
-    ...Config.parse({ sources: { linkedin: true }, ...accepted, ...extra }),
+    ...Config.parse({ sources: { linkedin: true }, safety: { alwaysAsk: [] }, ...accepted, ...extra }),
     provider: "fake",
   });
 const pace = { sleep: async () => {}, random: () => 0.5 };

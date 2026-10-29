@@ -9,6 +9,8 @@ const ORDER: HandoffReason[] = [
   "login_required",
   "unknown_question",
   "file_upload",
+  "suspicious_page",
+  "email_only",
   "external_redirect",
   "unsupported_ats",
   "linkedin_limit",

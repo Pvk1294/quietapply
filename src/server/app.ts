@@ -10,6 +10,7 @@ import { closeHandoffs, getHandoff, type Handoff, listHandoffs, REASONS } from "
 import { allowance, companyAllowed, startOfToday } from "../core/limits.js";
 import { type Paths, packageRoot } from "../core/paths.js";
 import { checkFit } from "../core/rules.js";
+import { evidenceHash } from "../core/safety.js";
 import {
   APP_STATUSES,
   type AppStatus,
@@ -179,6 +180,7 @@ export function createApp(opts: AppOptions): Hono {
       events: applicationEvents(d, a.id),
       questions: openQuestionsFor(d, a.id),
       screenshots,
+      contentHash: evidenceHash(a.evidence) ?? null,
     });
   });
 
@@ -235,7 +237,7 @@ export function createApp(opts: AppOptions): Hono {
     );
   });
 
-  app.post("/api/applications/:id/:action{approve|requeue|dismiss}", (c) => {
+  app.post("/api/applications/:id/:action{approve|requeue|dismiss}", async (c) => {
     const d = getDb();
     const id = Number(c.req.param("id"));
     const a = getApplication(d, id);
@@ -244,7 +246,13 @@ export function createApp(opts: AppOptions): Hono {
     if (action === "approve") {
       if (a.status !== "awaiting_review")
         return c.json({ error: "only applications waiting for review can be approved" }, 400);
-      approveReview(d, id);
+      // The OK is bound to exactly what you looked at: the page sends the fingerprint it showed.
+      const seen = ((await c.req.json().catch(() => ({}))) as { hash?: unknown }).hash;
+      const current = evidenceHash(a.evidence);
+      if (!current) return c.json({ error: "there is nothing recorded to approve yet" }, 400);
+      if (seen !== current)
+        return c.json({ error: "this application changed since you opened it. Look at it again" }, 409);
+      approveReview(d, id, current);
     } else if (action === "requeue") {
       if (["submitted", "submitting", "unclear"].includes(a.status) && c.req.query("force") !== "1")
         return c.json({ error: "this one may already be submitted, so check the site first" }, 400);

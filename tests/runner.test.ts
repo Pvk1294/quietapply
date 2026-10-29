@@ -2,7 +2,15 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { Config } from "../src/core/config.js";
 import { openDb } from "../src/core/db.js";
-import { addApplication, getApplication, listQuestions, listRuns, setStatus } from "../src/core/store.js";
+import { evidenceHash } from "../src/core/safety.js";
+import {
+  addApplication,
+  approveReview,
+  getApplication,
+  listQuestions,
+  listRuns,
+  setStatus,
+} from "../src/core/store.js";
 import { Desk } from "../src/mcp/desk.js";
 import { answerQuestion } from "../src/memory/queue.js";
 import { discover } from "../src/runner/discover.js";
@@ -141,8 +149,10 @@ describe("desk safety", () => {
     expect(desk.startSubmit(filled)).toMatchObject({ proceed: false, mode: "review" });
     expect(getApplication(db, id)?.status).toBe("awaiting_review");
 
-    db.prepare("UPDATE applications SET review_approved = 1 WHERE id = ?").run(id);
-    expect(desk.startSubmit(filled)).toMatchObject({ proceed: true });
+    approveReview(db, id, evidenceHash(getApplication(db, id)!.evidence)!);
+    // A real submit needs the page address, so the desk can check the site.
+    expect(desk.startSubmit(filled)).toMatchObject({ proceed: false, mode: "invalid" });
+    expect(desk.startSubmit(filled, "https://example.com/1")).toMatchObject({ proceed: true });
     expect(getApplication(db, id)?.status).toBe("submitting");
     desk.recordResult({ outcome: "submitted", evidence: "Thank you for applying" });
     expect(getApplication(db, id)?.status).toBe("submitted");

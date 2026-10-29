@@ -47,6 +47,8 @@ export interface Application {
   blocked_category: string | null;
   evidence: string | null;
   review_approved: number;
+  /** The fingerprint of what you approved in review (see core/safety.ts contentHash). */
+  approved_hash: string | null;
   created_at: string;
   updated_at: string;
   submitted_at: string | null;
@@ -131,9 +133,19 @@ export function setStatus(
   logEvent(db, id, status, extra.reason);
 }
 
-export function approveReview(db: DB, id: number): void {
-  db.prepare("UPDATE applications SET review_approved = 1, updated_at = ? WHERE id = ?").run(now(), id);
+/** Your OK in review, bound to the fingerprint of exactly what you saw. */
+export function approveReview(db: DB, id: number, hash: string): void {
+  db.prepare(
+    "UPDATE applications SET review_approved = 1, approved_hash = ?, updated_at = ? WHERE id = ?",
+  ).run(hash, now(), id);
   setStatus(db, id, "queued", { reason: "approved in review, will submit next run" });
+}
+
+/** The approval no longer matches what would be sent, so it is withdrawn and you are asked again. */
+export function withdrawApproval(db: DB, id: number): void {
+  db.prepare(
+    "UPDATE applications SET review_approved = 0, approved_hash = NULL, updated_at = ? WHERE id = ?",
+  ).run(now(), id);
 }
 
 /** Point an application at another URL (LinkedIn's "Apply on company website" leads to the company's own form). */
@@ -202,6 +214,8 @@ export interface Question {
   status: "open" | "answered" | "dismissed";
   answer: string | null;
   memory_id: number | null;
+  /** "ask": no answer yet. "confirm": a sensitive question with a stored answer you confirm per application. */
+  kind: "ask" | "confirm";
   created_at: string;
   answered_at: string | null;
 }
@@ -212,6 +226,8 @@ export interface NewQuestion {
   context?: string;
   options?: string[];
   fieldType?: string;
+  /** "confirm": a sensitive question for one application; never merged with other applications' cards. */
+  kind?: "ask" | "confirm";
 }
 
 /**
@@ -219,19 +235,27 @@ export interface NewQuestion {
  * shows one card even when several applications are waiting on it.
  */
 export function askQuestion(db: DB, q: NewQuestion): { id: number; duplicate: boolean } {
-  const open = db.prepare("SELECT id, question FROM questions WHERE status = 'open'").all() as {
+  const kind = q.kind ?? "ask";
+  const open = db.prepare("SELECT id, question, kind FROM questions WHERE status = 'open'").all() as {
     id: number;
     question: string;
+    kind: string;
   }[];
-  const dup = open.find((o) => sameQuestion(o.question, q.question));
+  const dup = open.find(
+    (o) =>
+      o.kind === kind &&
+      sameQuestion(o.question, q.question) &&
+      // A confirmation belongs to one application: the same question for another job is its own card.
+      (kind === "ask" || (!!q.applicationId && questionApplications(db, o.id).includes(q.applicationId))),
+  );
   if (dup) {
     if (q.applicationId) linkQuestion(db, dup.id, q.applicationId);
     return { id: dup.id, duplicate: true };
   }
   const res = db
     .prepare(
-      `INSERT INTO questions(application_id, question, context, options, field_type, status, created_at)
-       VALUES(?, ?, ?, ?, ?, 'open', ?)`,
+      `INSERT INTO questions(application_id, question, context, options, field_type, status, created_at, kind)
+       VALUES(?, ?, ?, ?, ?, 'open', ?, ?)`,
     )
     .run(
       q.applicationId ?? null,
@@ -240,6 +264,7 @@ export function askQuestion(db: DB, q: NewQuestion): { id: number; duplicate: bo
       q.options?.length ? JSON.stringify(q.options) : null,
       q.fieldType ?? "text",
       now(),
+      kind,
     );
   const id = Number(res.lastInsertRowid);
   if (q.applicationId) linkQuestion(db, id, q.applicationId);
@@ -317,4 +342,39 @@ export function finishRun(db: DB, id: number, status: string, summary: string, l
 
 export function listRuns(db: DB, limit = 50): Run[] {
   return db.prepare("SELECT * FROM runs ORDER BY id DESC LIMIT ?").all(limit) as unknown as Run[];
+}
+
+// ---------- confirmations ----------
+
+/** Sensitive questions you confirmed for one application (see config safety.alwaysAsk). */
+export function confirmAnswer(
+  db: DB,
+  c: { applicationId: number; question: string; answer: string; memoryId: number },
+): void {
+  db.prepare(
+    `INSERT INTO confirmations(application_id, question, answer, memory_id, at) VALUES(?, ?, ?, ?, ?)
+     ON CONFLICT(application_id, question) DO UPDATE SET answer = excluded.answer,
+       memory_id = excluded.memory_id, at = excluded.at`,
+  ).run(c.applicationId, c.question.trim(), c.answer, c.memoryId, now());
+}
+
+export interface Confirmation {
+  question: string;
+  answer: string;
+  memory_id: number | null;
+}
+
+/** Your confirmation of a sensitive question for one application: by its wording or by the answer cited. */
+export function confirmationFor(
+  db: DB,
+  applicationId: number,
+  question: string,
+  memoryId?: number,
+): Confirmation | undefined {
+  const rows = db
+    .prepare("SELECT question, answer, memory_id FROM confirmations WHERE application_id = ?")
+    .all(applicationId) as unknown as Confirmation[];
+  return rows.find(
+    (r) => sameQuestion(r.question, question) || (memoryId !== undefined && r.memory_id === memoryId),
+  );
 }

@@ -52,7 +52,7 @@ describe("handoff reasons", () => {
   it("maps the older blocked categories onto the reasons", () => {
     expect(toReason("account_required")).toBe("login_required");
     expect(toReason("otp")).toBe("login_required");
-    expect(toReason("email_only")).toBe("external_redirect");
+    expect(toReason("email_only")).toBe("email_only");
     expect(toReason("no_ai_policy")).toBe("fit_gate");
     expect(toReason("site_error")).toBe("form_error");
     expect(toReason("file_upload_form")).toBe("file_upload");

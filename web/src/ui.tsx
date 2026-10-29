@@ -25,6 +25,8 @@ export const BLOCKED_LABEL: Record<string, string> = {
   file_upload: "File upload problem",
   unsupported_ats: "Job site not supported yet",
   external_redirect: "Sent to another site or email",
+  email_only: "Apply by email",
+  suspicious_page: "Page talks to the AI",
   linkedin_limit: "LinkedIn limit or warning",
   fit_gate: "Did not pass your rules",
   cap: "Daily or per-company limit",

@@ -3,14 +3,13 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { parse } from "node-html-parser";
 import { parseForm } from "../forms/parse.js";
 import { isLinkedInUrl, LINKEDIN_WARNING_RE } from "../linkedin/mode.js";
-import type { Desk, FilledField } from "../mcp/desk.js";
+import type { Desk, DeskLookup, FilledField } from "../mcp/desk.js";
 import { createDeskServer } from "../mcp/server.js";
-import type { LookupResult } from "../memory/answers.js";
 import { applyUrl } from "../sources/detect.js";
 import type { Fetcher } from "../sources/http.js";
 import type { FormField, FormInfo } from "../sources/types.js";
 
-type Lookup = { question: string } & LookupResult;
+type Lookup = DeskLookup;
 type Call = <T>(name: string, args?: Record<string, unknown>) => Promise<T>;
 type Job = { company: string; title: string; url: string; mode: string; ats: string };
 
@@ -87,7 +86,10 @@ async function fill(call: Call, job: Job, form: FormInfo, pace = false): Promise
   for (const [i, f] of fields.entries()) {
     const r = results[i]!;
     const value = r.status === "known" ? pickOption(f, r.answer) : undefined;
-    if (r.status === "known" && value !== undefined) {
+    if (r.status === "confirm") {
+      // A sensitive question: the desk already queued it for the person.
+      asked++;
+    } else if (r.status === "known" && value !== undefined) {
       if (pace) {
         // A person clicks the field, then types; longer answers in chunks with short breaks.
         await call("human_pause", { kind: "action" });
@@ -105,9 +107,14 @@ async function fill(call: Call, job: Job, form: FormInfo, pace = false): Promise
       asked++;
     }
   }
-  if (asked) return `Asked ${asked} question${asked > 1 ? "s" : ""}; the application waits for your answers.`;
+  if (asked) {
+    // Record what was filled so far, as the real agent does, then stop.
+    await call("start_submit", { filled, page_url: job.url });
+    return `Asked ${asked} question${asked > 1 ? "s" : ""}; the application waits for your answers.`;
+  }
   const decision = await call<{ proceed: boolean; mode?: string; instruction: string }>("start_submit", {
     filled,
+    page_url: job.url,
   });
   if (decision.proceed) {
     // The scripted agent has no browser: it never clicks Submit, so an approved submit is recorded as unclear.

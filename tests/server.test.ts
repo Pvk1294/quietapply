@@ -21,7 +21,11 @@ function setup() {
   setStatus(db, a, "needs_answers");
   const q = askQuestion(db, { applicationId: a, question: "What are your salary expectations?" }).id;
   const r = addApplication(db, { company: "Globex", title: "Developer", url: "https://example.com/b" }).id;
-  setStatus(db, r, "awaiting_review");
+  setStatus(db, r, "awaiting_review", {
+    evidence: JSON.stringify({
+      filled: [{ field: "Email", value: "jane.doe@example.com", source: "profile:email" }],
+    }),
+  });
   db.close();
   let started = 0;
   const app = createApp({ p, port: PORT, startRun: () => started++ });
@@ -85,17 +89,26 @@ describe("dashboard API", () => {
 
   it("approves a reviewed application and refuses to approve others", async () => {
     const { app, a, r } = setup();
-    expect(
-      (await app.request(`/api/applications/${r}/approve`, { method: "POST", headers: WRITE })).status,
-    ).toBe(200);
-    expect(
-      (await app.request(`/api/applications/${a}/approve`, { method: "POST", headers: WRITE })).status,
-    ).toBe(400);
+    const approve = (id: number, hash?: string) =>
+      app.request(`/api/applications/${id}/approve`, {
+        method: "POST",
+        headers: WRITE,
+        body: JSON.stringify(hash ? { hash } : {}),
+      });
+    // The OK must name the fingerprint of what the page showed.
+    const shown = (await (await app.request(`/api/applications/${r}`, { headers: HOST })).json()) as {
+      contentHash: string;
+    };
+    expect(shown.contentHash).toMatch(/^[0-9a-f]{32}$/);
+    expect((await approve(r)).status).toBe(409);
+    expect((await approve(r, "0".repeat(32))).status).toBe(409);
+    expect((await approve(r, shown.contentHash)).status).toBe(200);
+    expect((await approve(a)).status).toBe(400);
     const detail = (await (await app.request(`/api/applications/${r}`, { headers: HOST })).json()) as Record<
       string,
       unknown
     >;
-    expect(detail).toMatchObject({ status: "queued", review_approved: 1 });
+    expect(detail).toMatchObject({ status: "queued", review_approved: 1, approved_hash: shown.contentHash });
   });
 
   it("pauses, blocks Run now while paused, and starts a run when resumed", async () => {

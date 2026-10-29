@@ -2,6 +2,7 @@ import type { DB } from "../core/db.js";
 import { now } from "../core/db.js";
 import { closeHandoffs } from "../core/handoffs.js";
 import {
+  confirmAnswer,
   getApplication,
   getQuestion,
   openQuestionsFor,
@@ -47,6 +48,10 @@ export function answerQuestion(
   db.prepare(
     "UPDATE questions SET status = 'answered', answer = ?, memory_id = ?, answered_at = ? WHERE id = ?",
   ).run(text, memory.id, now(), questionId);
+  // A sensitive question is confirmed for the application(s) that asked it, not for every future form.
+  if (q.kind === "confirm")
+    for (const appId of appIds)
+      confirmAnswer(db, { applicationId: appId, question: q.question, answer: text, memoryId: memory.id });
 
   const released: number[] = [];
   for (const appId of appIds) {

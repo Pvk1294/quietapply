@@ -30,7 +30,7 @@ export function createDeskServer(desk: Desk, version = "0.1.0"): McpServer {
     "lookup_answers",
     {
       description:
-        "Look up stored answers for form questions (send every field label at once). Each result is known (use it and cite memoryId), maybe (use a candidate only if it is clearly the same question) or unknown (call ask_human; never guess).",
+        "Look up stored answers for form questions (send every field label at once). Each result is known (use it and cite memoryId), maybe (use a candidate only if it is clearly the same question), unknown (call ask_human; never guess) or confirm (a sensitive question already queued for the person: leave it empty).",
       inputSchema: { questions: z.array(z.string()).min(1).max(80) },
     },
     async ({ questions }) => text(desk.lookupAnswers(questions)),
@@ -68,8 +68,12 @@ export function createDeskServer(desk: Desk, version = "0.1.0"): McpServer {
     "start_submit",
     {
       description:
-        "Call right before Submit, or at the end of the run when questions are open. List every value you entered with its source memory id. Returns whether to click Submit.",
+        "Call right before Submit, or at the end of the run when questions are open. List every value you entered with its source memory id, and the address of the page the Submit button is on. Returns whether to click Submit.",
       inputSchema: {
+        page_url: z
+          .string()
+          .optional()
+          .describe("The address of the page with the Submit button (required before a real submit)"),
         filled: z.array(
           z.object({
             field: z.string(),
@@ -79,7 +83,7 @@ export function createDeskServer(desk: Desk, version = "0.1.0"): McpServer {
         ),
       },
     },
-    async ({ filled }) => text(desk.startSubmit(filled)),
+    async ({ filled, page_url }) => text(desk.startSubmit(filled, page_url)),
   );
 
   server.registerTool(

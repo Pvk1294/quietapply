@@ -43,6 +43,8 @@ export interface AppDetail extends Application {
   events: { status: string; note: string | null; at: string }[];
   questions: Question[];
   screenshots: Screenshot[];
+  /** Fingerprint of what would be sent. Approving sends it back, so the OK covers exactly this. */
+  contentHash: string | null;
 }
 
 export interface Question {
@@ -90,6 +92,8 @@ export type HandoffReason =
   | "file_upload"
   | "unsupported_ats"
   | "external_redirect"
+  | "email_only"
+  | "suspicious_page"
   | "linkedin_limit"
   | "fit_gate"
   | "cap"
@@ -205,8 +209,8 @@ export const api = {
   applications: (status?: string) =>
     request<Application[]>("GET", `/api/applications${status ? `?status=${status}` : ""}`),
   application: (id: number) => request<AppDetail>("GET", `/api/applications/${id}`),
-  act: (id: number, action: "approve" | "requeue" | "dismiss") =>
-    request<Application>("POST", `/api/applications/${id}/${action}`),
+  act: (id: number, action: "approve" | "requeue" | "dismiss", hash?: string) =>
+    request<Application>("POST", `/api/applications/${id}/${action}`, hash ? { hash } : undefined),
   handoffs: () => request<Handoff[]>("GET", "/api/handoffs"),
   handoffAct: (id: number, action: "applied" | "not_interested" | "retry") =>
     request<Handoff>("POST", `/api/handoffs/${id}/${action}`),

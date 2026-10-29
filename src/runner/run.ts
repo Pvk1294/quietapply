@@ -7,6 +7,7 @@ import { allowance, companyAllowed } from "../core/limits.js";
 import { acquireLock } from "../core/lock.js";
 import { type Paths, packageRoot, paths } from "../core/paths.js";
 import { checkFit } from "../core/rules.js";
+import { injectionSignals } from "../core/safety.js";
 import {
   type Application,
   finishRun,
@@ -218,6 +219,21 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
         const note = `${unsupported} is not automated yet.`;
         setStatus(db, app.id, "blocked", { reason: note, blockedCategory: "unsupported_ats" });
         recordHandoff(db, { applicationId: app.id, reason: "unsupported_ats", detail: note });
+        processed.push(row(app, "blocked", note));
+        log(`hand over ${app.company} · ${app.title}: ${note}`);
+        continue;
+      }
+      // A posting that speaks to the AI is not opened by the AI: the person reads it first.
+      const injected = injectionSignals(app.description);
+      if (injected.length) {
+        const note = `The posting has text aimed at an AI (${injected.join(", ")}).`;
+        setStatus(db, app.id, "blocked", { reason: note, blockedCategory: "suspicious_page" });
+        recordHandoff(db, {
+          applicationId: app.id,
+          reason: "suspicious_page",
+          detail: note,
+          needed: "Read the posting yourself before you apply.",
+        });
         processed.push(row(app, "blocked", note));
         log(`hand over ${app.company} · ${app.title}: ${note}`);
         continue;
