@@ -1,15 +1,17 @@
 import { loadConfig, saveConfig } from "../core/config.js";
-import { ensureHome, paths } from "../core/paths.js";
+import { ensureHome, type Paths, paths } from "../core/paths.js";
 import {
   FIRST_PORT,
   findTailscale,
   PORTS_TO_TRY,
+  phoneUrl,
   pickPort,
   servedOn,
   serveOff,
   serveOn,
   serveStatus,
   tailscaleState,
+  targetFor,
 } from "../phone/tailscale.js";
 
 export const INSTALL_STEPS = [
@@ -29,9 +31,56 @@ export interface PhoneResult {
   lines: string[];
 }
 
+/** Which data folder and dashboard port, and which tailscale binary (null: pretend it is not installed). */
+interface PhoneOptions {
+  p?: Paths;
+  port?: number;
+  bin?: string | null;
+}
+
+export interface PhoneStatus {
+  tailscale: "missing" | "logged_out" | "ready";
+  /** Why Tailscale is not ready, in its own words. */
+  detail?: string;
+  /** Serve is publishing this dashboard on the tailnet right now. */
+  on: boolean;
+  url?: string;
+  httpsPort: number;
+  allowedLogins: string[];
+  /** The Tailscale login of this Mac. */
+  login?: string;
+}
+
+/** What the Settings page shows: is Tailscale there, and is the dashboard served on the tailnet right now. */
+export async function phoneStatus(o: PhoneOptions = {}): Promise<PhoneStatus> {
+  const p = o.p ?? ensureHome(paths());
+  const config = loadConfig(p);
+  const port = o.port ?? config.dashboard.port;
+  const bin = o.bin === undefined ? findTailscale() : (o.bin ?? undefined);
+  const base = { httpsPort: config.phone.httpsPort, allowedLogins: config.phone.allowedLogins };
+  const ts = await tailscaleState(bin);
+  if (ts.state === "missing") return { ...base, tailscale: "missing", on: false };
+  if (ts.state === "logged_out" || !bin)
+    return {
+      ...base,
+      tailscale: "logged_out",
+      detail: ts.state === "logged_out" ? ts.detail : undefined,
+      on: false,
+    };
+  const served = servedOn(await serveStatus(bin), ts.host, config.phone.httpsPort);
+  const on = !!config.phone.host && served?.target === targetFor(port) && !served.funnel;
+  return {
+    ...base,
+    tailscale: "ready",
+    login: ts.login,
+    on,
+    url: on ? phoneUrl(ts.host, config.phone.httpsPort) : undefined,
+  };
+}
+
 /** `quietapply phone`: serve the dashboard on the tailnet only, and say what to open on the phone. */
-export async function phoneOn(o: { port?: number; bin?: string | null } = {}): Promise<PhoneResult> {
-  const p = ensureHome(paths());
+export async function phoneOn(o: PhoneOptions & { checkUp?: boolean } = {}): Promise<PhoneResult> {
+  const p = o.p ?? ensureHome(paths());
   const config = loadConfig(p);
   const port = o.port ?? config.dashboard.port;
   const bin = o.bin === undefined ? findTailscale() : (o.bin ?? undefined);
@@ -97,12 +146,15 @@ export async function phoneOn(o: { port?: number; bin?: string | null } = {}): P
   config.phone.host = ts.host;
   saveConfig(config, p);
 
-  const up = await fetch(`http://127.0.0.1:${port}/api/summary`, {
-    headers: { host: `127.0.0.1:${port}` },
-    signal: AbortSignal.timeout(1500),
-  })
-    .then((r) => r.ok)
-    .catch(() => false);
+  // The dashboard itself calls this with checkUp false: it is obviously running.
+  const up =
+    o.checkUp === false ||
+    (await fetch(`http://127.0.0.1:${port}/api/summary`, {
+      headers: { host: `127.0.0.1:${port}` },
+      signal: AbortSignal.timeout(1500),
+    })
+      .then((r) => r.ok)
+      .catch(() => false));
   return {
     ok: true,
     lines: [
@@ -121,8 +173,8 @@ export async function phoneOn(o: { port?: number; bin?: string | null } = {}): P
 }
 
 /** `quietapply phone off`: remove our mapping only. */
-export async function phoneOff(o: { port?: number; bin?: string | null } = {}): Promise<PhoneResult> {
-  const p = ensureHome(paths());
+export async function phoneOff(o: PhoneOptions = {}): Promise<PhoneResult> {
+  const p = o.p ?? ensureHome(paths());
   const config = loadConfig(p);
   const port = o.port ?? config.dashboard.port;
   const bin = o.bin === undefined ? findTailscale() : (o.bin ?? undefined);

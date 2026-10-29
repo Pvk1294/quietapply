@@ -107,6 +107,10 @@ export function servedOn(
 
 export const targetFor = (dashboardPort: number) => `http://127.0.0.1:${dashboardPort}`;
 
+/** The address to open on the phone. */
+export const phoneUrl = (host: string, httpsPort: number) =>
+  `https://${host}${httpsPort === 443 ? "" : `:${httpsPort}`}`;
+
 /**
  * Publish the dashboard on the tailnet only: `tailscale serve --bg --https=<port> http://127.0.0.1:<port>`.
  * Refuses to replace something else on that port, and undoes itself if the port turns out to be on Funnel.
@@ -141,7 +145,7 @@ export async function serveOn(
     await serveOff(bin, httpsPort, dashboardPort);
     return { ok: false, error: "Tailscale reports this port as public (Funnel). It was switched off again." };
   }
-  return { ok: true, url: `https://${host}${httpsPort === 443 ? "" : `:${httpsPort}`}` };
+  return { ok: true, url: phoneUrl(host, httpsPort) };
 }
 
 /** Undo only our own mapping: the same flags plus `off`, nothing else on the node is reset. */

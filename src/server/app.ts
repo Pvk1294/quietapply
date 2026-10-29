@@ -3,6 +3,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
 import { Hono } from "hono";
 import { z } from "zod";
+import { phoneOff, phoneOn, phoneStatus } from "../cli/phone.js";
 import { Config, loadConfig, saveConfig } from "../core/config.js";
 import { type DB, kvGet, openDb } from "../core/db.js";
 import { closeHandoffs, getHandoff, type Handoff, listHandoffs, REASONS } from "../core/handoffs.js";
@@ -50,6 +51,8 @@ export interface AppOptions {
   /** Start a run in the background. Defaults to spawning `quietapply run`. */
   startRun?: () => void;
   fetcher?: Fetcher;
+  /** The tailscale CLI for phone access. Undefined: look it up. Null: behave as if it is not installed. */
+  tailscaleBin?: string | null;
 }
 
 const MIME: Record<string, string> = {
@@ -445,7 +448,7 @@ export function createApp(opts: AppOptions): Hono {
   });
   app.put("/api/settings", async (c) => {
     const body = SettingsBody.safeParse(await c.req.json().catch(() => ({})));
-    if (!body.success) return c.json({ error: body.error.issues.map((i) => i.message).join("; ") }, 400);
+    if (!body.success) return c.json({ error: body.error.issues.map((i) => i.message).join(". ") }, 400);
     const config = loadConfig(p);
     const b = body.data;
     if (b.dryRun !== undefined) config.dryRun = b.dryRun;
@@ -454,6 +457,40 @@ export function createApp(opts: AppOptions): Hono {
     if (b.rules) config.rules = { ...config.rules, ...b.rules };
     saveConfig(config, p);
     return c.json({ config: loadConfig(p) });
+  });
+
+  // Phone access over Tailscale. Anyone who can open the dashboard sees the state. Switching it on or off
+  // and changing who may open it work only on this Mac: a request through Tailscale Serve carries the
+  // tailnet host name and a Tailscale-User-Login header, and both are refused here.
+  const phoneOpts = { p, port: opts.port, bin: opts.tailscaleBin };
+  const onThisMac = (c: { req: { header: (n: string) => string | undefined } }) => {
+    const access = checkAccess({ host: c.req.header("host") }, { p, port: opts.port });
+    return access.ok && access.kind === "local" && !c.req.header("tailscale-user-login");
+  };
+  const NOT_HERE = "Phone access can only be changed on the Mac itself, at http://127.0.0.1.";
+
+  app.get("/api/phone", async (c) => c.json({ ...(await phoneStatus(phoneOpts)), canChange: onThisMac(c) }));
+
+  app.post("/api/phone", async (c) => {
+    if (!onThisMac(c)) return c.json({ error: NOT_HERE }, 403);
+    const body = z.object({ on: z.boolean() }).safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) return c.json({ error: "Send on: true or false" }, 400);
+    const r = body.data.on ? await phoneOn({ ...phoneOpts, checkUp: false }) : await phoneOff(phoneOpts);
+    const status = await phoneStatus(phoneOpts);
+    if (!r.ok)
+      return c.json({ error: r.lines.filter(Boolean)[0] ?? "Tailscale said no", lines: r.lines }, 400);
+    return c.json({ ...status, canChange: true });
+  });
+
+  const Logins = z.object({ logins: z.array(z.string().trim().toLowerCase().min(3).max(200)).max(20) });
+  app.put("/api/phone/logins", async (c) => {
+    if (!onThisMac(c)) return c.json({ error: NOT_HERE }, 403);
+    const body = Logins.safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) return c.json({ error: "Each login is an email address, at most 20" }, 400);
+    const config = loadConfig(p);
+    config.phone.allowedLogins = [...new Set(body.data.logins)];
+    saveConfig(config, p);
+    return c.json({ ...(await phoneStatus(phoneOpts)), canChange: true });
   });
 
   app.get("/api/linkedin", (c) =>

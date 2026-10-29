@@ -140,6 +140,19 @@ export interface Summary {
   linkedin: { enabled: boolean; stopped: { reason: string } | null };
 }
 
+/** Settings → Phone access (Tailscale Serve, tailnet only). */
+export interface PhoneInfo {
+  tailscale: "missing" | "logged_out" | "ready";
+  detail?: string;
+  on: boolean;
+  url?: string;
+  httpsPort: number;
+  allowedLogins: string[];
+  login?: string;
+  /** False when the page was opened through Tailscale: only the Mac itself may change phone access. */
+  canChange: boolean;
+}
+
 export interface LinkedInInfo {
   enabled: boolean;
   acceptedAt: string | null;
@@ -217,6 +230,9 @@ export const api = {
     request<LinkedInInfo>("PUT", "/api/linkedin", b),
   resumeLinkedIn: () => request<LinkedInInfo>("POST", "/api/linkedin/resume"),
   addJob: (url: string) => request<{ id: number; created: boolean }>("POST", "/api/applications", { url }),
+  phone: () => request<PhoneInfo>("GET", "/api/phone"),
+  setPhone: (on: boolean) => request<PhoneInfo>("POST", "/api/phone", { on }),
+  setPhoneLogins: (logins: string[]) => request<PhoneInfo>("PUT", "/api/phone/logins", { logins }),
   settings: () => request<Settings>("GET", "/api/settings"),
   saveSettings: (s: unknown) => request<{ config: Settings["config"] }>("PUT", "/api/settings", s),
 };

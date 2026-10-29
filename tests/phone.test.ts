@@ -212,3 +212,72 @@ describe("host and CSRF checks for the tailnet", () => {
     ).toContain("manifest+json");
   });
 });
+
+describe("Settings → Phone access API (fake tailscale binary)", () => {
+  const LOCAL = { host: "127.0.0.1:4777", "x-quietapply": "1", "content-type": "application/json" };
+  const TAILNET = {
+    host: "my-mac.tail1234.ts.net:8443",
+    "tailscale-user-login": "jane.doe@example.com",
+    origin: "https://my-mac.tail1234.ts.net:8443",
+    "x-quietapply": "1",
+    "content-type": "application/json",
+  };
+  type Info = { tailscale: string; on: boolean; url?: string; canChange: boolean; allowedLogins: string[] };
+  const call = async (
+    app: ReturnType<typeof createApp>,
+    method: string,
+    path: string,
+    headers: Record<string, string>,
+    body?: unknown,
+  ) => {
+    const r = await app.request(path, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    return { status: r.status, json: (await r.json().catch(() => ({}))) as Info & { error?: string } };
+  };
+
+  it("says when Tailscale is missing or signed out, and offers no switch", async () => {
+    const { p } = setup();
+    const missing = await call(createApp({ p, port: 4777, tailscaleBin: null }), "GET", "/api/phone", LOCAL);
+    expect(missing.json).toMatchObject({ tailscale: "missing", on: false });
+    setup({ mode: "logged_out" });
+    const out = await call(createApp({ p, port: 4777, tailscaleBin: FAKE }), "GET", "/api/phone", LOCAL);
+    expect(out.json).toMatchObject({ tailscale: "logged_out", on: false });
+  });
+
+  it("switches on and off from the Mac only, never from the tailnet, and never uses Funnel", async () => {
+    const { p, read } = setup();
+    const app = createApp({ p, port: 4777, tailscaleBin: FAKE });
+    expect((await call(app, "GET", "/api/phone", LOCAL)).json).toMatchObject({ on: false, canChange: true });
+
+    const on = await call(app, "POST", "/api/phone", LOCAL, { on: true });
+    expect(on.status).toBe(200);
+    expect(on.json).toMatchObject({ on: true, url: "https://my-mac.tail1234.ts.net:8443" });
+    expect(on.json.allowedLogins).toEqual(["jane.doe@example.com"]);
+    expect(read().calls.flat().join(" ").toLowerCase()).not.toContain("funnel");
+
+    // Opened on the phone: it sees the state, but cannot switch it or change who may open it.
+    const seen = await call(app, "GET", "/api/phone", TAILNET);
+    expect(seen.json).toMatchObject({ on: true, canChange: false });
+    expect((await call(app, "POST", "/api/phone", TAILNET, { on: false })).status).toBe(403);
+    expect((await call(app, "PUT", "/api/phone/logins", TAILNET, { logins: ["x@example.com"] })).status).toBe(
+      403,
+    );
+    // A local host name with Tailscale's login header came through Serve: refused too.
+    const sneaky = { ...LOCAL, "tailscale-user-login": "jane.doe@example.com" };
+    expect((await call(app, "POST", "/api/phone", sneaky, { on: false })).status).toBe(403);
+    expect((await call(app, "GET", "/api/phone", LOCAL)).json.on).toBe(true);
+
+    const saved = await call(app, "PUT", "/api/phone/logins", LOCAL, {
+      logins: [" Jane.Doe@Example.com ", "partner@example.com"],
+    });
+    expect(saved.json.allowedLogins).toEqual(["jane.doe@example.com", "partner@example.com"]);
+    expect(loadConfig(p).phone.allowedLogins).toEqual(["jane.doe@example.com", "partner@example.com"]);
+
+    const off = await call(app, "POST", "/api/phone", LOCAL, { on: false });
+    expect(off.json).toMatchObject({ on: false });
+    expect(read().serve.Web).toEqual({});
+  });
+});

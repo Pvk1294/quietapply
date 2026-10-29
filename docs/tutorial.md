@@ -113,7 +113,13 @@ Install the [Claude in Chrome extension](https://claude.com/chrome), sign in to 
 
 ## On your phone (optional)
 
-`quietapply phone` shares the same dashboard with your phone over your private Tailscale network. Nothing is public. Setup and the safety details are in [phone.md](phone.md).
+You can open the same dashboard on your phone through [Tailscale](https://tailscale.com), a free private network between your own devices. Nothing is public. It stays inside your own Tailscale network, and only the Tailscale logins you allow can open it.
+
+1. Install Tailscale on the Mac and on your phone, and sign in on both with the same account.
+2. In the [Tailscale admin page](https://login.tailscale.com/admin/dns), turn on **MagicDNS** and **HTTPS Certificates**.
+3. In the dashboard, open **Settings → Phone access** and press **Turn on phone access** (or run `quietapply phone`). It shows the address to open on your phone, with a Copy button.
+
+Phone access can only be switched on or off on the Mac itself. The quick tour has a step about it too. Setup and the safety details are in [phone.md](phone.md).
 
 ## If something goes wrong
 

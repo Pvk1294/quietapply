@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type Settings as S } from "../api";
 import { toast } from "../ui";
 import { LinkedInCard } from "./LinkedInCard";
+import { PhoneCard } from "./PhoneCard";
 
 const list = (s: string) =>
   s
@@ -174,6 +175,8 @@ export function Settings({ onChange }: { onChange: () => void }) {
           Find new jobs now
         </button>
       </section>
+
+      <PhoneCard />
 
       <LinkedInCard onChange={onChange} />
     </div>

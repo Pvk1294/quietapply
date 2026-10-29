@@ -1715,3 +1715,33 @@ textarea {
     background: var(--accent-soft);
   }
 }
+
+/* ---------- Settings → Phone access ---------- */
+
+.phone-setup ol {
+  margin: 6px 0 0 18px;
+  padding: 0;
+}
+.phone-setup li {
+  margin-bottom: 4px;
+}
+.phone-url {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  overflow-wrap: anywhere;
+}
+.phone-logins {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.phone-logins input {
+  flex: 1;
+  min-width: 0;
+}
+.banner.phone-error {
+  width: auto;
+  margin: 10px 0 0;
+}

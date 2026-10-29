@@ -22,11 +22,15 @@ Answer questions, approve reviews and finish the jobs QuietApply handed back, fr
    ```
 
    It prints an address like `https://my-mac.tail1234.ts.net:8443`.
+
+   Or, in the dashboard on the Mac, open **Settings → Phone access** and press **Turn on phone access**. It runs the same steps, shows the address with a Copy button, and lets you edit who can open it. The quick tour points there too.
 5. Open that address on the phone (Tailscale must be on). Then **Share → Add to Home Screen** (iPhone) or **Install app** (Android Chrome): QuietApply opens full screen like an app.
 
 If Tailscale is missing or signed out, `quietapply phone` prints these steps instead of doing anything.
 
-To switch it off: `quietapply phone off`. That removes only QuietApply's entry; your other Tailscale Serve settings are not touched.
+Phone access can be switched on or off, and the list of logins changed, only on the Mac itself (at `127.0.0.1`). When the dashboard is opened through Tailscale, Settings shows the state but no switch, and the server refuses those changes.
+
+To switch it off: `quietapply phone off`, or **Turn off phone access** in Settings. That removes only QuietApply's entry; your other Tailscale Serve settings are not touched.
 
 ## What it changes on your Mac
 

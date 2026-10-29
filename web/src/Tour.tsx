@@ -74,6 +74,14 @@ export const STEPS: Step[] = [
     link: { label: "Open Settings", href: "#/settings" },
   },
   {
+    title: "Use it on your phone",
+    body: [
+      "The same dashboard can open on your phone through Tailscale, a free private network between your own devices.",
+      "It stays inside your own Tailscale network. Nothing is public, and only the Tailscale logins you allow can open it. Turn it on in Settings, under Phone access.",
+    ],
+    link: { label: "Open Phone access", href: "#/settings?phone" },
+  },
+  {
     title: "What “Finish yourself” means",
     body: [
       "Every job QuietApply skipped or stopped on lands on the Finish yourself page, grouped by the reason: a CAPTCHA, a login, a video answer, a site it does not support, your own rules or limits, or a LinkedIn limit or warning.",
