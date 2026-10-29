@@ -45,9 +45,9 @@ jobs:
     defaults:
       run:
         shell: pwsh
-    env:
-      QUIETAPPLY_HOME: ${{ runner.temp }}\qa-home
     steps:
+      - name: A throwaway data folder
+        run: '"QUIETAPPLY_HOME=$env:RUNNER_TEMP\qa-home" >> $env:GITHUB_ENV'
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
