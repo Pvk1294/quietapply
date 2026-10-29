@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import "./quiet-warnings.js";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
