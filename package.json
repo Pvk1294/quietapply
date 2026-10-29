@@ -45,6 +45,10 @@
     "type": "git",
     "url": "https://github.com/Pvk1294/quietapply.git"
   },
+  "homepage": "https://github.com/Pvk1294/quietapply#readme",
+  "bugs": {
+    "url": "https://github.com/Pvk1294/quietapply/issues"
+  },
   "dependencies": {
     "@clack/prompts": "^1.8.1",
     "@hono/node-server": "^2.1.5",

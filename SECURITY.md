@@ -18,4 +18,6 @@ QuietApply holds personal data (your resume, answers and application history) an
 
 ## Reporting a vulnerability
 
-Please do not open a public issue. Use GitHub's private vulnerability reporting on this repository (Security → Report a vulnerability). Include steps to reproduce and the version or commit. You should get a reply within a week.
+Please do not put the details in a public issue. Use GitHub's private vulnerability reporting on this repository (Security tab → Report a vulnerability). Include steps to reproduce and the commit. You should get a reply within a week.
+
+If that button is not there, open an issue titled "Security report" with no details, and the maintainer will give you a private way to send them.

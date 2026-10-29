@@ -13,8 +13,8 @@ Thanks for helping. QuietApply fills in job applications in people's names, so t
 
 ```bash
 npm install
+npm run build        # server (tsc) and dashboard (Vite); a few tests read the built dashboard
 npm run check        # Biome lint, TypeScript, Vitest
-npm run build        # server (tsc) and dashboard (Vite)
 node dist/cli/index.js demo
 ```
 

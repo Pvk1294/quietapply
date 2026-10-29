@@ -6,9 +6,13 @@ QuietApply uses the Claude Code or Codex you already have (subscription or API k
 
 ![The QuietApply dashboard: today's status, questions waiting for you and recent applications](docs/screenshots/today-desktop.png)
 
-> Built from a personal runner that tracked more than 880 real applications in six weeks. Everything that broke along the way shaped the defaults below.
+> Built from a personal runner that has tracked 437 real applications since 16 September 2026. What broke along the way shaped the defaults below.
 
-> **Status: v0.1 in development.** It works end to end in dry-run mode on the bundled fixture pages and has been checked live with Claude Code. Not yet published to npm. Expect rough edges.
+> **Status: v0.1, early. Expect rough edges.** What has actually been tested:
+> - **Claude Code:** one real application submitted end to end (Ashby, review mode, Playwright browser), and dry runs on real Greenhouse, Lever and Ashby forms.
+> - **Codex:** one dry run on the bundled Lever fixture (Codex CLI 0.165, signed in with ChatGPT). No real job yet.
+> - **macOS only.** The scheduler (`schedule on`) is unit-tested but has not been run for real on macOS (launchd) or Linux (systemd). Linux and Windows are untested.
+> - **Not on npm yet.** Install from a clone, as below. `npx quietapply` does not work.
 
 ---
 
@@ -29,7 +33,7 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 
 - `quietapply init` reads your resume (PDF, DOCX or text), builds `profile.yaml`, and asks the handful of questions almost every form asks (work authorization, sponsorship, notice period, salary, relocation, consent). Anything you skip is asked later, only when a form needs it.
 - **Answer memory** you can see and edit. Each answer can apply everywhere or to one company only.
-- **Fit gate** before every application: job titles, excluded words, locations, never-apply list, years of experience, skill match, and postings that ask for no AI.
+- **Fit gate** before every application: job titles, excluded words, locations (`remote` means remote roles open in the country you live in), never-apply list, years of experience, skill match, and postings that ask for no AI.
 - **Job sites:** Greenhouse, Lever and Ashby in v0.1; Workday is next.
 - **Local dashboard** at `http://127.0.0.1:4777`: Today, Applications (with every value the agent typed and where it came from), Questions, Finish yourself, Memory, Runs, Settings, plus Run now and Pause. Works on a phone: `quietapply phone` shares it over your private Tailscale network, nothing public ([docs/phone.md](docs/phone.md)).
 - **A reason for everything it skips.** Every job it could not apply to (CAPTCHA, login, a question it cannot answer, a file upload problem, an unsupported site, an outside redirect, your own rules, limits, form errors) is listed under *Finish yourself* with the reason, what is needed, the values to copy, and *I applied myself* / *Not interested* / *Retry* buttons.
@@ -38,7 +42,7 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 - **Screenshots:** the agent screenshots the form at the end of every run, and each application's page in the dashboard shows them next to what was typed.
 - **Duplicate protection:** an application is marked "submitting" before Submit is clicked, so an unclear result is never resent blindly.
 - **Caps:** 15 a day and 2 per company per 30 days by default.
-- **Scheduler:** launchd (macOS) or a systemd user timer (Linux). Missed runs are coalesced into one; a failed run is retried once; a lock stops overlapping runs; usage limits are waited out.
+- **Scheduler:** launchd (macOS) or a systemd user timer (Linux). Missed runs are coalesced into one; a failed run is retried once; a lock stops overlapping runs; usage limits are waited out. (Unit-tested, not yet run for real on either.)
 
 | Questions | Application detail | On a phone |
 |---|---|---|
@@ -46,7 +50,7 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 
 ## Quickstart
 
-You need Node.js 22.13 or newer, Google Chrome or Microsoft Edge, and one of:
+There is no npm package yet: you clone the repo and build it. You need Node.js 22.13 or newer, Google Chrome or Microsoft Edge, and one of:
 
 - [Claude Code](https://code.claude.com/docs) signed in with a Claude plan, or with `ANTHROPIC_API_KEY`
 - [Codex CLI](https://github.com/openai/codex) signed in with ChatGPT, or with `CODEX_API_KEY`
@@ -59,21 +63,30 @@ npm install && npm run build
 node dist/cli/index.js demo          # fake persona "Jane Doe", fixture pages, dashboard on :4777
 ```
 
+Port 4777 taken? Use `node dist/cli/index.js demo --port 4790`.
+
 **Set it up for yourself:**
 
 ```bash
-npm link                              # makes the `quietapply` command available (npx quietapply once published)
-quietapply init                       # AI, resume -> profile, common questions, targets, companies
-quietapply doctor                     # checks the CLI, login, browser and data folder
-quietapply discover                   # finds open roles at your companies
+npm link                              # makes the `quietapply` command available (or use node dist/cli/index.js)
+quietapply init                       # AI, resume -> profile, city, common questions, job titles, companies
+quietapply doctor                     # checks the CLI, login, browser, data folder and what setup still lacks
+quietapply discover                   # finds open roles at your companies that pass your rules
 quietapply add <job-url>              # or queue one job; title and company come from the job site's API
-quietapply run                        # one run now (dry run: forms are filled, nothing is submitted)
+quietapply run --max 1                # one application now, in dry run: the form is filled, nothing is submitted
 quietapply dashboard                  # http://127.0.0.1:4777
 quietapply phone                      # optional: the same dashboard on your phone, over Tailscale (docs/phone.md)
 quietapply schedule on                # runs at the times in config.yaml
 ```
 
 The first runs open a separate Chrome profile in `~/.quietapply/browser-profile`. Your everyday browser is not touched.
+
+A few things worth knowing before the first run:
+
+- **Start with `--max 1`.** A plain `quietapply run` works through the whole queue, up to your daily limit (15), and each application is one agent session on your plan.
+- **Expect questions at first.** Most real forms ask something setup did not cover (an essay, a clearance, "have you worked here before?"). Those forms wait on the Questions page until you answer, then go through on a later run.
+- **`npm link` and permissions.** If it fails with a permission error, your Node install puts global commands in a system folder. Use `node dist/cli/index.js` instead of `quietapply`, or a Node version manager such as nvm or fnm.
+- **On macOS, keep the clone out of Desktop, Documents and Downloads** if you want the scheduler. macOS blocks background jobs from reading those folders, and a scheduled run then hangs. `doctor` warns about it.
 
 ## How it works
 
@@ -121,7 +134,7 @@ Turn it on in **Settings → LinkedIn mode**, or answer yes to the optional ques
 | Claude Code + API key | Playwright MCP (Claude in Chrome needs a Claude plan) | same, with `ANTHROPIC_API_KEY` |
 | Codex + ChatGPT plan or API key | Playwright MCP | `codex exec --json` with MCP servers passed as `-c` overrides |
 
-With Claude Code, built-in tools (shell, file editing, web search) are switched off for application runs: the agent has only the browser and the desk tools, and your own settings, hooks and MCP servers are not loaded. Codex runs in its read-only sandbox, without your own `~/.codex/config.toml`. QuietApply finds the Codex CLI on your PATH, then inside the ChatGPT / Codex desktop app on macOS; set `codex.path` in `config.yaml` to point at one yourself. A live dry run of the Codex path on the bundled Lever fixture worked (Codex CLI 0.163, signed in with ChatGPT).
+With Claude Code, built-in tools (shell, file editing, web search) are switched off for application runs: the agent has only the browser and the desk tools, and your own settings, hooks and MCP servers are not loaded. Codex runs in its read-only sandbox, without your own `~/.codex/config.toml`. QuietApply finds the Codex CLI on your PATH, then inside the ChatGPT / Codex desktop app on macOS; set `codex.path` in `config.yaml` to point at one yourself. A live dry run of the Codex path on the bundled Lever fixture worked (Codex CLI 0.165, signed in with ChatGPT). Codex has not been tried on a real job yet.
 
 ## Configuration
 
@@ -156,7 +169,8 @@ rules:
 - **Other sites have terms too.** You are responsible for using this within each site's terms and the law where you live.
 - **Postings that ask for no AI tools are skipped.**
 - **Job pages are untrusted input.** The agent is told to ignore instructions on pages, and the rules that matter (no submit in dry run or review, caps, no invented answers, submit once) are enforced by the desk tools, not by the prompt.
-- **Dry run is enforced in the browser too.** With Playwright, dry run loads a network guard that aborts every non-read request before it leaves your machine. Some job sites save what you type as you type (Ashby) or upload the resume the moment it is attached (Greenhouse); the guard stops that too. Claude in Chrome mode has no such guard, so use Playwright for dry runs.
+- **Dry run is enforced in the browser too.** With Playwright, dry run loads a network guard that aborts every non-read request before it leaves your machine. Some job sites save what you type as you type (Ashby) or upload the resume the moment it is attached (Greenhouse); the guard stops that too.
+- **Use Playwright for dry runs, not Claude in Chrome.** Claude in Chrome drives your own browser, so there is no network guard. It has a tool-level guard instead (no page scripts, no Enter key, and no clicks after the desk refuses the submit step), but that guard cannot read button labels: a click on Submit *before* the agent asks the desk for permission would not be caught. The agent is told never to do that, but that is a prompt rule, not a code rule. Details: [what protects each mode](docs/how-it-works.md#what-protects-each-mode).
 - **Quality over volume.** The defaults are deliberately low. A few well-matched applications get more replies than hundreds of generic ones, and they don't waste recruiters' time.
 - **You are the applicant.** Everything it submits is in your name. Keep review mode on until you trust it.
 
@@ -172,8 +186,8 @@ Site playbooks (`playbooks/*.md`) and ATS adapters (`src/sources/`) are the easi
 
 ```bash
 npm install
-npm run check      # lint + typecheck + tests
 npm run build
+npm run check      # lint + typecheck + tests (a few read the built dashboard, so build first)
 ```
 
 ## License

@@ -11,7 +11,7 @@ If you would like to look around before giving it your resume, this is the way. 
 ```bash
 git clone https://github.com/Pvk1294/quietapply && cd quietapply
 npm install && npm run build
-node dist/cli/index.js demo
+node dist/cli/index.js demo          # add --port 4790 if 4777 is taken
 ```
 
 Open <http://127.0.0.1:4777>. The first time, a short tour pops up and explains each part in plain words. You can skip it and reopen it any time from **Help / Tour** in the sidebar.
@@ -25,7 +25,7 @@ The demo is Jane Doe, a fictional engineer. Here is her **Today** page: what nee
 ## 2. Set it up for yourself (3 minutes)
 
 ```bash
-npm link                 # makes the `quietapply` command available
+npm link                 # makes the `quietapply` command available (or use node dist/cli/index.js)
 quietapply init          # the friendly setup
 ```
 
@@ -33,9 +33,9 @@ quietapply init          # the friendly setup
 
 1. looks for Claude Code and Codex and asks which one to use,
 2. reads your resume (PDF, Word or text) and builds your profile,
-3. lets you fix your name, email and phone,
+3. lets you fix your name, email, phone and city,
 4. asks the handful of questions nearly every form asks (work authorization, notice period, and so on). **Leave any empty to skip it**; you will be asked later, only when a form needs it,
-5. asks which job titles and locations you want, which companies to never apply to, and which careers pages to watch,
+5. asks which job titles (at least one) and locations you want (`remote` means remote roles open in your country), which companies to never apply to, and which careers pages to watch,
 6. asks, as a plain yes/no that defaults to no, whether you want the optional LinkedIn mode (see [below](#linkedin-mode-optional)).
 
 Then check that everything is in place:
@@ -50,7 +50,7 @@ A tick means good, `!` means worth a look, a cross means fix it first.
 
 ```bash
 quietapply discover      # finds open jobs at the companies you added
-quietapply run           # one run now
+quietapply run --max 1   # one application now (without --max it works through the queue, up to 15 a day)
 quietapply dashboard     # http://127.0.0.1:4777
 ```
 

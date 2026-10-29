@@ -1,0 +1,19 @@
+name: Idea or request
+description: A job site, a question type or a feature you would like.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+      description: For a new job site, add a public job URL and whether it has a public jobs API.
+  - type: markdown
+    attributes:
+      value: |
+        Out of scope by design: solving CAPTCHAs, getting around bot checks, sending messages or emails, and mass-applying. See [CONTRIBUTING.md](../../CONTRIBUTING.md).
