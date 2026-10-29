@@ -6,13 +6,29 @@ QuietApply uses the Claude Code or Codex you already have (subscription or API k
 
 ![The QuietApply dashboard: today's status, questions waiting for you and recent applications](docs/screenshots/today-desktop.png)
 
-> Built from a personal runner that has tracked 437 real applications since 16 September 2026. What broke along the way shaped the defaults below.
+> Built from two personal job-search runners, the author's and his sister's, which tracked 900 real applications in six weeks (437 and 463, 16 September to 28 October 2026). What broke along the way shaped the defaults below. See [Real results so far](#real-results-so-far).
 
 > **Status: v0.1, early. Expect rough edges.** What has actually been tested:
 > - **Claude Code:** one real application submitted end to end (Ashby, review mode, Playwright browser), and dry runs on real Greenhouse, Lever and Ashby forms.
 > - **Codex:** one dry run on the bundled Lever fixture (Codex CLI 0.165, signed in with ChatGPT). No real job yet.
 > - **macOS only.** The scheduler (`schedule on`) is unit-tested but has not been run for real on macOS (launchd) or Linux (systemd). Linux and Windows are untested.
 > - **Not on npm yet.** Install from a clone, as below. `npx quietapply` does not work.
+
+## Real results so far
+
+**From the earlier personal runner QuietApply was built from** (the author's own, not QuietApply itself; from its application log, statuses as of 22 October 2026):
+
+| | |
+|---|---|
+| Applications | 437 in about 4 weeks (16 September to 15 October 2026), 422 of them submitted by the runner itself |
+| Acknowledged by the company | 76 (all automatic "we received your application" emails) |
+| Rejected | 19 |
+| Assessments | 4 |
+| Interviews | 2 |
+
+Most of those went through LinkedIn Easy Apply and Indian job boards, which QuietApply does not use by default. A second runner, set up the same way for his sister, tracked 463 more between 29 September and 28 October.
+
+**From QuietApply itself:** one real application submitted end to end with Claude Code (Ashby, review mode), dry runs with Claude Code on live Greenhouse, Lever and Ashby forms, and one Codex dry run on the bundled Lever fixture. No interview numbers yet.
 
 ---
 
