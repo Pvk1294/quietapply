@@ -17,7 +17,7 @@ import {
 export const INSTALL_STEPS = [
   "Phone access uses Tailscale: a private network between your devices. Nothing is opened to the internet.",
   "",
-  "1. Install Tailscale on this Mac:  https://tailscale.com/download   (or: brew install --cask tailscale)",
+  "1. Install Tailscale on this computer:  https://tailscale.com/download   (on a Mac also: brew install --cask tailscale)",
   "2. Open it and sign in with Google, Microsoft, GitHub or Apple. It is free for personal use.",
   "3. Install the Tailscale app on your phone and sign in with the same account.",
   "4. In the Tailscale admin page, turn on MagicDNS and HTTPS Certificates:  https://login.tailscale.com/admin/dns",
@@ -86,7 +86,7 @@ export async function phoneOn(o: PhoneOptions & { checkUp?: boolean } = {}): Pro
   const bin = o.bin === undefined ? findTailscale() : (o.bin ?? undefined);
   const ts = await tailscaleState(bin);
   if (ts.state === "missing")
-    return { ok: false, lines: ["Tailscale is not installed on this Mac.", "", ...INSTALL_STEPS] };
+    return { ok: false, lines: ["Tailscale is not installed on this computer.", "", ...INSTALL_STEPS] };
   if (ts.state === "logged_out")
     return {
       ok: false,

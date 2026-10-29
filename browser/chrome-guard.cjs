@@ -1,6 +1,7 @@
 // Claude in Chrome has no network guard (it drives the user's own browser), so in dry run and review mode
 // this PreToolUse hook is the tool-level guard. Claude Code runs it before every Claude in Chrome `computer`
-// call (see providers/claude-code.ts). It needs QUIETAPPLY_RUN_DIR, the application's run folder.
+// call (see providers/claude-code.ts). It needs the application's run folder, as its first argument
+// (or QUIETAPPLY_RUN_DIR).
 //   - Enter / Return and typed line breaks are refused: they submit forms.
 //   - Once the desk has refused the submit step (start_submit in dry run or review), every click, drag,
 //     key press and typing action is refused for the rest of the run; looking (screenshot, scroll, zoom) is fine.
@@ -65,7 +66,7 @@ if (require.main === module) {
     raw += d;
   });
   process.stdin.on("end", () => {
-    const out = main(raw, process.env.QUIETAPPLY_RUN_DIR);
+    const out = main(raw, process.argv[2] || process.env.QUIETAPPLY_RUN_DIR);
     if (out) process.stdout.write(JSON.stringify(out));
   });
 }

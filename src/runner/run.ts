@@ -33,6 +33,7 @@ import { Desk, type DeskOptions } from "../mcp/desk.js";
 import { homeCountry } from "../memory/answers.js";
 import { loadProfile, type Profile } from "../memory/profile.js";
 import { getProvider } from "../providers/index.js";
+import { npxCommand } from "../providers/spawn.js";
 import type { AgentRunResult, McpServerSpec } from "../providers/types.js";
 import { defaultFetcher, type Fetcher } from "../sources/http.js";
 import { runFolder } from "./evidence.js";
@@ -120,9 +121,10 @@ export function mcpServers(
     if (config.headless) args.push("--headless");
     args.push("--init-page", formShotPath());
     if (dryRun) args.push("--init-page", dryRunGuardPath(), "--block-service-workers");
+    const npx = npxCommand();
     servers.playwright = {
-      command: "npx",
-      args,
+      command: npx.command,
+      args: [...npx.args, ...args],
       ...(dryRun && guardLog ? { env: { QUIETAPPLY_GUARD_LOG: guardLog } } : {}),
     };
   }

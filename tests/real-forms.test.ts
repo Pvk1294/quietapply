@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadConfig } from "../src/core/config.js";
 import { openDb, openMemoryDb } from "../src/core/db.js";
@@ -211,7 +212,7 @@ describe("dry-run network guard", () => {
       expect.arrayContaining(["--init-page", dryRunGuardPath(), "--block-service-workers"]),
     );
     expect(dry.args).toEqual(expect.arrayContaining(["--output-dir", "/tmp/run-1/app-1"]));
-    expect(dry.env?.QUIETAPPLY_GUARD_LOG).toBe("/tmp/run-1/app-1/blocked-requests.jsonl");
+    expect(dry.env?.QUIETAPPLY_GUARD_LOG).toBe(join("/tmp/run-1/app-1", "blocked-requests.jsonl"));
     const live = mcpServers(config, p, 1, false, "/tmp/run-1/app-1").playwright!;
     expect(live.args).not.toContain(dryRunGuardPath());
     expect(live.args).not.toContain("--block-service-workers");

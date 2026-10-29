@@ -58,3 +58,58 @@ WantedBy=timers.target
 export function systemdDir(): string {
   return join(homedir(), ".config", "systemd", "user");
 }
+
+/** The Task Scheduler task (Windows), in its own QuietApply folder. */
+export const WINDOWS_TASK = "QuietApply\\tick";
+
+/** `%` is the only character a batch file reads specially inside double quotes. */
+const batch = (s: string) => s.replace(/%/g, "%%");
+
+/**
+ * The two files the Windows task runs, written into the data folder. `tick.cmd` sets QUIETAPPLY_HOME and
+ * runs `quietapply tick`, appending to logs\tick.log. `tick.vbs` starts it with no window, so nothing
+ * flashes on screen every 15 minutes.
+ */
+export function windowsTaskFiles(
+  node: string,
+  cli: string,
+  home: string,
+  // The platform's own join (win32 on Windows); tests pass win32.join to check Windows paths anywhere.
+  pathJoin: (...parts: string[]) => string = join,
+): { cmdPath: string; cmd: string; vbsPath: string; vbs: string } {
+  const cmdPath = pathJoin(home, "tick.cmd");
+  const vbsPath = pathJoin(home, "tick.vbs");
+  const log = pathJoin(home, "logs", "tick.log");
+  return {
+    cmdPath,
+    cmd: [
+      "@echo off",
+      "rem Written by `quietapply schedule on`. Task Scheduler runs this every 15 minutes.",
+      `set "QUIETAPPLY_HOME=${batch(home)}"`,
+      `"${batch(node)}" "${batch(cli)}" tick >> "${batch(log)}" 2>&1`,
+      "",
+    ].join("\r\n"),
+    vbsPath,
+    // VBScript doubles a quote inside a string; 0 = hidden window, False = do not wait.
+    vbs: `CreateObject("WScript.Shell").Run """${cmdPath.replace(/"/g, '""')}""", 0, False\r\n`,
+  };
+}
+
+/** schtasks arguments to create (or replace) the task: every 15 minutes, as the signed-in user. */
+export function schtasksCreateArgs(vbsPath: string): string[] {
+  return [
+    "/Create",
+    "/F",
+    "/SC",
+    "MINUTE",
+    "/MO",
+    "15",
+    "/TN",
+    WINDOWS_TASK,
+    "/TR",
+    `wscript.exe "${vbsPath}"`,
+  ];
+}
+
+export const schtasksDeleteArgs = (): string[] => ["/Delete", "/F", "/TN", WINDOWS_TASK];
+export const schtasksQueryArgs = (): string[] => ["/Query", "/TN", WINDOWS_TASK];

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -29,7 +29,38 @@ function callHook(runDir: string, input: object, tool = COMPUTER) {
   return r.stdout ? (JSON.parse(r.stdout) as { hookSpecificOutput: { permissionDecision: string } }) : null;
 }
 
+/** Runs the hook exactly as the command in chromeGuardSettings does: the run folder as its first argument, no env. */
+function callHookByArg(runDir: string, input: object) {
+  const { QUIETAPPLY_RUN_DIR: _, ...env } = process.env;
+  const r = spawnSync(process.execPath, [chromeGuardPath(), runDir], {
+    input: JSON.stringify({ tool_name: COMPUTER, tool_input: input }),
+    env,
+    encoding: "utf8",
+  });
+  return r.stdout ? (JSON.parse(r.stdout) as { hookSpecificOutput: { permissionDecision: string } }) : null;
+}
+
 describe("dry-run guard for Claude in Chrome", () => {
+  it("takes the run folder from its first argument, so the hook line works in sh, cmd and PowerShell", () => {
+    const runDir = mkdtempSync(join(tmpdir(), "qa-guard-arg-"));
+    // The hook command Claude Code runs: node "<guard>" "<run folder>", with no VAR=value prefix.
+    const cmd = JSON.parse(chromeGuardSettings(runDir)).hooks.PreToolUse[0].hooks[0].command as string;
+    expect(cmd).toBe(`node "${chromeGuardPath()}" "${runDir}"`);
+    expect(cmd).not.toContain("QUIETAPPLY_RUN_DIR=");
+
+    // Enter is refused and the refusal is logged in the folder given as the argument.
+    expect(
+      callHookByArg(runDir, { action: "key", text: "Enter" })?.hookSpecificOutput.permissionDecision,
+    ).toBe("deny");
+    expect(readFileSync(join(runDir, "blocked-requests.jsonl"), "utf8")).toContain("Enter");
+    // Once the submit step is locked in that folder, clicks are refused too.
+    writeFileSync(join(runDir, SUBMIT_LOCK), "{}");
+    expect(
+      callHookByArg(runDir, { action: "left_click", ref: "ref_1" })?.hookSpecificOutput.permissionDecision,
+    ).toBe("deny");
+    expect(callHookByArg(runDir, { action: "screenshot" })).toBeNull();
+  });
+
   it("gives the agent the browser tools minus everything that can click around the guard", () => {
     const o = {
       browser: "claude-in-chrome" as const,

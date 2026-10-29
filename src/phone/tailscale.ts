@@ -1,5 +1,5 @@
 import { accessSync, constants } from "node:fs";
-import { delimiter, join } from "node:path";
+import { delimiter, join, win32 } from "node:path";
 import { run } from "../providers/spawn.js";
 
 /** Where the Tailscale CLI lives on macOS when it is not on PATH (the app bundle's binary is the CLI). */
@@ -14,17 +14,25 @@ const isExecutable = (f: string) => {
   }
 };
 
-/** QUIETAPPLY_TAILSCALE_BIN (tests use a fake), then PATH, then the macOS app. */
+/** QUIETAPPLY_TAILSCALE_BIN (tests use a fake), then PATH, then the macOS app or the Windows install folder. */
 export function findTailscale(
   env: NodeJS.ProcessEnv = process.env,
   platform = process.platform,
+  exists: (f: string) => boolean = isExecutable,
 ): string | undefined {
   if (env.QUIETAPPLY_TAILSCALE_BIN) return env.QUIETAPPLY_TAILSCALE_BIN;
-  for (const dir of (env.PATH ?? "").split(delimiter).filter(Boolean)) {
-    const f = join(dir, platform === "win32" ? "tailscale.exe" : "tailscale");
-    if (isExecutable(f)) return f;
+  const win = platform === "win32";
+  const pathJoin = win ? win32.join : join;
+  for (const dir of (env.PATH ?? env.Path ?? "").split(win ? ";" : delimiter).filter(Boolean)) {
+    const f = pathJoin(dir, win ? "tailscale.exe" : "tailscale");
+    if (exists(f)) return f;
   }
-  if (platform === "darwin" && isExecutable(MAC_APP_CLI)) return MAC_APP_CLI;
+  if (platform === "darwin" && exists(MAC_APP_CLI)) return MAC_APP_CLI;
+  if (win) {
+    // The Windows installer puts the CLI next to the app but does not always add it to PATH.
+    const f = win32.join(env.ProgramFiles ?? "C:\\Program Files", "Tailscale", "tailscale.exe");
+    if (exists(f)) return f;
+  }
   return undefined;
 }
 

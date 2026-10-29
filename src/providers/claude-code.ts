@@ -1,8 +1,8 @@
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, writeFileSync } from "node:fs";
+import { join, win32 } from "node:path";
 import { CHROME_CLICK_TOOLS, LINKEDIN_CHROME_TOOLS, LINKEDIN_DENIED_CHROME_TOOLS } from "../linkedin/mode.js";
 import { chromeGuardSettings } from "../runner/chrome-guard.js";
-import { run, version } from "./spawn.js";
+import { resolveCommand, run, version } from "./spawn.js";
 import {
   type AgentRunOptions,
   type AgentRunResult,
@@ -12,7 +12,27 @@ import {
   USAGE_LIMIT_RE,
 } from "./types.js";
 
-const BIN = process.env.QUIETAPPLY_CLAUDE_BIN ?? "claude";
+/**
+ * The Claude Code CLI: QUIETAPPLY_CLAUDE_BIN, else "claude" from PATH. On Windows, when it is not on PATH,
+ * also the native installer's `%USERPROFILE%\.local\bin\claude.exe` and npm's `%APPDATA%\npm\claude.cmd`.
+ */
+export function locateClaude(
+  o: { env?: NodeJS.ProcessEnv; platform?: NodeJS.Platform; exists?: (f: string) => boolean } = {},
+): string {
+  const env = o.env ?? process.env;
+  if (env.QUIETAPPLY_CLAUDE_BIN) return env.QUIETAPPLY_CLAUDE_BIN;
+  if ((o.platform ?? process.platform) !== "win32") return "claude";
+  const exists = o.exists ?? existsSync;
+  const onPath = resolveCommand("claude", { platform: "win32", env, exists });
+  if (onPath !== "claude") return onPath;
+  const extra = [
+    env.USERPROFILE && win32.join(env.USERPROFILE, ".local", "bin", "claude.exe"),
+    env.APPDATA && win32.join(env.APPDATA, "npm", "claude.cmd"),
+  ].filter((f): f is string => !!f);
+  return extra.find(exists) ?? "claude";
+}
+
+const BIN = locateClaude();
 
 /** Tools the agent may call. Built-in file and shell tools are off: it acts only through MCP. */
 export function allowedTools(

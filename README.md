@@ -11,7 +11,7 @@ QuietApply uses the Claude Code or Codex you already have (subscription or API k
 > **Status: v0.1, early. Expect rough edges.** What has actually been tested:
 > - **Claude Code:** one real application submitted end to end (Ashby, review mode, Playwright browser), and dry runs on real Greenhouse, Lever and Ashby forms.
 > - **Codex:** one dry run on the bundled Lever fixture (Codex CLI 0.165, signed in with ChatGPT). No real job yet.
-> - **macOS only.** The scheduler (`schedule on`) is unit-tested but has not been run for real on macOS (launchd) or Linux (systemd). Linux and Windows are untested.
+> - **macOS** is where all of the above ran. **Linux:** the full test suite and a demo smoke test pass in a Node 22 container, but no real application has run there. **Windows:** support is new (Task Scheduler, npm `.cmd` shims, Windows paths) and CI runs on Windows, but it has never run on a real Windows machine. The scheduler (`schedule on`) is unit-tested on all three and has not run for real on any.
 > - **Not on npm yet.** Install from a clone, as below. `npx quietapply` does not work.
 
 ## Real results so far
@@ -59,7 +59,7 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 - **Screenshots:** the agent screenshots the form at the end of every run, and each application's page in the dashboard shows them next to what was typed.
 - **Duplicate protection:** an application is marked "submitting" before Submit is clicked, so an unclear result is never resent blindly.
 - **Caps:** 15 a day and 2 per company per 30 days by default.
-- **Scheduler:** launchd (macOS) or a systemd user timer (Linux). Missed runs are coalesced into one; a failed run is retried once; a lock stops overlapping runs; usage limits are waited out. (Unit-tested, not yet run for real on either.)
+- **Scheduler:** launchd (macOS), a systemd user timer (Linux) or a Task Scheduler task (Windows). Missed runs are coalesced into one; a failed run is retried once; a lock stops overlapping runs; usage limits are waited out. (Unit-tested, not yet run for real on any of them.)
 
 | Questions | Application detail | On a phone |
 |---|---|---|

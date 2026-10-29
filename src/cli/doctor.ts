@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, win32 } from "node:path";
 import { loadConfig } from "../core/config.js";
 import { openDb } from "../core/db.js";
 import { packageRoot, paths } from "../core/paths.js";
@@ -16,20 +16,44 @@ export interface Check {
   detail: string;
 }
 
-const CHROME_PATHS: Record<string, string[]> = {
-  darwin: [
-    "/Applications/Google Chrome.app",
-    "/Applications/Microsoft Edge.app",
-    "/Applications/Chromium.app",
-  ],
-  linux: [
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/chromium",
-    "/usr/bin/microsoft-edge",
-  ],
-  win32: ["C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"],
-};
+/** Where Chrome and Edge are usually installed. On Windows: per machine (both Program Files) or per user. */
+export function browserCandidates(platform: NodeJS.Platform, env: NodeJS.ProcessEnv = process.env): string[] {
+  if (platform === "darwin")
+    return [
+      "/Applications/Google Chrome.app",
+      "/Applications/Microsoft Edge.app",
+      "/Applications/Chromium.app",
+    ];
+  if (platform === "linux")
+    return [
+      "/usr/bin/google-chrome",
+      "/usr/bin/google-chrome-stable",
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser",
+      "/usr/bin/microsoft-edge",
+    ];
+  if (platform === "win32") {
+    const roots = [
+      env.ProgramFiles ?? "C:\\Program Files",
+      env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)",
+      env.LOCALAPPDATA,
+    ].filter((r): r is string => !!r);
+    return roots.flatMap((r) => [
+      win32.join(r, "Google", "Chrome", "Application", "chrome.exe"),
+      win32.join(r, "Microsoft", "Edge", "Application", "msedge.exe"),
+    ]);
+  }
+  return [];
+}
+
+/** The first Chrome or Edge that exists. */
+export function findBrowser(
+  platform: NodeJS.Platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env,
+  exists: (f: string) => boolean = existsSync,
+): string | undefined {
+  return browserCandidates(platform, env).find(exists);
+}
 
 /** Everything a run needs, checked without changing anything. */
 export async function doctor(): Promise<Check[]> {
@@ -85,7 +109,7 @@ export async function doctor(): Promise<Check[]> {
           .join(" · ") || "not installed",
     });
     if (config.browser !== "claude-in-chrome") {
-      const chrome = (CHROME_PATHS[process.platform] ?? []).find((f) => existsSync(f));
+      const chrome = findBrowser();
       checks.push({
         name: "Browser (Chrome/Edge)",
         ok: chrome ? true : "warn",
@@ -160,10 +184,11 @@ export async function doctor(): Promise<Check[]> {
         : "off (default)",
     });
   }
+  const scheduled = scheduleInstalled();
   checks.push({
     name: "Schedule",
-    ok: scheduleInstalled() ? true : "warn",
-    detail: scheduleInstalled() ? "installed" : "not installed: quietapply schedule on",
+    ok: scheduled ? true : "warn",
+    detail: scheduled ? "installed" : "not installed: quietapply schedule on",
   });
   const folder = process.platform === "darwin" ? macProtectedFolder(packageRoot()) : undefined;
   if (folder)

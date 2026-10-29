@@ -14,7 +14,9 @@ export const GUARD_LOG = "blocked-requests.jsonl";
 
 /** `--settings` JSON that registers the hook for the Claude in Chrome `computer` tool. */
 export function chromeGuardSettings(runDir: string): string {
-  const command = `QUIETAPPLY_RUN_DIR=${JSON.stringify(runDir)} node ${JSON.stringify(chromeGuardPath())}`;
+  // The run folder is an argument, not a `VAR=value` prefix, so the same line works in sh, cmd and PowerShell.
+  const quote = (s: string) => `"${s.replace(/"/g, '\\"')}"`;
+  const command = `node ${quote(chromeGuardPath())} ${quote(runDir)}`;
   return JSON.stringify({
     hooks: {
       PreToolUse: [{ matcher: "mcp__claude-in-chrome__computer", hooks: [{ type: "command", command }] }],

@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { macProtectedFolder } from "../src/scheduler/index.js";
 import { dueSlot, retryDue } from "../src/scheduler/slots.js";
@@ -43,12 +44,14 @@ describe("OS units", () => {
 
 describe("macOS protected folders", () => {
   it("spots a clone in Desktop, Documents or Downloads, where background jobs hang", () => {
-    const home = "/Users/test";
-    expect(macProtectedFolder("/Users/test/Desktop/quietapply/dist/cli/index.js", home)).toBe("Desktop");
-    expect(macProtectedFolder("/Users/test/Documents/code/quietapply/dist/cli/index.js", home)).toBe(
+    // Built with join, so the test also holds where the separator is a backslash.
+    const home = join("/Users", "test");
+    const at = (...parts: string[]) => join(home, ...parts);
+    expect(macProtectedFolder(at("Desktop", "quietapply", "dist", "cli", "index.js"), home)).toBe("Desktop");
+    expect(macProtectedFolder(at("Documents", "code", "quietapply", "dist", "cli", "index.js"), home)).toBe(
       "Documents",
     );
-    expect(macProtectedFolder("/Users/test/code/quietapply/dist/cli/index.js", home)).toBeUndefined();
-    expect(macProtectedFolder("/Users/test/DesktopApps/quietapply/index.js", home)).toBeUndefined();
+    expect(macProtectedFolder(at("code", "quietapply", "dist", "cli", "index.js"), home)).toBeUndefined();
+    expect(macProtectedFolder(at("DesktopApps", "quietapply", "index.js"), home)).toBeUndefined();
   });
 });

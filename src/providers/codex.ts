@@ -1,6 +1,6 @@
 import { accessSync, constants, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { delimiter, join } from "node:path";
+import { delimiter, join, win32 } from "node:path";
 import { loadConfig } from "../core/config.js";
 import { run, version } from "./spawn.js";
 import {
@@ -52,11 +52,17 @@ export function locateCodex(
   const env = o.env ?? process.env;
   const exists = o.exists ?? isExecutable;
   if (env.QUIETAPPLY_CODEX_BIN) return { path: env.QUIETAPPLY_CODEX_BIN, via: "env" };
-  if (o.configured) return { path: o.configured.replace(/^~(?=\/)/, o.home ?? homedir()), via: "config" };
+  if (o.configured) return { path: o.configured.replace(/^~(?=[\\/])/, o.home ?? homedir()), via: "config" };
   const platform = o.platform ?? process.platform;
-  const names = platform === "win32" ? ["codex.cmd", "codex.exe", "codex"] : ["codex"];
-  for (const dir of (env.PATH ?? "").split(platform === "win32" ? ";" : delimiter).filter(Boolean))
-    for (const name of names) if (exists(join(dir, name))) return { path: join(dir, name), via: "path" };
+  const win = platform === "win32";
+  const names = win ? ["codex.exe", "codex.cmd"] : ["codex"];
+  const pathJoin = win ? win32.join : join;
+  const dirs = (env.PATH ?? env.Path ?? "").split(win ? ";" : delimiter).filter(Boolean);
+  // npm's global folder on Windows, for a terminal opened before the install put it on PATH.
+  if (win && env.APPDATA) dirs.push(win32.join(env.APPDATA, "npm"));
+  for (const dir of dirs)
+    for (const name of names)
+      if (exists(pathJoin(dir, name))) return { path: pathJoin(dir, name), via: "path" };
   if (platform === "darwin")
     for (const root of ["/Applications", join(o.home ?? homedir(), "Applications")])
       for (const rel of MAC_APP_BUNDLES)

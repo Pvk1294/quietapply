@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import * as p from "@clack/prompts";
 import {
   type Company,
@@ -367,6 +368,7 @@ export function mergeCompanies(existing: Company[], urls: string[]): Company[] {
   return out;
 }
 
-function expandHome(f: string): string {
-  return f.startsWith("~/") ? `${process.env.HOME ?? ""}${f.slice(1)}` : f;
+/** "~/resume.pdf" or "~\resume.pdf". homedir() reads USERPROFILE on Windows, where HOME is usually unset. */
+export function expandHome(f: string, home = homedir()): string {
+  return /^~[\\/]/.test(f) ? join(home, f.slice(2)) : f;
 }

@@ -42,12 +42,28 @@ export function ensureHome(p: Paths = paths()): Paths {
   for (const dir of [p.home, p.resumeDir, p.logsDir, p.siteNotes]) {
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
-  try {
-    chmodSync(p.home, 0o700);
-  } catch {
-    // Windows or a filesystem without POSIX modes; nothing to do.
-  }
+  ownerOnly(p.home, 0o700);
   return p;
+}
+
+/**
+ * Limit a file or folder to its owner (POSIX modes). Skipped on Windows, where Node's chmod only toggles
+ * read-only and a folder in the user's profile is already private to that user. Returns whether it ran.
+ */
+export function ownerOnly(
+  file: string,
+  mode: number,
+  platform: NodeJS.Platform = process.platform,
+  chmod: (f: string, m: number) => void = chmodSync,
+): boolean {
+  if (platform === "win32") return false;
+  try {
+    chmod(file, mode);
+    return true;
+  } catch {
+    // A filesystem without POSIX modes; nothing to do.
+    return false;
+  }
 }
 
 /** Root of the installed package (works from src/ under vitest and from dist/ after build). */

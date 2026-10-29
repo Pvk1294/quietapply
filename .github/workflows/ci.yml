@@ -9,12 +9,19 @@ permissions:
 
 jobs:
   test:
+    name: ${{ matrix.os }} · Node ${{ matrix.node }}
     runs-on: ${{ matrix.os }}
+    # Windows support is new and has not run on a real Windows machine yet: a Windows failure is shown,
+    # but does not fail the whole workflow until it has been green for a while.
+    continue-on-error: ${{ matrix.os == 'windows-latest' }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         node: [22, 24]
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,6 +33,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
       - run: npm test
+      - name: Demo smoke test (start the dashboard with demo data, check it answers, stop it)
+        run: node scripts/smoke-demo.mjs 4790
 
   secrets:
     runs-on: ubuntu-latest

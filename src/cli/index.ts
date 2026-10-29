@@ -153,7 +153,7 @@ program
 
 program
   .command("schedule <action>")
-  .description("on | off | status: run at the times in config.yaml through launchd or systemd")
+  .description("on | off | status: run at the times in config.yaml (launchd, systemd or Task Scheduler)")
   .option("--print", "show what would be installed without installing it")
   .action((action: string, o: { print?: boolean }) => {
     const p = ensureHome(paths());
@@ -161,7 +161,7 @@ program
       const r = scheduleOn(p, cliPath, { dryRun: o.print });
       console.log(o.print ? `Would write ${r.files.join(", ")}:\n\n${r.message}` : r.message);
       if (!r.ok) process.exitCode = 1;
-    } else if (action === "off") console.log(scheduleOff().message);
+    } else if (action === "off") console.log(scheduleOff(p).message);
     else
       console.log(
         `${scheduleInstalled() ? "Installed" : "Not installed"}. Times: ${loadConfig(p).schedule.join(", ")}`,

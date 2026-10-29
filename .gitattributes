@@ -1,0 +1,9 @@
+# LF everywhere, also in a Windows checkout (Biome checks line endings, and the fixtures are parsed byte for byte).
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
+*.docx binary
+# Batch files that QuietApply writes are generated at run time; any checked-in ones keep CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf

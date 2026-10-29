@@ -3,7 +3,17 @@ import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 import type { Paths } from "../core/paths.js";
-import { LABEL, launchdPath, launchdPlist, systemdDir, systemdUnits } from "./units.js";
+import {
+  LABEL,
+  launchdPath,
+  launchdPlist,
+  schtasksCreateArgs,
+  schtasksDeleteArgs,
+  schtasksQueryArgs,
+  systemdDir,
+  systemdUnits,
+  windowsTaskFiles,
+} from "./units.js";
 
 export interface ScheduleResult {
   ok: boolean;
@@ -11,20 +21,37 @@ export interface ScheduleResult {
   files: string[];
 }
 
+/** What the scheduler touches outside its own files. Tests pass a platform and a recorder for commands. */
+export interface ScheduleEnv {
+  platform?: NodeJS.Platform;
+  exec?: (command: string, args: string[]) => void;
+}
+
+const realExec = (command: string, args: string[]) => {
+  // stderr is kept, so a failure's error message says what went wrong.
+  execFileSync(command, args, { stdio: ["ignore", "ignore", "pipe"], windowsHide: true });
+};
+
 /** Install the OS timer that calls `quietapply tick`. `dryRun` only reports what would be written. */
-export function scheduleOn(p: Paths, cli: string, opts: { dryRun?: boolean } = {}): ScheduleResult {
+export function scheduleOn(
+  p: Paths,
+  cli: string,
+  opts: { dryRun?: boolean } & ScheduleEnv = {},
+): ScheduleResult {
   const node = process.execPath;
-  if (process.platform === "darwin") {
+  const platform = opts.platform ?? process.platform;
+  const exec = opts.exec ?? realExec;
+  if (platform === "darwin") {
     const file = launchdPath();
     if (opts.dryRun) return { ok: true, message: launchdPlist(node, cli, p.home), files: [file] };
     mkdirSync(join(file, ".."), { recursive: true });
     writeFileSync(file, launchdPlist(node, cli, p.home));
     try {
-      execFileSync("launchctl", ["bootout", `gui/${process.getuid?.()}/${LABEL}`], { stdio: "ignore" });
+      exec("launchctl", ["bootout", `gui/${process.getuid?.()}/${LABEL}`]);
     } catch {
       // not loaded yet
     }
-    execFileSync("launchctl", ["bootstrap", `gui/${process.getuid?.()}`, file]);
+    exec("launchctl", ["bootstrap", `gui/${process.getuid?.()}`, file]);
     const folder = macProtectedFolder(cli);
     return {
       ok: true,
@@ -36,7 +63,7 @@ export function scheduleOn(p: Paths, cli: string, opts: { dryRun?: boolean } = {
       files: [file],
     };
   }
-  if (process.platform === "linux") {
+  if (platform === "linux") {
     const dir = systemdDir();
     const units = systemdUnits(node, cli, p.home);
     const files = [join(dir, "quietapply.service"), join(dir, "quietapply.timer")];
@@ -44,13 +71,32 @@ export function scheduleOn(p: Paths, cli: string, opts: { dryRun?: boolean } = {
     mkdirSync(dir, { recursive: true });
     writeFileSync(files[0]!, units.service);
     writeFileSync(files[1]!, units.timer);
-    execFileSync("systemctl", ["--user", "daemon-reload"]);
-    execFileSync("systemctl", ["--user", "enable", "--now", "quietapply.timer"]);
+    exec("systemctl", ["--user", "daemon-reload"]);
+    exec("systemctl", ["--user", "enable", "--now", "quietapply.timer"]);
     return { ok: true, message: "systemd user timer enabled: checks every 15 minutes.", files };
+  }
+  if (platform === "win32") {
+    const t = windowsTaskFiles(node, cli, p.home);
+    const files = [t.cmdPath, t.vbsPath];
+    if (opts.dryRun)
+      return {
+        ok: true,
+        message: `${t.cmd}\n${t.vbs}\nschtasks ${schtasksCreateArgs(t.vbsPath).join(" ")}`,
+        files,
+      };
+    writeFileSync(t.cmdPath, t.cmd);
+    writeFileSync(t.vbsPath, t.vbs);
+    exec("schtasks", schtasksCreateArgs(t.vbsPath));
+    return {
+      ok: true,
+      message:
+        "Task Scheduler task QuietApply\\tick created: checks for a due run every 15 minutes while you are signed in.",
+      files,
+    };
   }
   return {
     ok: false,
-    message: "Scheduling is supported on macOS and Linux for now (Windows is planned).",
+    message: "Scheduling is supported on macOS, Linux and Windows.",
     files: [],
   };
 }
@@ -63,30 +109,52 @@ export function macProtectedFolder(path: string, home = homedir()): string | und
   return ["Desktop", "Documents", "Downloads"].find((f) => path.startsWith(join(home, f) + sep));
 }
 
-export function scheduleOff(): ScheduleResult {
-  if (process.platform === "darwin") {
+export function scheduleOff(p?: Paths, o: ScheduleEnv = {}): ScheduleResult {
+  const platform = o.platform ?? process.platform;
+  const exec = o.exec ?? realExec;
+  if (platform === "darwin") {
     const file = launchdPath();
     try {
-      execFileSync("launchctl", ["bootout", `gui/${process.getuid?.()}/${LABEL}`], { stdio: "ignore" });
+      exec("launchctl", ["bootout", `gui/${process.getuid?.()}/${LABEL}`]);
     } catch {
       // not loaded
     }
     if (existsSync(file)) unlinkSync(file);
     return { ok: true, message: "LaunchAgent removed.", files: [file] };
   }
-  if (process.platform === "linux") {
+  if (platform === "linux") {
     try {
-      execFileSync("systemctl", ["--user", "disable", "--now", "quietapply.timer"], { stdio: "ignore" });
+      exec("systemctl", ["--user", "disable", "--now", "quietapply.timer"]);
     } catch {
       // not enabled
     }
     return { ok: true, message: "systemd timer disabled.", files: [] };
   }
+  if (platform === "win32") {
+    try {
+      exec("schtasks", schtasksDeleteArgs());
+    } catch {
+      // no such task
+    }
+    const t = p && windowsTaskFiles("", "", p.home);
+    const files = t ? [t.cmdPath, t.vbsPath] : [];
+    for (const f of files) if (existsSync(f)) unlinkSync(f);
+    return { ok: true, message: "Task Scheduler task removed.", files };
+  }
   return { ok: false, message: "Nothing to remove on this platform.", files: [] };
 }
 
-export function scheduleInstalled(): boolean {
-  if (process.platform === "darwin") return existsSync(launchdPath());
-  if (process.platform === "linux") return existsSync(join(systemdDir(), "quietapply.timer"));
+export function scheduleInstalled(o: ScheduleEnv = {}): boolean {
+  const platform = o.platform ?? process.platform;
+  if (platform === "darwin") return existsSync(launchdPath());
+  if (platform === "linux") return existsSync(join(systemdDir(), "quietapply.timer"));
+  if (platform === "win32") {
+    try {
+      (o.exec ?? realExec)("schtasks", schtasksQueryArgs());
+      return true;
+    } catch {
+      return false;
+    }
+  }
   return false;
 }
