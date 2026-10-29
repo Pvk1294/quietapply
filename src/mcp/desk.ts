@@ -28,6 +28,7 @@ import {
   getApplication,
   moveApplication,
   openQuestionsFor,
+  setApplyEmail,
   setStatus,
   updateJobFacts,
   withdrawApproval,
@@ -52,6 +53,8 @@ import {
   parseMemoryId,
 } from "../memory/answers.js";
 import { PROFILE_FIELDS, type Profile, profileForPrompt } from "../memory/profile.js";
+import { emailAsValues } from "../email/apply.js";
+import { cleanAddress, composeApplicationEmail } from "../email/compose.js";
 import { lockSubmitStep, logSubmitAttempt } from "../runner/chrome-guard.js";
 import { detectAts } from "../sources/detect.js";
 
@@ -467,8 +470,32 @@ export class Desk {
     filled?: FilledValue[];
     prefilled?: Record<string, string>;
     rule?: string;
+    /** For email-only postings: the address the posting asks applications to be sent to. */
+    email?: string;
   }) {
     const a = this.app();
+    const to = toReason(input.category) === "email_only" ? cleanAddress(input.email) : undefined;
+    if (to) {
+      // QuietApply writes the email itself (from your profile and memory), in its own step. The agent
+      // never sends mail: the job goes back in the queue as an email application.
+      setApplyEmail(this.db, a.id, to);
+      if (this.config.email.enabled) {
+        setStatus(this.db, a.id, "queued", { reason: `applies by email to ${to}, written in the next step` });
+        return { ok: true, instruction: "Noted as an email application. Do not send anything. End the run." };
+      }
+      const email = composeApplicationEmail(this.db, this.profile, a, to);
+      setStatus(this.db, a.id, "blocked", {
+        reason: input.notes.slice(0, 500),
+        blockedCategory: "email_only",
+        evidence: JSON.stringify({ email, at: new Date().toISOString() }),
+      });
+      this.handoff("email_only", {
+        detail: `The posting asks for an email to ${to}. Email applications are off, so the text is ready to copy.`,
+        needed: "Send it from your own mail with your resume attached, or turn on email applications in Settings.",
+        filled: emailAsValues(email),
+      });
+      return { ok: true, instruction: "Handed to the human with the email text ready. End the run." };
+    }
     const reason =
       isLinkedInApp(a) && looksLikeLinkedInWarning(input.notes) && toReason(input.category) === "other"
         ? "linkedin_limit"

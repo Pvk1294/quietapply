@@ -8,6 +8,8 @@ import { acquireLock } from "../core/lock.js";
 import { type Paths, packageRoot, paths } from "../core/paths.js";
 import { checkFit } from "../core/rules.js";
 import { injectionSignals } from "../core/safety.js";
+import { applyByEmail, emailTarget } from "../email/apply.js";
+import type { Sender } from "../email/send.js";
 import {
   type Application,
   finishRun,
@@ -59,6 +61,8 @@ export interface RunOptions {
   log?: (line: string) => void;
   /** Human-pause timing for LinkedIn runs (tests make it instant). */
   pace?: DeskOptions;
+  /** How email applications are sent. Tests use an in-process fake SMTP server; the default is SMTP. */
+  emailSender?: Sender;
 }
 
 export interface RunSummary {
@@ -213,6 +217,13 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
           processed.push(row(app, "skipped", "per-company limit"));
           continue;
         }
+      }
+      // Postings that ask for an email: written from your profile and memory, never by the agent.
+      if (!linkedin && emailTarget(app)) {
+        const r = await applyByEmail({ db, p, config: runConfig, profile, app, sender: opts.emailSender });
+        processed.push(row(app, r.status, r.note));
+        log(`email ${app.company} · ${app.title} → ${r.status}: ${r.note}`);
+        continue;
       }
       const unsupported = unsupportedSite(app.url);
       if (unsupported) {

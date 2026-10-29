@@ -33,3 +33,6 @@ coverage/
 
 # Dot job report copy (the committed one is docs/report.md)
 /report.md
+
+# SMTP app password fallback file, if a data folder is ever pointed inside the repo
+smtp-password.json

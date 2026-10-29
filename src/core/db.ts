@@ -103,6 +103,7 @@ const MIGRATIONS: string[] = [
    CREATE INDEX handoffs_app ON handoffs(application_id);`,
   // Approval bound to content, questions you confirm per application, emails and recruiter messages.
   `ALTER TABLE applications ADD COLUMN approved_hash TEXT;
+   ALTER TABLE applications ADD COLUMN apply_email TEXT;
    ALTER TABLE questions ADD COLUMN kind TEXT NOT NULL DEFAULT 'ask';
 
    CREATE TABLE confirmations (

@@ -1,6 +1,7 @@
 import type { Company } from "../core/config.js";
 import type { DB } from "../core/db.js";
-import { addApplication } from "../core/store.js";
+import { addApplication, setApplyEmail } from "../core/store.js";
+import { cleanAddress } from "../email/compose.js";
 import { detectAts } from "../sources/detect.js";
 import type { Fetcher } from "../sources/http.js";
 import { companyFromToken, fetchJob } from "../sources/job.js";
@@ -30,6 +31,17 @@ export interface AddResult {
  * fails the job is still queued with what the URL says.
  */
 export async function addJob(db: DB, url: string, fetcher: Fetcher, o: AddOptions = {}): Promise<AddResult> {
+  // A posting that asks for an email: `quietapply add mailto:jobs@acme.com --company Acme --title "..."`.
+  const to = /^mailto:/i.test(url) ? cleanAddress(url) : undefined;
+  if (/^mailto:/i.test(url)) {
+    if (!to) throw new Error(`Not an email address: ${url}`);
+    if (!o.company || !o.title) throw new Error("For an email application give --company and --title too.");
+    // One address can take applications for several roles, so the role is part of the job's key.
+    const key = `mailto:${to}?role=${encodeURIComponent(o.title.toLowerCase())}`;
+    const r = addApplication(db, { url: key, company: o.company, title: o.title, ats: "email", source: "manual" });
+    setApplyEmail(db, r.id, to);
+    return { ...r, company: o.company, title: o.title };
+  }
   const ref = detectAts(url);
   let job: JobListing | undefined;
   let lookupError: string | undefined;

@@ -72,7 +72,9 @@ program
 
 program
   .command("add <url>")
-  .description("Queue one job by URL; the title and company come from the job site's public API")
+  .description(
+    "Queue one job by URL; the title and company come from the job site's public API. mailto:<address> with --company and --title queues an email application",
+  )
   .option("--company <name>", "company name (overrides the lookup)")
   .option("--title <title>", "job title (overrides the lookup)")
   .option("--no-fetch", "do not look the job up")

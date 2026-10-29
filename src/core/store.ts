@@ -49,6 +49,8 @@ export interface Application {
   review_approved: number;
   /** The fingerprint of what you approved in review (see core/safety.ts contentHash). */
   approved_hash: string | null;
+  /** Set when the posting asks for an email application: the address to write to. */
+  apply_email: string | null;
   created_at: string;
   updated_at: string;
   submitted_at: string | null;
@@ -377,4 +379,9 @@ export function confirmationFor(
   return rows.find(
     (r) => sameQuestion(r.question, question) || (memoryId !== undefined && r.memory_id === memoryId),
   );
+}
+
+/** The posting asks for an email application: remember where to. */
+export function setApplyEmail(db: DB, id: number, to: string): void {
+  db.prepare("UPDATE applications SET apply_email = ?, updated_at = ? WHERE id = ?").run(to, now(), id);
 }
