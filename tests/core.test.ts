@@ -193,6 +193,35 @@ describe("fit gate", () => {
     expect(r.fit).toBe(false);
     if (!r.fit) expect(r.reason).toContain(reason);
   });
+  it("does not count skills the posting calls optional or learnable", () => {
+    const stack = "We work mostly in Python, Django, Kafka, Kubernetes and Terraform.";
+    expect(checkFit({ company: "Acme", title: "Engineer", description: stack }, rules, profile).fit).toBe(
+      false,
+    );
+    expect(
+      checkFit(
+        {
+          company: "Acme",
+          title: "Engineer",
+          description: `${stack} New programming languages can be learned.`,
+        },
+        rules,
+        profile,
+      ).fit,
+    ).toBe(true);
+    expect(
+      checkFit(
+        {
+          company: "Acme",
+          title: "Engineer",
+          description:
+            "You know TypeScript and React. Nice to have: Python, Kafka, Kubernetes and Terraform.",
+        },
+        rules,
+        profile,
+      ).fit,
+    ).toBe(true);
+  });
   it("reads required years", () => {
     expect(requiredYears("3-5 years of experience")).toBe(3);
     expect(requiredYears("at least 2 years of relevant industry experience")).toBe(2);

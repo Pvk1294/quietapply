@@ -141,8 +141,20 @@ const COMMON_SKILLS = [
   "figma",
 ];
 
+/** "New languages can be learned", "you don't need to know our stack": the languages named are not a requirement. */
+const LEARNABLE =
+  /can be learned|happy to teach|(learn|pick up) (new|our|other) (languages|stack|tools)|(do not|don.t) (need|expect you) to know|no (prior )?experience (with|in) (our|these|any specific) (languages|stack|tools)/i;
+
+/** Sentences about nice-to-haves: skills named there do not count against you. */
+const OPTIONAL = /nice to have|good to have|preferred|bonus|a plus|is a plus|not required|optional/i;
+
 function requiredSkills(description: string, profile: Profile): { matched: number; total: number } {
-  const desc = ` ${description.toLowerCase().replace(/[^a-z0-9+#.]+/g, " ")} `;
+  if (LEARNABLE.test(description)) return { matched: 0, total: 0 };
+  const required = description
+    .split(/(?<=[.!?\n])\s+|\n|<\/?(?:li|p|br)[^>]*>/i)
+    .filter((sentence) => !OPTIONAL.test(sentence))
+    .join(" ");
+  const desc = ` ${required.toLowerCase().replace(/[^a-z0-9+#.]+/g, " ")} `;
   const mine = new Set(profile.skills.map((s) => s.name.toLowerCase()));
   const alias: Record<string, string> = { golang: "go", postgres: "postgresql", node: "node.js" };
   const wanted = new Set<string>();

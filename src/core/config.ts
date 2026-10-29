@@ -43,6 +43,11 @@ export const Config = z.object({
   browser: BrowserMode.default("playwright-profile"),
   /** Run the Playwright browser without a window. Off by default so you can watch the first runs. */
   headless: z.boolean().default(false),
+  /**
+   * Your answer to "Run automatically while your computer is on?" (init and Settings). The OS state is
+   * the truth (`quietapply schedule status`); this only remembers the choice so setup can suggest it.
+   */
+  autoStart: z.boolean().optional(),
   /** Local run times, 24h "HH:MM". */
   schedule: z.array(z.string().regex(/^\d{2}:\d{2}$/)).default(["09:00", "13:00", "19:00"]),
   timezone: z.string().default("auto"),

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type Settings as S } from "../api";
-import { toast } from "../ui";
+import { toast, usePoll } from "../ui";
 import { EmailCard } from "./EmailCard";
 import { LinkedInCard } from "./LinkedInCard";
 import { PhoneCard } from "./PhoneCard";
@@ -125,18 +125,7 @@ export function Settings({ onChange }: { onChange: () => void }) {
         />
       </section>
 
-      <section className="card">
-        <h3>Schedule</h3>
-        <Field
-          label="Run times"
-          hint="24h, comma separated, e.g. 09:00, 13:00, 19:00"
-          value={form.schedule}
-          onChange={set("schedule")}
-        />
-        <p className="muted small">
-          Install the timer once with <code>quietapply schedule on</code>.
-        </p>
-      </section>
+      <AutoStartCard times={form.schedule} onTimes={set("schedule")} />
 
       <div className="save-bar">
         <button type="button" className="btn btn-primary" onClick={save}>
@@ -183,6 +172,71 @@ export function Settings({ onChange }: { onChange: () => void }) {
 
       <LinkedInCard onChange={onChange} />
     </div>
+  );
+}
+
+/**
+ * Settings → Run automatically: one switch for the dashboard at login and the runs at the times below,
+ * the same thing `quietapply schedule on|off` does.
+ */
+function AutoStartCard(props: { times: string; onTimes: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
+  const { data, reload } = usePoll(api.autoStart, 30000);
+  const [busy, setBusy] = useState(false);
+  const loaded = !!data;
+  // The tour links here with #/settings?autostart.
+  useEffect(() => {
+    if (loaded && location.hash.includes("?autostart"))
+      setTimeout(() => document.getElementById("autostart")?.scrollIntoView({ block: "start" }), 50);
+  }, [loaded]);
+  const flip = async (on: boolean) => {
+    setBusy(true);
+    try {
+      toast((await api.setAutoStart(on)).message);
+      // The change happens a moment after the answer (this dashboard may be the login item itself).
+      setTimeout(reload, 1500);
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="card" id="autostart">
+      <h3>Run automatically</h3>
+      <label className="switch-row">
+        <div>
+          <strong>
+            Run automatically while your computer is on: {data ? (data.on ? "On" : "Off") : "…"}
+          </strong>
+          <div className="muted small">
+            The dashboard starts when you log in, and QuietApply runs at the times below. A run missed while
+            the computer was off or asleep happens once, soon after you log in or it wakes. Nothing runs while
+            it is off.
+          </div>
+        </div>
+        <input
+          type="checkbox"
+          className="switch"
+          aria-label="Run automatically"
+          checked={!!data?.on}
+          disabled={!data || busy || !data.canChange}
+          onChange={(e) => flip(e.target.checked)}
+        />
+      </label>
+      <Field
+        label="Run times"
+        hint="24h, comma separated, e.g. 09:00, 13:00, 19:00 · save below"
+        value={props.times}
+        onChange={props.onTimes}
+      />
+      {data && !data.canChange && <p className="muted small">Switch this on the computer itself.</p>}
+      {data && (
+        <details>
+          <summary className="muted small">Status</summary>
+          <pre className="small">{data.lines.join("\n")}</pre>
+        </details>
+      )}
+    </section>
   );
 }
 

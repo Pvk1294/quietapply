@@ -14,7 +14,7 @@ import { loadProfile } from "../memory/profile.js";
 import { answerQuestion } from "../memory/queue.js";
 import { discover } from "../runner/discover.js";
 import { isPaused, runOnce } from "../runner/run.js";
-import { scheduleInstalled, scheduleOff, scheduleOn } from "../scheduler/index.js";
+import { scheduleOn, scheduleState, scheduleStatusLines, setAutoStart } from "../scheduler/index.js";
 import { dueSlot, retryDue } from "../scheduler/slots.js";
 import { defaultFetcher } from "../sources/http.js";
 import { doctor } from "./doctor.js";
@@ -179,19 +179,25 @@ program
 
 program
   .command("schedule <action>")
-  .description("on | off | status: run at the times in config.yaml (launchd, systemd or Task Scheduler)")
+  .description(
+    "on | off | status: run automatically while your computer is on (the dashboard at login, and runs at the times in config.yaml)",
+  )
   .option("--print", "show what would be installed without installing it")
   .action((action: string, o: { print?: boolean }) => {
     const p = ensureHome(paths());
-    if (action === "on") {
-      const r = scheduleOn(p, cliPath, { dryRun: o.print });
-      console.log(o.print ? `Would write ${r.files.join(", ")}:\n\n${r.message}` : r.message);
+    if (action === "on" && o.print) {
+      const r = scheduleOn(p, cliPath, { dryRun: true, port: loadConfig(p).dashboard.port });
+      console.log(`Would write ${r.files.join(", ")}:\n\n${r.message}`);
+    } else if (action === "on" || action === "off") {
+      const r = setAutoStart(p, cliPath, action === "on");
+      console.log(r.message);
       if (!r.ok) process.exitCode = 1;
-    } else if (action === "off") console.log(scheduleOff(p).message);
-    else
-      console.log(
-        `${scheduleInstalled() ? "Installed" : "Not installed"}. Times: ${loadConfig(p).schedule.join(", ")}`,
-      );
+    } else if (action === "status") {
+      const db = openDb(p);
+      const last = JSON.parse(kvGet(db, "schedule:last") ?? "{}") as { slot?: string; status?: string };
+      db.close();
+      console.log(scheduleStatusLines(scheduleState(), loadConfig(p), last).join("\n"));
+    } else throw new Error(`Unknown action "${action}". Use: quietapply schedule on | off | status`);
   });
 
 program

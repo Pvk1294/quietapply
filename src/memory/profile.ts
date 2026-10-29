@@ -102,12 +102,13 @@ export const PROFILE_FIELDS: { field: string; pattern: RegExp; value: (p: Profil
     },
     {
       field: "current_company",
-      pattern: /current (company|employer)|^company$/,
+      // "Who is your current or previous employer?" too.
+      pattern: /current (or (previous|most recent|last) )?(company|employer)|^company$/,
       value: (p) => p.experience[0]?.company,
     },
     {
       field: "current_title",
-      pattern: /current (job )?title|current role/,
+      pattern: /current (or (previous|most recent|last) )?(job )?title|current role/,
       value: (p) => p.experience[0]?.title,
     },
     {

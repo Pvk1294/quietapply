@@ -250,6 +250,15 @@ export interface Settings {
   home: string;
 }
 
+export interface AutoStartInfo {
+  on: boolean;
+  dashboard: boolean;
+  runs: boolean;
+  schedule: string[];
+  lines: string[];
+  canChange: boolean;
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method,
@@ -303,6 +312,8 @@ export const api = {
   phone: () => request<PhoneInfo>("GET", "/api/phone"),
   setPhone: (on: boolean) => request<PhoneInfo>("POST", "/api/phone", { on }),
   setPhoneLogins: (logins: string[]) => request<PhoneInfo>("PUT", "/api/phone/logins", { logins }),
+  autoStart: () => request<AutoStartInfo>("GET", "/api/autostart"),
+  setAutoStart: (on: boolean) => request<{ ok: boolean; message: string }>("PUT", "/api/autostart", { on }),
   settings: () => request<Settings>("GET", "/api/settings"),
   saveSettings: (s: unknown) => request<{ config: Settings["config"] }>("PUT", "/api/settings", s),
 };

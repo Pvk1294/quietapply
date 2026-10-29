@@ -62,6 +62,7 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
       /earliest (possible )?(start|joining) date/,
       /when (can|could) you (start|join)/,
       /availability to start/,
+      /when (are|would) you (be )?available to (start|join)/,
     ],
     type: "text",
     essential: true,
@@ -156,7 +157,10 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
   {
     key: "highest_degree",
     question: "What is your highest level of education?",
-    patterns: [/highest (level of )?(education|degree|qualification)/],
+    patterns: [
+      /highest (level of )?(education|degree|qualification)/,
+      /^(your )?degree( obtained| earned)?$/,
+    ],
     type: "text",
   },
   {

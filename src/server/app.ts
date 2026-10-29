@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { extname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Hono } from "hono";
 import { z } from "zod";
 import { phoneOff, phoneOn, phoneStatus } from "../cli/phone.js";
@@ -57,7 +58,13 @@ import { answerQuestion, dismissQuestion } from "../memory/queue.js";
 import { discover } from "../runner/discover.js";
 import { blockedRequests, screenshotFile, screenshotsFor } from "../runner/evidence.js";
 import { isPaused } from "../runner/run.js";
-import { scheduleInstalled } from "../scheduler/index.js";
+import {
+  type ScheduleEnv,
+  scheduleInstalled,
+  scheduleState,
+  scheduleStatusLines,
+  setAutoStart,
+} from "../scheduler/index.js";
 import { detectAts } from "../sources/detect.js";
 import { defaultFetcher, type Fetcher } from "../sources/http.js";
 import { checkAccess, originAllowed } from "./guard.js";
@@ -72,6 +79,12 @@ export interface AppOptions {
   tailscaleBin?: string | null;
   /** Where the SMTP password is kept. Tests pass a fake keychain. */
   secretDeps?: SecretDeps;
+  /** The CLI entry the login item and schedule start. Default: this build's own. */
+  cli?: string;
+  /** Platform, command runner and home for "Run automatically". Tests pass a recorder. */
+  scheduleEnv?: ScheduleEnv;
+  /** Changing "Run automatically" is deferred so this response gets out first; tests run it at once. */
+  defer?: (f: () => void) => void;
 }
 
 const MIME: Record<string, string> = {
@@ -486,6 +499,40 @@ export function createApp(opts: AppOptions): Hono {
     if (b.rules) config.rules = { ...config.rules, ...b.rules };
     saveConfig(config, p);
     return c.json({ config: loadConfig(p) });
+  });
+
+  // "Run automatically while your computer is on": the dashboard at login and the run schedule.
+  const autoStartInfo = () => {
+    const config = loadConfig(p);
+    const state = scheduleState(opts.scheduleEnv);
+    const last = JSON.parse(kvGet(getDb(), "schedule:last") ?? "{}") as { slot?: string; status?: string };
+    return {
+      on: state.dashboard && state.runs,
+      ...state,
+      schedule: config.schedule,
+      lines: scheduleStatusLines(state, config, last),
+    };
+  };
+  app.get("/api/autostart", (c) => c.json({ ...autoStartInfo(), canChange: onThisMac(c) }));
+  app.put("/api/autostart", async (c) => {
+    if (!onThisMac(c)) return c.json({ error: "This can only be changed on the computer itself." }, 403);
+    const body = z.object({ on: z.boolean() }).safeParse(await c.req.json().catch(() => ({})));
+    if (!body.success) return c.json({ error: "on (true or false) is required" }, 400);
+    const cli = opts.cli ?? fileURLToPath(new URL("../cli/index.js", import.meta.url));
+    // This dashboard may be the login item itself, which installing or removing restarts or stops, so
+    // the answer goes out first and the change follows a moment later. The page then reads the state.
+    let result: { ok: boolean; message: string } | undefined;
+    (opts.defer ?? ((f) => setTimeout(f, 300)))(() => {
+      result = setAutoStart(p, cli, body.data.on, opts.scheduleEnv);
+    });
+    return c.json({
+      ok: result?.ok ?? true,
+      message:
+        result?.message ??
+        (body.data.on
+          ? "Turning on: the dashboard will start when you log in, and runs happen at the times below."
+          : "Turning off: no login item and no schedule. Run now still works."),
+    });
   });
 
   // Phone access over Tailscale. Anyone who can open the dashboard sees the state. Switching it on or off

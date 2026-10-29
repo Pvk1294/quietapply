@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import * as p from "@clack/prompts";
 import {
   type Company,
@@ -21,6 +22,7 @@ import { listAnswers, saveAnswer } from "../memory/answers.js";
 import { loadProfile, type Profile, saveProfile } from "../memory/profile.js";
 import { STANDARD_QUESTIONS } from "../memory/seed.js";
 import { getProvider, PROVIDERS } from "../providers/index.js";
+import { macProtectedFolder, scheduleState, setAutoStart } from "../scheduler/index.js";
 import { detectAts } from "../sources/detect.js";
 import { EXPLAIN } from "./explain.js";
 import { importResume, seedDefaults, setupGaps } from "./setup.js";
@@ -260,6 +262,33 @@ export async function init(opts: InitOptions): Promise<void> {
   }
 
   saveConfig(config, dirs);
+
+  // Running on its own: the dashboard at login and the runs at the scheduled times. Yes unless you say no.
+  const cli = fileURLToPath(new URL("./index.js", import.meta.url));
+  const protectedFolder = process.platform === "darwin" ? macProtectedFolder(cli) : undefined;
+  // Asked once: the answer is remembered (config autoStart), and Settings or `schedule on|off` change it.
+  if (interactive && config.autoStart === undefined) {
+    p.log.message(`${EXPLAIN.autoStart} Times now: ${config.schedule.join(", ")}.`);
+    if (protectedFolder)
+      p.log.warn(
+        `QuietApply is in ~/${protectedFolder}, which macOS does not let background jobs read. Move the folder (for example to ~/code/quietapply) to run automatically; until then, say no here.`,
+      );
+    const yes = await p.confirm({
+      message: "Run automatically while your computer is on?",
+      initialValue: config.autoStart ?? !protectedFolder,
+    });
+    if (cancelled(yes)) bail();
+    const r = setAutoStart(dirs, cli, yes);
+    if (yes) (r.ok ? p.log.success : p.log.warn)(r.message);
+    else
+      p.log.info(
+        "Not running automatically. Use Run now, or turn it on later in Settings or with `quietapply schedule on`.",
+      );
+    Object.assign(config, loadConfig(dirs));
+  } else if (!scheduleState().runs) {
+    p.log.info("To run automatically while your computer is on: `quietapply schedule on` (or Settings).");
+  }
+
   const gaps = setupGaps(db, loadProfile(dirs), config);
   if (gaps.length)
     p.log.warn(
@@ -277,6 +306,7 @@ export async function init(opts: InitOptions): Promise<void> {
       "quietapply discover      find open roles at your companies",
       "quietapply run           one run now (dry run: nothing is submitted)",
       "quietapply dashboard     http://127.0.0.1:4777 (a short tour opens the first time)",
+      "quietapply schedule status   whether it runs automatically, and when",
     ].join("\n"),
     "Next",
   );

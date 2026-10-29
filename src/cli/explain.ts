@@ -21,6 +21,8 @@ export const EXPLAIN = {
     "A daily limit keeps applications careful and your account calm. 15 is the default. Fewer, well-matched applications usually get more replies.",
   email:
     "Some postings ask you to apply by email. QuietApply can write a short email from your profile and send it from your account, but only if you say yes. Most people can say no: those jobs then go to Finish yourself with the text ready to copy.",
+  autoStart:
+    "QuietApply can run on its own: the dashboard starts when you log in, and it applies at the times in Settings. Nothing runs while the computer is off; a run missed then happens once, soon after you log in or it wakes.",
   linkedin:
     "LinkedIn mode is optional and off by default. It applies to LinkedIn jobs in your own Chrome, a few a day. Most people skip it. If you are curious, you can turn it on later in the dashboard, under Settings.",
 } as const;

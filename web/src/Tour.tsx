@@ -69,12 +69,21 @@ export const STEPS: Step[] = [
     link: { label: "LinkedIn settings", href: "#/settings" },
   },
   {
-    title: "Limits and the schedule",
+    title: "Limits",
     body: [
       "Limits keep things calm: 15 applications a day and 2 per company every 30 days by default. Fewer, well-matched applications get more replies.",
-      "Run now starts a run whenever you like. To run on its own, use quietapply schedule on. It then runs at the times in Settings (09:00, 13:00 and 19:00 to begin with). Pause stops everything until you resume.",
+      "Run now starts a run whenever you like. Pause stops everything until you resume.",
     ],
     link: { label: "Open Settings", href: "#/settings" },
+  },
+  {
+    title: "It runs on its own while your computer is on",
+    body: [
+      "With Run automatically on (setup asks, and it is on unless you said no), this dashboard starts by itself when you log in, and QuietApply runs at the times in Settings: 09:00, 13:00 and 19:00 to begin with.",
+      "Nothing runs while the computer is off. If it was off or asleep at a run time, that run happens once, soon after you log in or it wakes, never several times.",
+      "Turn it on or off any time in Settings, under Run automatically, or with quietapply schedule on or off. Dry run still applies: nothing is submitted until you turn dry run off.",
+    ],
+    link: { label: "Open Run automatically", href: "#/settings?autostart" },
   },
   {
     title: "Use it on your phone",

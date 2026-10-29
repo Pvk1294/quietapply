@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, win32 } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -10,8 +10,13 @@ import { locateClaude } from "../src/providers/claude-code.js";
 import { locateCodex } from "../src/providers/codex.js";
 import { npxCommand, quoteForCmd, resolveCommand, shimTarget, spawnPlan } from "../src/providers/spawn.js";
 import { chromeGuardSettings } from "../src/runner/chrome-guard.js";
-import { scheduleInstalled, scheduleOff, scheduleOn } from "../src/scheduler/index.js";
-import { schtasksCreateArgs, WINDOWS_TASK, windowsTaskFiles } from "../src/scheduler/units.js";
+import { scheduleInstalled, scheduleOff, scheduleOn, scheduleState } from "../src/scheduler/index.js";
+import {
+  schtasksCreateArgs,
+  WINDOWS_TASK,
+  windowsStartupFile,
+  windowsTaskFiles,
+} from "../src/scheduler/units.js";
 
 // Windows behaviour, tested on any OS by passing the platform, environment and file checks in.
 // Nothing here runs a Windows command; CI also runs the whole suite on windows-latest.
@@ -214,14 +219,34 @@ describe("Task Scheduler (Windows)", () => {
     const p = paths(tmpHome);
     const ran: string[] = [];
     const exec = (c: string, a: string[]) => {
-      ran.push(`${c} ${a[0]}`);
+      ran.push(`${c} ${a[0]}${a.includes("/XML") ? " /XML" : ""}`);
     };
-    const on = scheduleOn(p, cli, { platform: "win32", exec });
+    const on = scheduleOn(p, cli, { platform: "win32", exec, userHome: tmpHome, port: 4777 });
     expect(on.ok).toBe(true);
-    expect(ran).toEqual(["schtasks /Create"]);
-    expect(on.files).toEqual([join(tmpHome, "tick.cmd"), join(tmpHome, "tick.vbs")]);
-    expect(readFileSync(on.files[0]!, "utf8")).toContain(`"${cli}" tick`);
+    // The dashboard sign-in task (from XML), the 15-minute task, then the dashboard is started now.
+    expect(ran).toEqual([
+      "schtasks /Create /XML",
+      "schtasks /Create",
+      `wscript.exe ${join(tmpHome, "dashboard.vbs")}`,
+    ]);
+    expect(on.files).toEqual([
+      join(tmpHome, "dashboard.cmd"),
+      join(tmpHome, "dashboard.vbs"),
+      join(tmpHome, "dashboard-task.xml"),
+      join(tmpHome, "tick.cmd"),
+      join(tmpHome, "tick.vbs"),
+    ]);
+    expect(readFileSync(on.files[0]!, "utf8")).toContain(`"${cli}" dashboard --port 4777`);
+    expect(readFileSync(on.files[3]!, "utf8")).toContain(`"${cli}" tick`);
+    // Task Scheduler wants UTF-16 with a byte-order mark.
+    const xml = readFileSync(on.files[2]!);
+    expect([xml[0], xml[1]]).toEqual([0xff, 0xfe]);
+    expect(xml.toString("utf16le")).toContain("<LogonTrigger>");
     expect(scheduleInstalled({ platform: "win32", exec })).toBe(true);
+    expect(scheduleState({ platform: "win32", exec, userHome: tmpHome })).toEqual({
+      dashboard: true,
+      runs: true,
+    });
     expect(
       scheduleInstalled({
         platform: "win32",
@@ -230,13 +255,37 @@ describe("Task Scheduler (Windows)", () => {
         },
       }),
     ).toBe(false);
-    expect(scheduleOff(p, { platform: "win32", exec }).ok).toBe(true);
+    expect(scheduleOff(p, { platform: "win32", exec, userHome: tmpHome }).ok).toBe(true);
     expect(ran).toContain("schtasks /Delete");
+    expect(on.files.some((f) => existsSync(f))).toBe(false);
+  });
+
+  it("falls back to the Startup folder when Task Scheduler refuses the sign-in task", () => {
+    const tmpHome = mkdtempSync(join(tmpdir(), "qa-win-"));
+    const p = paths(tmpHome);
+    const exec = (c: string, a: string[]) => {
+      if (c === "schtasks" && a.includes("/XML")) throw new Error("ERROR: Access is denied.");
+    };
+    const appData = process.env.APPDATA;
+    delete process.env.APPDATA;
+    try {
+      const on = scheduleOn(p, cli, { platform: "win32", exec, userHome: tmpHome });
+      const startup = windowsStartupFile(tmpHome);
+      expect(on.files).toContain(startup);
+      expect(readFileSync(startup, "utf8")).toContain("dashboard.cmd");
+      expect(on.message).toContain("Startup folder");
+      expect(windowsStartupFile("C:\\Users\\Jane", "C:\\Users\\Jane\\AppData\\Roaming", win32.join)).toBe(
+        "C:\\Users\\Jane\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\QuietApply dashboard.vbs",
+      );
+    } finally {
+      if (appData !== undefined) process.env.APPDATA = appData;
+    }
   });
 
   it("prints what it would install without running anything", () => {
     const ran: string[] = [];
     const r = scheduleOn(paths("/tmp/qa-win-print"), cli, {
+      userHome: "/tmp/qa-win-print-home",
       platform: "win32",
       dryRun: true,
       exec: (c) => {
@@ -245,6 +294,11 @@ describe("Task Scheduler (Windows)", () => {
     });
     expect(ran).toEqual([]);
     expect(r.message).toContain("schtasks /Create");
-    expect(r.files).toEqual([join("/tmp/qa-win-print", "tick.cmd"), join("/tmp/qa-win-print", "tick.vbs")]);
+    expect(r.message).toContain("<LogonTrigger>");
+    expect(r.files).toEqual(
+      ["dashboard.cmd", "dashboard.vbs", "dashboard-task.xml", "tick.cmd", "tick.vbs"].map((f) =>
+        join("/tmp/qa-win-print", f),
+      ),
+    );
   });
 });

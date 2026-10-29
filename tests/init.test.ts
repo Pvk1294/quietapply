@@ -3,9 +3,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { init } from "../src/cli/init.js";
-import { loadConfig } from "../src/core/config.js";
+import { loadConfig, saveConfig } from "../src/core/config.js";
 import { openDb } from "../src/core/db.js";
-import { paths } from "../src/core/paths.js";
+import { type Paths, paths } from "../src/core/paths.js";
 import { listAnswers } from "../src/memory/answers.js";
 import { loadProfile } from "../src/memory/profile.js";
 import { PROVIDERS } from "../src/providers/index.js";
@@ -19,6 +19,18 @@ const h = vi.hoisted(() => ({
   warned: [] as string[],
   ENTER: Symbol("enter"),
   CANCEL: Symbol("cancel"),
+  autoStart: [] as boolean[],
+}));
+
+// Turning on "Run automatically" would install real OS login items: here it is only recorded.
+vi.mock("../src/scheduler/index.js", async (original) => ({
+  ...(await original<typeof import("../src/scheduler/index.js")>()),
+  setAutoStart: (p: Paths, _cli: string, on: boolean) => {
+    h.autoStart.push(on);
+    saveConfig({ ...loadConfig(p), autoStart: on }, p);
+    return { ok: true, message: on ? "Automatic runs are on." : "off", files: [] };
+  },
+  scheduleState: () => ({ dashboard: false, runs: false }),
 }));
 
 vi.mock("@clack/prompts", () => {
@@ -108,6 +120,9 @@ beforeEach(() => {
   h.asked.length = 0;
   h.rejected.length = 0;
   h.warned.length = 0;
+  h.autoStart.length = 0;
+  // Asked last in every full setup; Enter keeps the default (yes).
+  say(/Run automatically/, h.ENTER);
   Object.defineProperty(process.stdin, "isTTY", { value: true, configurable: true });
   vi.spyOn(PROVIDERS["claude-code"], "detect").mockResolvedValue({
     installed: true,
@@ -166,6 +181,10 @@ describe("interactive quietapply init", () => {
 
     expect(h.script.filter((s) => !s.used)).toEqual([]);
     expect(h.rejected).toEqual(["Path to your resume (PDF, DOCX or text): File not found"]);
+    // "Run automatically while your computer is on?" was asked, and Yes (the default) turned it on.
+    expect(h.autoStart).toEqual([
+      !(process.platform === "darwin" && /\/(Desktop|Documents|Downloads)\//.test(import.meta.dirname)),
+    ]);
     // Asked in this order, each once (the resume path twice because the first one was wrong).
     expect(h.asked.slice(0, 4)).toEqual([
       "Which AI should run the applications?",
@@ -173,7 +192,8 @@ describe("interactive quietapply init", () => {
       "Path to your resume (PDF, DOCX or text)",
       "Path to your resume (PDF, DOCX or text)",
     ]);
-    expect(h.asked).toHaveLength(23);
+    expect(h.asked).toHaveLength(24);
+    expect(h.asked.at(-1)).toBe("Run automatically while your computer is on?");
 
     const p = paths(home);
     const config = loadConfig(p);

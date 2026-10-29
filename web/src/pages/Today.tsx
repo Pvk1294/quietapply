@@ -39,7 +39,7 @@ export function Today({ summary }: { summary?: Summary }) {
           </p>
           <p className="muted">
             Next runs at {summary.schedule.join(", ")}
-            {summary.scheduleInstalled ? "" : " (schedule not installed: run quietapply schedule on)"}.
+            {summary.scheduleInstalled ? "" : " (not running automatically: turn it on in Settings)"}.
             {summary.lastRun
               ? ` Last run ${ago(summary.lastRun.started_at)}: ${summary.lastRun.summary ?? summary.lastRun.status}.`
               : ""}

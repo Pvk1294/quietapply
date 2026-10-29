@@ -7,7 +7,7 @@ import { messagesEnabled } from "../linkedin/messages.js";
 import { loadProfile } from "../memory/profile.js";
 import { getProvider } from "../providers/index.js";
 import { version } from "../providers/spawn.js";
-import { macProtectedFolder, scheduleInstalled } from "../scheduler/index.js";
+import { macProtectedFolder, scheduleState } from "../scheduler/index.js";
 import { setupGaps } from "./setup.js";
 
 export interface Check {
@@ -184,11 +184,14 @@ export async function doctor(): Promise<Check[]> {
         : "off (default)",
     });
   }
-  const scheduled = scheduleInstalled();
+  const auto = scheduleState();
   checks.push({
-    name: "Schedule",
-    ok: scheduled ? true : "warn",
-    detail: scheduled ? "installed" : "not installed: quietapply schedule on",
+    name: "Run automatically",
+    ok: auto.dashboard && auto.runs ? true : "warn",
+    detail:
+      auto.dashboard && auto.runs
+        ? `on: dashboard at login, runs at ${(config?.schedule ?? []).join(", ")}`
+        : `${auto.runs ? "runs scheduled, but the dashboard does not start at login" : auto.dashboard ? "dashboard at login, but no run schedule" : "off"}: quietapply schedule on`,
   });
   const folder = process.platform === "darwin" ? macProtectedFolder(packageRoot()) : undefined;
   if (folder)

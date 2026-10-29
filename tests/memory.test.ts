@@ -44,6 +44,8 @@ describe("question matching", () => {
   it("maps many wordings onto one standard key", () => {
     expect(keyForQuestion("How soon can you join?")).toBe("notice_period");
     expect(keyForQuestion("Earliest possible start date")).toBe("notice_period");
+    expect(keyForQuestion("When are you available to start full-time?")).toBe("notice_period");
+    expect(keyForQuestion("Degree")).toBe("highest_degree");
     expect(
       keyForQuestion("Will you now or in the future require sponsorship for employment visa status?"),
     ).toBe("sponsorship");
@@ -86,6 +88,13 @@ describe("answer memory", () => {
     expect(r).toMatchObject({ status: "known", memoryId: "profile:email", answer: "jane.doe@example.com" });
     expect(lookupAnswer(db, jane, "First Name")).toMatchObject({ answer: "Jane" });
     expect(lookupAnswer(db, jane, "LinkedIn Profile")).toMatchObject({ memoryId: "profile:linkedin" });
+    expect(lookupAnswer(db, jane, "Who is your current or previous employer?")).toMatchObject({
+      memoryId: "profile:current_company",
+      answer: "Initech",
+    });
+    expect(lookupAnswer(db, jane, "What is your current or previous job title?")).toMatchObject({
+      memoryId: "profile:current_title",
+    });
   });
 
   it("finds a stored answer under a different wording and cites its id", () => {

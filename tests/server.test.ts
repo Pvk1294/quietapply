@@ -1,5 +1,8 @@
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { loadConfig } from "../src/core/config.js";
 import { openDb } from "../src/core/db.js";
 import { addApplication, askQuestion, getApplication, setStatus } from "../src/core/store.js";
 import { runFolder } from "../src/runner/evidence.js";
@@ -207,5 +210,44 @@ describe("starting the dashboard", () => {
       delete process.env.QUIETAPPLY_HOME;
       busy.close();
     }
+  });
+});
+
+describe("Settings → Run automatically", () => {
+  it("shows the state and switches both parts on and off, on this computer only", async () => {
+    const p = makeHome();
+    const userHome = mkdtempSync(join(tmpdir(), "qa-auto-"));
+    const ran: string[] = [];
+    const app = createApp({
+      p,
+      port: PORT,
+      cli: "/opt/qa/dist/cli/index.js",
+      scheduleEnv: { platform: "linux", userHome, exec: (c, a) => void ran.push([c, ...a].join(" ")) },
+      defer: (f) => f(),
+    });
+    const get = async () =>
+      (await (await app.request("/api/autostart", { headers: HOST })).json()) as Record<string, unknown>;
+    expect(await get()).toMatchObject({ on: false, dashboard: false, runs: false, canChange: true });
+
+    const on = await app.request("/api/autostart", { method: "PUT", headers: WRITE, body: '{"on":true}' });
+    expect(on.status).toBe(200);
+    expect(((await on.json()) as { message: string }).message).toContain("starts when you log in");
+    expect(ran).toContain("systemctl --user enable --now quietapply-dashboard.service");
+    const state = await get();
+    expect(state).toMatchObject({ on: true, schedule: ["09:00", "13:00", "19:00"] });
+    expect((state.lines as string[])[0]).toBe("Run automatically: ON");
+    expect(loadConfig(p).autoStart).toBe(true);
+
+    // Not from the phone (a request through Tailscale Serve).
+    const phone = await app.request("/api/autostart", {
+      method: "PUT",
+      headers: { ...WRITE, "tailscale-user-login": "jane@example.com" },
+      body: '{"on":false}',
+    });
+    expect(phone.status).toBe(403);
+
+    await app.request("/api/autostart", { method: "PUT", headers: WRITE, body: '{"on":false}' });
+    expect(await get()).toMatchObject({ on: false });
+    expect(loadConfig(p).autoStart).toBe(false);
   });
 });
