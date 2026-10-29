@@ -32,7 +32,7 @@ To switch it off: `quietapply phone off`. That removes only QuietApply's entry; 
 
 `quietapply phone` runs `tailscale serve --bg --https=<port> http://127.0.0.1:4777`.
 
-- **Port:** `phone.httpsPort`, 8443 by default. Tailscale allows 443, 8443 and 10000. If the port already serves something else (maybe another of your apps), QuietApply moves to the next free one and never replaces it.
+- **Port:** `phone.httpsPort`, 8443 by default. Tailscale Serve accepts any free HTTPS port ([Serve docs](https://tailscale.com/kb/1242/tailscale-serve)). The limit to 443, 8443 and 10000 applies only to Funnel, the public mode QuietApply never uses ([Funnel docs](https://tailscale.com/kb/1223/funnel)). If the port already serves something else (maybe another of your apps), QuietApply never replaces it and tries 8444, 8445 and so on up to 8542. A Mac that already serves other apps on 8443 to 8445 gets 8446. You can also set `phone.httpsPort` to any free port yourself.
 - **Config:** it saves `phone.host` (your Mac's tailnet name) and, if the list is empty, your own Tailscale login in `phone.allowedLogins`, in `~/.quietapply/config.yaml`:
 
   ```yaml

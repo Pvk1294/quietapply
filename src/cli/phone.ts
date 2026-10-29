@@ -1,7 +1,9 @@
 import { loadConfig, saveConfig } from "../core/config.js";
 import { ensureHome, paths } from "../core/paths.js";
 import {
+  FIRST_PORT,
   findTailscale,
+  PORTS_TO_TRY,
   pickPort,
   servedOn,
   serveOff,
@@ -69,8 +71,8 @@ export async function phoneOn(o: { port?: number; bin?: string | null } = {}): P
     return {
       ok: false,
       lines: [
-        "HTTPS ports 443, 8443 and 10000 are all used by other Tailscale Serve settings, so QuietApply left them alone.",
-        "Free one with  tailscale serve status  and  tailscale serve --https=<port> off, then run this again.",
+        `HTTPS ports ${FIRST_PORT} to ${FIRST_PORT + PORTS_TO_TRY - 1} are all used by other Tailscale Serve settings, so QuietApply left them alone.`,
+        "Set phone.httpsPort in config.yaml to any free port, then run this again. tailscale serve status shows which ports are taken.",
       ],
     };
   if (httpsPort !== config.phone.httpsPort) {

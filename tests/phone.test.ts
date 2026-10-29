@@ -80,11 +80,35 @@ describe("quietapply phone (fake tailscale binary)", () => {
     });
     const r = await phoneOn({ bin: FAKE });
     expect(r.ok).toBe(true);
-    expect(r.lines.join("\n")).toContain("https://my-mac.tail1234.ts.net:10000");
+    expect(r.lines.join("\n")).toContain("https://my-mac.tail1234.ts.net:8444");
     expect(busy.read().serve.Web["my-mac.tail1234.ts.net:8443"]?.Handlers["/"]?.Proxy).toBe(
       "http://127.0.0.1:9999",
     );
-    expect(loadConfig(busy.p).phone.httpsPort).toBe(10000);
+    expect(loadConfig(busy.p).phone.httpsPort).toBe(8444);
+  });
+
+  it("Serve takes any free port, not only Funnel's 443, 8443 and 10000", async () => {
+    // Like a Mac that already serves other apps on 443, 8443, 8444, 8445 and 10000.
+    const taken = [443, 8443, 8444, 8445, 10000];
+    const serve = {
+      Web: Object.fromEntries(
+        taken.map((port, i) => [
+          `my-mac.tail1234.ts.net:${port}`,
+          { Handlers: { "/": { Proxy: `http://127.0.0.1:${9000 + i}` } } },
+        ]),
+      ),
+      TCP: Object.fromEntries(taken.map((port) => [String(port), { HTTPS: true }])),
+      AllowFunnel: {},
+    };
+    const { p, read } = setup({ serve });
+    const r = await phoneOn({ bin: FAKE });
+    expect(r.ok).toBe(true);
+    expect(r.lines.join("\n")).toContain("https://my-mac.tail1234.ts.net:8446");
+    expect(loadConfig(p).phone.httpsPort).toBe(8446);
+    for (const [i, port] of taken.entries())
+      expect(read().serve.Web[`my-mac.tail1234.ts.net:${port}`]?.Handlers["/"]?.Proxy).toBe(
+        `http://127.0.0.1:${9000 + i}`,
+      );
   });
 
   it("switches itself off again if Tailscale reports the port as public", async () => {

@@ -127,7 +127,7 @@ export async function serveOn(
   if (before && before.target !== target)
     return {
       ok: false,
-      error: `HTTPS port ${httpsPort} already serves something else (${before.target || "another service"}). Pick another port with phone.httpsPort in config.yaml (Tailscale allows 443, 8443 and 10000).`,
+      error: `HTTPS port ${httpsPort} already serves something else (${before.target || "another service"}). Pick another port with phone.httpsPort in config.yaml (any free port works).`,
     };
   const r = await tailscale(bin, ["serve", "--bg", `--https=${httpsPort}`, target]);
   const out = `${r.stdout}\n${r.stderr}`.trim();
@@ -150,13 +150,18 @@ export async function serveOff(bin: string, httpsPort: number, dashboardPort: nu
   return { ok: r.code === 0, out: `${r.stdout}\n${r.stderr}`.trim() };
 }
 
+/** Serve takes any free HTTPS port (only Funnel is limited to 443, 8443 and 10000), so look this far up from 8443. */
+export const FIRST_PORT = 8443;
+export const PORTS_TO_TRY = 100;
+
 /**
- * The first HTTPS port Serve may use that is free or already ours, trying the configured one, then 8443,
- * 10000 and 443 (the ports Tailscale allows). Undefined when all are taken by something else.
+ * The first HTTPS port Serve may use that is free or already ours: the configured one, then 8443, 8444, …
+ * Undefined when the configured port and all of 8443 to 8542 are taken by something else.
  */
 export async function pickPort(bin: string, host: string, preferred: number, dashboardPort: number) {
   const st = await serveStatus(bin);
-  for (const port of [...new Set([preferred, 8443, 10000, 443])]) {
+  const ports = [preferred, ...Array.from({ length: PORTS_TO_TRY }, (_, i) => FIRST_PORT + i)];
+  for (const port of new Set(ports)) {
     const used = servedOn(st, host, port);
     if (!used || (used.target === targetFor(dashboardPort) && !used.funnel)) return port;
   }
