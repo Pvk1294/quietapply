@@ -9,6 +9,7 @@ import { acquireLock } from "../src/core/lock.js";
 import { ensureHome, paths } from "../src/core/paths.js";
 import { checkFit, requiredYears } from "../src/core/rules.js";
 import { addApplication, setStatus } from "../src/core/store.js";
+import { homeCountry, saveAnswer } from "../src/memory/answers.js";
 import { Profile } from "../src/memory/profile.js";
 
 const tmp = () => mkdtempSync(join(tmpdir(), "qa-test-"));
@@ -113,8 +114,54 @@ describe("fit gate", () => {
 
   it("passes a matching job", () => {
     expect(
-      checkFit({ company: "Acme", title: "Software Engineer", location: "Remote - US" }, rules, profile).fit,
+      checkFit(
+        { company: "Acme", title: "Software Engineer", location: "Remote - US" },
+        rules,
+        profile,
+        "united states",
+      ).fit,
     ).toBe(true);
+  });
+
+  describe("remote roles limited to a country", () => {
+    const fitAt = (location: string, home?: string) =>
+      checkFit({ company: "Acme", title: "Software Engineer", location }, rules, profile, home);
+
+    it("matches a plain or worldwide remote role wherever you live", () => {
+      expect(fitAt("Remote", "india").fit).toBe(true);
+      expect(fitAt("Remote, worldwide", "india").fit).toBe(true);
+      expect(fitAt("Remote (Anywhere)").fit).toBe(true);
+    });
+    it("skips remote roles in other countries (US, UK and Brazil were queued for someone in India)", () => {
+      for (const loc of ["Remote - US", "Remote, United Kingdom", "Remote - Brazil", "US-Remote"]) {
+        const r = fitAt(loc, "india");
+        expect(r.fit, loc).toBe(false);
+        if (!r.fit) expect(r.reason).toContain("not where you live");
+      }
+    });
+    it("matches remote roles in your own country or region", () => {
+      expect(fitAt("Remote - India", "india").fit).toBe(true);
+      expect(fitAt("Remote, EMEA", "germany").fit).toBe(true);
+      expect(fitAt("Remote (USA or Canada)", "canada").fit).toBe(true);
+      expect(fitAt("Remote - Oregon", "united states").fit).toBe(true);
+    });
+    it("skips a country-limited remote role when your country is not set, and says so", () => {
+      const r = fitAt("Remote - US");
+      expect(r.fit).toBe(false);
+      if (!r.fit) expect(r.reason).toContain("country is not set");
+    });
+    it("still matches an office location you listed", () => {
+      expect(fitAt("Springfield, Oregon", "india").fit).toBe(true);
+    });
+  });
+
+  it("finds your country from the setup answer, else from your profile location", () => {
+    const db = openMemoryDb();
+    expect(homeCountry(db, Profile.parse({ location: "Springfield, Oregon" }))).toBe("united states");
+    expect(homeCountry(db, Profile.parse({ location: "Bengaluru, India" }))).toBe("india");
+    expect(homeCountry(db, Profile.parse({ location: "Springfield" }))).toBeUndefined();
+    saveAnswer(db, { key: "country", question: "Which country do you live in?", answer: "UK" });
+    expect(homeCountry(db, Profile.parse({ location: "Springfield, Oregon" }))).toBe("united kingdom");
   });
   it.each([
     [{ company: "Initech", title: "Engineer" }, "never-apply"],

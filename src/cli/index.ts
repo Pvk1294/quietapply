@@ -59,8 +59,13 @@ program
   .action(async () => {
     const p = ensureHome(paths());
     const db = openDb(p);
-    const s = await discover(db, loadConfig(p), loadProfile(p), defaultFetcher);
+    const config = loadConfig(p);
+    const s = await discover(db, config, loadProfile(p), defaultFetcher);
     console.log(`Found ${s.found} open roles, queued ${s.added} new (${s.alreadyKnown} already known).`);
+    if (!config.rules.roles.length && s.added)
+      console.log(
+        "  Note: no job titles are set, so every role passed the title check. Add titles in Settings or `quietapply init`.",
+      );
     for (const [reason, n] of Object.entries(s.skipped)) console.log(`  skipped ${n}: ${reason}`);
     for (const e of s.errors) console.log(`  error at ${e.company}: ${e.error}`);
   });

@@ -1,5 +1,6 @@
 import type { DB } from "../core/db.js";
 import { now } from "../core/db.js";
+import { countryOf } from "../core/regions.js";
 import { norm, sameQuestion, similarity } from "../core/text.js";
 import { isClosedQuestion, PROFILE_FIELDS, type Profile } from "./profile.js";
 import { STANDARD_QUESTIONS, standardQuestion } from "./seed.js";
@@ -128,10 +129,21 @@ export function markUsed(db: DB, id: number): void {
   db.prepare("UPDATE answers SET uses = uses + 1 WHERE id = ?").run(id);
 }
 
+/**
+ * The country you live in, for the fit gate's "remote" check: your answer to "Which country do you live
+ * in?", else the country in your profile's location.
+ */
+export function homeCountry(db: DB, profile?: Profile): string | undefined {
+  const answer = listAnswers(db).find((a) => a.key === "country" && a.scope === "global")?.answer;
+  return countryOf(answer) ?? countryOf(profile?.location);
+}
+
 /** Which standard key, if any, a form question is asking about. */
 export function keyForQuestion(question: string): string | undefined {
   const n = norm(question);
-  return STANDARD_QUESTIONS.find((q) => q.patterns.some((p) => p.test(n)))?.key;
+  return STANDARD_QUESTIONS.find(
+    (q) => q.patterns.some((p) => p.test(n)) && !q.notPatterns?.some((p) => p.test(n)),
+  )?.key;
 }
 
 export interface LookupContext {

@@ -34,7 +34,7 @@ import {
   turnOffLinkedIn,
   turnOnLinkedIn,
 } from "../linkedin/mode.js";
-import { deleteAnswer, listAnswers, updateAnswer } from "../memory/answers.js";
+import { deleteAnswer, homeCountry, listAnswers, updateAnswer } from "../memory/answers.js";
 import { loadProfile, PROFILE_FIELDS, type Profile } from "../memory/profile.js";
 import { answerQuestion, dismissQuestion } from "../memory/queue.js";
 import { discover } from "../runner/discover.js";
@@ -273,7 +273,8 @@ export function createApp(opts: AppOptions): Hono {
     if (h.reason === "unknown_question" && openQuestionsFor(d, a.id).length)
       return "Answer the open question(s) first.";
     if (h.reason === "fit_gate") {
-      const fit = checkFit(a, loadConfig(p).rules, loadProfile(p));
+      const profile = loadProfile(p);
+      const fit = checkFit(a, loadConfig(p).rules, profile, homeCountry(d, profile));
       if (!fit.fit) return `Still blocked by your rules: ${fit.reason}.`;
     }
     if (h.reason === "cap" && !loadConfig(p).dryRun) {

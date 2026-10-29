@@ -26,6 +26,7 @@ import {
   stopLinkedIn,
 } from "../linkedin/mode.js";
 import { Desk, type DeskOptions } from "../mcp/desk.js";
+import { homeCountry } from "../memory/answers.js";
 import { loadProfile, type Profile } from "../memory/profile.js";
 import { getProvider } from "../providers/index.js";
 import type { AgentRunResult, McpServerSpec } from "../providers/types.js";
@@ -179,7 +180,7 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
           continue;
         }
       } else {
-        const fit = checkFit(app, config.rules, profile);
+        const fit = checkFit(app, config.rules, profile, homeCountry(db, profile));
         if (!fit.fit) {
           setStatus(db, app.id, "skipped", { reason: fit.reason });
           recordHandoff(db, {

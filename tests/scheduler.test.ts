@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { macProtectedFolder } from "../src/scheduler/index.js";
 import { dueSlot, retryDue } from "../src/scheduler/slots.js";
 import { launchdPlist, systemdUnits } from "../src/scheduler/units.js";
 
@@ -37,5 +38,17 @@ describe("OS units", () => {
     const u = systemdUnits("/usr/bin/node", "/opt/qa/dist/cli/index.js", "/home/test/.quietapply");
     expect(u.service).toContain("ExecStart=/usr/bin/node /opt/qa/dist/cli/index.js tick");
     expect(u.timer).toContain("OnUnitActiveSec=15min");
+  });
+});
+
+describe("macOS protected folders", () => {
+  it("spots a clone in Desktop, Documents or Downloads, where background jobs hang", () => {
+    const home = "/Users/test";
+    expect(macProtectedFolder("/Users/test/Desktop/quietapply/dist/cli/index.js", home)).toBe("Desktop");
+    expect(macProtectedFolder("/Users/test/Documents/code/quietapply/dist/cli/index.js", home)).toBe(
+      "Documents",
+    );
+    expect(macProtectedFolder("/Users/test/code/quietapply/dist/cli/index.js", home)).toBeUndefined();
+    expect(macProtectedFolder("/Users/test/DesktopApps/quietapply/index.js", home)).toBeUndefined();
   });
 });

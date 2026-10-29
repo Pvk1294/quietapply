@@ -34,7 +34,14 @@ import {
   stopLinkedIn,
   typingChunks,
 } from "../linkedin/mode.js";
-import { getAnswer, type LookupResult, lookupAnswer, markUsed, parseMemoryId } from "../memory/answers.js";
+import {
+  getAnswer,
+  homeCountry,
+  type LookupResult,
+  lookupAnswer,
+  markUsed,
+  parseMemoryId,
+} from "../memory/answers.js";
 import { PROFILE_FIELDS, type Profile, profileForPrompt } from "../memory/profile.js";
 import { lockSubmitStep, logSubmitAttempt } from "../runner/chrome-guard.js";
 import { detectAts } from "../sources/detect.js";
@@ -464,6 +471,7 @@ export class Desk {
       },
       this.config.rules,
       this.profile,
+      homeCountry(this.db, this.profile),
     );
     if (!fit.fit) {
       setStatus(this.db, a.id, "skipped", { reason: fit.reason });

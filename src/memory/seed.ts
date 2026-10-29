@@ -8,6 +8,8 @@ export interface StandardQuestion {
   question: string;
   /** Regexes over the normalised question text (see core/text.ts norm). */
   patterns: RegExp[];
+  /** Questions that match a pattern but ask something else, such as a consent to AI note-taking. */
+  notPatterns?: RegExp[];
   type: "text" | "yesno" | "number" | "choice" | "long";
   options?: string[];
   sensitive?: boolean;
@@ -190,6 +192,8 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
       /^i (agree|consent|acknowledge)/,
       /(privacy (policy|notice)|data (processing|protection|storage)|storing my)/,
     ],
+    // Consent to being recorded or to AI note-takers in interviews is its own decision, not privacy consent.
+    notPatterns: [/\b(ai|artificial intelligence|notetak\w*|note tak\w*|record\w*|transcri\w*)\b/],
     type: "yesno",
     essential: true,
     hint: "Most forms require this box to be ticked.",
@@ -229,7 +233,8 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
   {
     key: "pronouns",
     question: "Pronouns (optional)",
-    patterns: [/pronoun/],
+    // "pronouns", not "How do you pronounce your name?"
+    patterns: [/\bpronouns?\b/],
     type: "text",
     sensitive: true,
     default: DECLINE,

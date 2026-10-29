@@ -54,6 +54,32 @@ describe("question matching", () => {
   });
 });
 
+describe("look-alike questions (found on a real Lever form)", () => {
+  const notetaker =
+    "As part of our interview process, we use AI notetakers to transcribe conversations for accuracy and efficiency. Please see our candidate privacy policy for more information on how we process your data.";
+
+  it("does not answer 'How do you pronounce your name?' with the pronouns answer", () => {
+    expect(keyForQuestion("Name Pronunciation | How do you pronounce your name?")).toBeUndefined();
+    expect(keyForQuestion("What are your pronouns?")).toBe("pronouns");
+    saveAnswer(db, { key: "pronouns", question: "Pronouns (optional)", answer: "I prefer not to answer" });
+    expect(lookupAnswer(db, jane, "Name Pronunciation | How do you pronounce your name?").status).not.toBe(
+      "known",
+    );
+  });
+
+  it("does not treat consent to AI note-takers as privacy consent", () => {
+    expect(keyForQuestion(notetaker)).toBeUndefined();
+    expect(keyForQuestion("I agree to the privacy policy")).toBe("data_consent");
+    saveAnswer(db, {
+      key: "data_consent",
+      question:
+        "Do you agree to companies storing and processing your application data (privacy consent boxes)?",
+      answer: "Yes",
+    });
+    expect(lookupAnswer(db, jane, notetaker).status).not.toBe("known");
+  });
+});
+
 describe("answer memory", () => {
   it("answers profile fields from the profile", () => {
     const r = lookupAnswer(db, jane, "Email");

@@ -1,11 +1,13 @@
 import { existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { loadConfig } from "../core/config.js";
-import { paths } from "../core/paths.js";
+import { openDb } from "../core/db.js";
+import { packageRoot, paths } from "../core/paths.js";
 import { loadProfile } from "../memory/profile.js";
 import { getProvider } from "../providers/index.js";
 import { version } from "../providers/spawn.js";
-import { scheduleInstalled } from "../scheduler/index.js";
+import { macProtectedFolder, scheduleInstalled } from "../scheduler/index.js";
+import { setupGaps } from "./setup.js";
 
 export interface Check {
   name: string;
@@ -119,6 +121,16 @@ export async function doctor(): Promise<Check[]> {
         detail:
           "LinkedIn runs use your own Chrome through the Claude in Chrome extension, signed in to LinkedIn",
       });
+    if (existsSync(p.db)) {
+      const gaps = setupGaps(openDb(p), profile, config);
+      checks.push({
+        name: "Setup answers",
+        ok: gaps.length ? "warn" : true,
+        detail: gaps.length
+          ? `missing ${gaps.join(" · ")}. Run quietapply init`
+          : "location and common questions set",
+      });
+    }
     checks.push({
       name: "LinkedIn",
       ok: true,
@@ -132,5 +144,12 @@ export async function doctor(): Promise<Check[]> {
     ok: scheduleInstalled() ? true : "warn",
     detail: scheduleInstalled() ? "installed" : "not installed: quietapply schedule on",
   });
+  const folder = process.platform === "darwin" ? macProtectedFolder(packageRoot()) : undefined;
+  if (folder)
+    checks.push({
+      name: "Install folder",
+      ok: "warn",
+      detail: `QuietApply is in ~/${folder}. The scheduler cannot read that folder in the background on macOS. Clone it somewhere else, such as ~/code, before schedule on`,
+    });
   return checks;
 }

@@ -1,5 +1,6 @@
 import type { Profile } from "../memory/profile.js";
 import type { Rules } from "./config.js";
+import { remoteOpenTo } from "./regions.js";
 import { norm } from "./text.js";
 
 export interface JobFacts {
@@ -19,9 +20,10 @@ const includesWord = (hay: string, needle: string) => ` ${norm(hay)} `.includes(
 
 /**
  * The fit gate. Every job passes through it before the agent is started, and every skip is logged with its
- * reason, so you can see why something was not applied to.
+ * reason, so you can see why something was not applied to. `home` is the country you live in (see
+ * homeCountry): "remote" in your locations matches remote roles open to that country, not every remote role.
  */
-export function checkFit(job: JobFacts, rules: Rules, profile?: Profile): FitResult {
+export function checkFit(job: JobFacts, rules: Rules, profile?: Profile, home?: string): FitResult {
   const company = norm(job.company);
   if (rules.neverApply.some((c) => norm(c) === company))
     return { fit: false, reason: "company is on your never-apply list" };
@@ -34,11 +36,25 @@ export function checkFit(job: JobFacts, rules: Rules, profile?: Profile): FitRes
 
   if (rules.locations.length && job.location) {
     const loc = norm(job.location);
+    const isRemote = /\b(remote|anywhere|distributed|worldwide)\b/.test(loc);
+    let remoteElsewhere = false;
     const ok = rules.locations.some((l) => {
       const want = norm(l);
-      return loc.includes(want) || (want === "remote" && /remote|anywhere|distributed/.test(loc));
+      if (want !== "remote") return loc.includes(want);
+      if (!isRemote) return false;
+      if (remoteOpenTo(job.location ?? "", home).ok) return true;
+      remoteElsewhere = true;
+      return false;
     });
-    if (!ok) return { fit: false, reason: `location "${job.location}" is not in your locations` };
+    if (!ok)
+      return {
+        fit: false,
+        reason: remoteElsewhere
+          ? home
+            ? `remote role limited to "${job.location}", not where you live`
+            : `remote role limited to "${job.location}" and your country is not set`
+          : `location "${job.location}" is not in your locations`,
+      };
   }
 
   if (job.description && NO_AI.test(job.description))

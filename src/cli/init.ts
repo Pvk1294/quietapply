@@ -6,12 +6,12 @@ import { openDb } from "../core/db.js";
 import { ensureHome, paths } from "../core/paths.js";
 import { LINKEDIN_RISK, linkedInSetupProblem, turnOnLinkedIn } from "../linkedin/mode.js";
 import { listAnswers, saveAnswer } from "../memory/answers.js";
-import { loadProfile, saveProfile } from "../memory/profile.js";
+import { loadProfile, type Profile, saveProfile } from "../memory/profile.js";
 import { STANDARD_QUESTIONS } from "../memory/seed.js";
 import { getProvider, PROVIDERS } from "../providers/index.js";
 import { detectAts } from "../sources/detect.js";
 import { EXPLAIN } from "./explain.js";
-import { importResume, seedDefaults } from "./setup.js";
+import { importResume, seedDefaults, setupGaps } from "./setup.js";
 
 export interface InitOptions {
   resume?: string;
@@ -75,7 +75,11 @@ export async function init(opts: InitOptions): Promise<void> {
       options: [
         { value: "playwright-profile", label: "A separate Chrome profile (Playwright)", hint: "recommended" },
         { value: "playwright-extension", label: "Your running Chrome or Edge (Playwright extension)" },
-        { value: "claude-in-chrome", label: "Claude in Chrome", hint: "Claude plans only" },
+        {
+          value: "claude-in-chrome",
+          label: "Claude in Chrome",
+          hint: "Claude plans only, use Playwright for dry runs",
+        },
       ],
     });
     if (cancelled(browser)) bail();
@@ -114,20 +118,7 @@ export async function init(opts: InitOptions): Promise<void> {
     s.stop(
       `Profile built${usedAgent ? " by the agent" : ""}: ${profile.name || "name not found"}, ${profile.experience.length} roles, ${profile.skills.length} skills`,
     );
-    if (interactive) {
-      p.log.message(EXPLAIN.contact);
-      const fixes = await p.group(
-        {
-          name: () => p.text({ message: "Full name", initialValue: profile.name }),
-          email: () => p.text({ message: "Email for applications", initialValue: profile.email }),
-          phone: () => p.text({ message: "Phone (with country code)", initialValue: profile.phone }),
-          location: () => p.text({ message: "City, country", initialValue: profile.location }),
-        },
-        { onCancel: bail },
-      );
-      Object.assign(profile, fixes);
-      saveProfile(profile, dirs);
-    }
+    if (interactive) await askContact(profile, dirs);
     p.log.info(`Check the rest any time in ${dirs.profile} or the dashboard.`);
   } else {
     p.log.warn("No resume given. Run `quietapply init --resume <file>` later.");
@@ -173,12 +164,15 @@ export async function init(opts: InitOptions): Promise<void> {
       {
         roles: ask(EXPLAIN.roles, {
           message: "Job titles to look for (comma separated)",
-          placeholder: "software engineer, backend developer",
+          placeholder: "for example: software engineer, backend developer",
           initialValue: config.rules.roles.join(", "),
+          // Empty would queue every open role at every company you watch.
+          validate: (v) =>
+            list(v).length ? undefined : "Add at least one job title, for example: software engineer",
         }),
         locations: ask(EXPLAIN.locations, {
           message: "Locations (comma separated; 'remote' for remote roles)",
-          placeholder: "remote, Berlin",
+          placeholder: "for example: remote, Berlin (empty means anywhere)",
           initialValue: config.rules.locations.join(", "),
         }),
         never: ask(EXPLAIN.never, {
@@ -226,6 +220,17 @@ export async function init(opts: InitOptions): Promise<void> {
   }
 
   saveConfig(config, dirs);
+  const gaps = setupGaps(db, loadProfile(dirs), config);
+  if (gaps.length)
+    p.log.warn(
+      [
+        "Still missing, so real forms will stop and wait for you:",
+        ...gaps.map((g) => `- ${g}`),
+        interactive
+          ? "Run `quietapply init` again to add them (it asks only what is missing), or use the dashboard."
+          : "Run `quietapply init` without --yes to answer them (it asks only what is missing).",
+      ].join("\n"),
+    );
   p.note(
     [
       "quietapply doctor        check the provider, browser and data folder",
@@ -238,6 +243,27 @@ export async function init(opts: InitOptions): Promise<void> {
   p.outro(
     `Dry run is ON and the first ${config.limits.reviewFirst} applications wait for your OK. Change both in Settings.`,
   );
+}
+
+/** Name, email, phone and city: they go into every form, so they are checked by you, not guessed. */
+async function askContact(profile: Profile, dirs: ReturnType<typeof paths>): Promise<void> {
+  p.log.message(EXPLAIN.contact);
+  const fixes = await p.group(
+    {
+      name: () => p.text({ message: "Full name", initialValue: profile.name }),
+      email: () => p.text({ message: "Email for applications", initialValue: profile.email }),
+      phone: () => p.text({ message: "Phone (with country code)", initialValue: profile.phone }),
+      location: () =>
+        p.text({
+          message: "City, country",
+          placeholder: "for example: Berlin, Germany",
+          initialValue: profile.location,
+        }),
+    },
+    { onCancel: bail },
+  );
+  Object.assign(profile, fixes);
+  saveProfile(profile, dirs);
 }
 
 function list(s: string | undefined): string[] {

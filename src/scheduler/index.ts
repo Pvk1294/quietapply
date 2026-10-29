@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { homedir } from "node:os";
+import { join, sep } from "node:path";
 import type { Paths } from "../core/paths.js";
 import { LABEL, launchdPath, launchdPlist, systemdDir, systemdUnits } from "./units.js";
 
@@ -24,9 +25,14 @@ export function scheduleOn(p: Paths, cli: string, opts: { dryRun?: boolean } = {
       // not loaded yet
     }
     execFileSync("launchctl", ["bootstrap", `gui/${process.getuid?.()}`, file]);
+    const folder = macProtectedFolder(cli);
     return {
       ok: true,
-      message: "LaunchAgent installed: checks for a due run every 15 minutes.",
+      message: `LaunchAgent installed: checks for a due run every 15 minutes.${
+        folder
+          ? `\nWarning: QuietApply is in ~/${folder}. macOS can stop background jobs from reading that folder, and the run then hangs without a message. Move the clone somewhere else (for example ~/code/quietapply) and run schedule on again.`
+          : ""
+      }`,
       files: [file],
     };
   }
@@ -47,6 +53,14 @@ export function scheduleOn(p: Paths, cli: string, opts: { dryRun?: boolean } = {
     message: "Scheduling is supported on macOS and Linux for now (Windows is planned).",
     files: [],
   };
+}
+
+/**
+ * macOS keeps Desktop, Documents and Downloads behind a privacy prompt that a background job cannot
+ * answer, so a LaunchAgent that loads code from there hangs. Returns the folder name when `path` is inside one.
+ */
+export function macProtectedFolder(path: string, home = homedir()): string | undefined {
+  return ["Desktop", "Documents", "Downloads"].find((f) => path.startsWith(join(home, f) + sep));
 }
 
 export function scheduleOff(): ScheduleResult {

@@ -179,3 +179,20 @@ describe("dashboard API", () => {
     expect(none.screenshots).toHaveLength(1);
   });
 });
+
+describe("starting the dashboard", () => {
+  it("says the port is taken instead of crashing with a stack trace", async () => {
+    const { createServer } = await import("node:net");
+    const { startDashboard } = await import("../src/server/index.js");
+    const busy = createServer();
+    await new Promise<void>((r) => busy.listen(0, "127.0.0.1", () => r()));
+    const port = (busy.address() as { port: number }).port;
+    process.env.QUIETAPPLY_HOME = makeHome().home;
+    try {
+      await expect(startDashboard({ port })).rejects.toThrow(`port ${port} is already in use`);
+    } finally {
+      delete process.env.QUIETAPPLY_HOME;
+      busy.close();
+    }
+  });
+});

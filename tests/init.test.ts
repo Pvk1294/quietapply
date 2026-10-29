@@ -16,6 +16,7 @@ const h = vi.hoisted(() => ({
   script: [] as { re: RegExp; value: unknown; used?: boolean }[],
   asked: [] as string[],
   rejected: [] as string[],
+  warned: [] as string[],
   ENTER: Symbol("enter"),
   CANCEL: Symbol("cancel"),
 }));
@@ -76,7 +77,13 @@ vi.mock("@clack/prompts", () => {
     outro: quiet,
     note: quiet,
     cancel: quiet,
-    log: { info: quiet, warn: quiet, step: quiet, message: quiet, success: quiet },
+    log: {
+      info: quiet,
+      warn: (m: string) => h.warned.push(m),
+      step: quiet,
+      message: quiet,
+      success: quiet,
+    },
     spinner: () => ({ start: quiet, stop: quiet, message: quiet }),
     isCancel: (v: unknown) => v === h.CANCEL,
     text,
@@ -98,6 +105,7 @@ beforeEach(() => {
   h.script.length = 0;
   h.asked.length = 0;
   h.rejected.length = 0;
+  h.warned.length = 0;
   Object.defineProperty(process.stdin, "isTTY", { value: true, configurable: true });
   vi.spyOn(PROVIDERS["claude-code"], "detect").mockResolvedValue({
     installed: true,
@@ -260,8 +268,8 @@ describe("interactive quietapply init", () => {
       /storing/,
     ])
       say(re, "");
-    for (const re of [/Job titles/, /Locations/, /never to apply/, /Careers pages/, /per day/])
-      say(re, h.ENTER);
+    say(/Job titles/, "engineer");
+    for (const re of [/Locations/, /never to apply/, /Careers pages/, /per day/]) say(re, h.ENTER);
     await init({});
 
     expect(h.asked).not.toContain("Which browser should the agent drive?");
@@ -278,11 +286,24 @@ describe("interactive quietapply init", () => {
     expect(existsSync(paths(home).config)).toBe(false);
   });
 
-  it("asks nothing with --yes", async () => {
+  it("asks nothing with --yes, and says what real forms will still stop at", async () => {
     await init({ yes: true, provider: "fake", resume: RESUME });
     expect(h.asked).toEqual([]);
     const p = paths(home);
     expect(loadConfig(p).provider).toBe("fake");
     expect(loadProfile(p).name).toBe("Jane Doe");
+    const warning = h.warned.find((w) => w.startsWith("Still missing"));
+    expect(warning).toContain("8 common questions");
+    expect(warning).toContain("job titles");
+    expect(warning).toContain("without --yes");
+  });
+
+  it("does not accept an empty list of job titles", async () => {
+    firstRun();
+    h.script.find((x) => String(x.re) === String(/Job titles/))!.value = h.ENTER; // looks pre-filled, is empty
+    say(/Job titles/, "backend engineer");
+    await init({});
+    expect(h.rejected.some((r) => r.startsWith("Job titles"))).toBe(true);
+    expect(loadConfig(paths(home)).rules.roles).toEqual(["backend engineer"]);
   });
 });
