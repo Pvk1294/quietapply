@@ -1,6 +1,6 @@
 # QuietApply
 
-**A job-application agent that runs on your own machine, applies while you sleep, and asks you before it guesses.**
+**A job-application agent that runs on your own machine, applies on company job boards, and asks you before it guesses.**
 
 QuietApply uses the Claude Code or Codex you already have (subscription or API key). It finds roles on company job boards, checks them against your rules, fills in the application in a real browser, and submits it. When a form asks something it doesn't know, it asks you once in a local dashboard and remembers your answer for next time.
 
