@@ -8,18 +8,23 @@ import { Questions } from "./pages/Questions";
 import { Runs } from "./pages/Runs";
 import { Settings } from "./pages/Settings";
 import { Today } from "./pages/Today";
+import { STEPS, Tour, TourBanner } from "./Tour";
+import { finishTour, initialTour, pauseTour, rememberStep, type TourState } from "./tourState";
 import { Toaster, toast, usePoll } from "./ui";
 
 const PAGES = [
   { id: "today", label: "Today", icon: Icon.today, mobile: true },
   { id: "applications", label: "Applications", icon: Icon.apps, mobile: true },
   { id: "questions", label: "Questions", icon: Icon.question, mobile: true },
-  { id: "handoff", label: "Finish yourself", icon: Icon.hand, mobile: false },
-  { id: "memory", label: "Memory", icon: Icon.memory, mobile: true },
+  { id: "handoff", label: "Finish yourself", icon: Icon.hand, mobile: true },
+  { id: "memory", label: "Memory", icon: Icon.memory, mobile: false },
   { id: "runs", label: "Runs", icon: Icon.runs, mobile: false },
-  { id: "settings", label: "Settings", icon: Icon.settings, mobile: true },
+  { id: "settings", label: "Settings", icon: Icon.settings, mobile: false },
 ] as const;
 type PageId = (typeof PAGES)[number]["id"];
+
+/** Shorter names for the phone tab bar. */
+const TAB_LABEL: Partial<Record<PageId, string>> = { applications: "Apps", handoff: "Finish" };
 
 function readRoute(): [PageId, string] {
   const [path = "", query = ""] = location.hash.replace(/^#\/?/, "").split("?");
@@ -44,13 +49,23 @@ export function App() {
   const [page, query] = useRoute();
   const { data: summary, error, reload } = usePoll(api.summary, 4000);
   const title = PAGES.find((p) => p.id === page)?.label ?? "";
+  // The tour opens by itself the first time, from "Help / Tour", or with ?tour=N in the address.
+  // Left unfinished, it waits in a "Continue quick tour" banner until it is finished or dismissed.
+  const [tour, setTour] = useState<TourState>(() => initialTour(localStorage, location.hash, STEPS.length));
+  useEffect(() => {
+    if (tour.open !== null) rememberStep(localStorage, tour.open);
+  }, [tour.open]);
+  const openTour = (step: number) => setTour({ open: step, paused: null });
+  const [more, setMore] = useState(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: close the More menu whenever the page changes
+  useEffect(() => setMore(false), [page]);
 
   useEffect(() => {
     document.title = summary?.openQuestions ? `(${summary.openQuestions}) QuietApply` : "QuietApply";
   }, [summary?.openQuestions]);
 
   return (
-    <div className="shell">
+    <div className={`shell ${tour.paused !== null ? "tour-paused" : ""}`}>
       <aside className="sidebar">
         <a className="brand" href="#/today">
           <Icon.logo />
@@ -65,6 +80,9 @@ export function App() {
             </a>
           ))}
         </nav>
+        <button type="button" className="help-link nav-help" onClick={() => openTour(0)}>
+          Help / Tour
+        </button>
         <div className="sidebar-foot muted">
           {summary?.profileName ? `Applying as ${summary.profileName}` : "Not set up yet"}
           <br />
@@ -86,6 +104,12 @@ export function App() {
           <Controls summary={summary} reload={reload} />
         </header>
         {error && <div className="banner banner-red">Cannot reach QuietApply: {error}</div>}
+        {summary?.linkedin?.stopped && (
+          <div className="banner banner-red">
+            <strong>LinkedIn mode is stopped.</strong> LinkedIn showed a warning. Look at your account, then
+            resume it in <a href="#/settings">Settings</a>.
+          </div>
+        )}
         {summary?.dryRun && (
           <div className="banner banner-blue">
             <strong>Dry run is on.</strong> Forms are filled, nothing is submitted. Turn it off in{" "}
@@ -110,11 +134,61 @@ export function App() {
               <p.icon />
               <Badge page={p.id} summary={summary} dot />
             </span>
-            <span>{p.id === "applications" ? "Apps" : p.label}</span>
+            <span>{TAB_LABEL[p.id] ?? p.label}</span>
           </a>
         ))}
+        <button
+          type="button"
+          className={`tab ${more || PAGES.some((p) => !p.mobile && p.id === page) ? "active" : ""}`}
+          aria-expanded={more}
+          onClick={() => setMore(!more)}
+        >
+          <span className="tab-icon">
+            <Icon.more />
+          </span>
+          <span>More</span>
+        </button>
       </nav>
+      {more && (
+        // biome-ignore lint/a11y/noStaticElementInteractions: tapping outside closes the menu
+        // biome-ignore lint/a11y/useKeyWithClickEvents: the menu's own links and buttons are keyboard reachable
+        <div className="more-backdrop" onClick={() => setMore(false)}>
+          <nav className="more-menu" aria-label="More">
+            {PAGES.filter((p) => !p.mobile).map((p) => (
+              <a key={p.id} href={`#/${p.id}`} className={page === p.id ? "active" : ""}>
+                <p.icon />
+                <span>{p.label}</span>
+              </a>
+            ))}
+            <button
+              type="button"
+              onClick={() => {
+                setMore(false);
+                openTour(0);
+              }}
+            >
+              <Icon.question />
+              <span>Help / Tour</span>
+            </button>
+          </nav>
+        </div>
+      )}
       <Toaster />
+      {tour.open !== null && (
+        <Tour
+          step={tour.open}
+          onStep={openTour}
+          onClose={() => setTour(pauseTour(localStorage, tour.open ?? 0))}
+          onDone={() => setTour(finishTour(localStorage))}
+        />
+      )}
+      {tour.paused !== null && (
+        <TourBanner
+          step={tour.paused}
+          onResume={() => openTour(tour.paused ?? 0)}
+          onDismiss={() => setTour(finishTour(localStorage))}
+        />
+      )}
     </div>
   );
 }
@@ -124,7 +198,7 @@ function Badge({ page, summary, dot }: { page: PageId; summary?: Summary; dot?: 
     page === "questions"
       ? (summary?.openQuestions ?? 0)
       : page === "handoff"
-        ? (summary?.counts.blocked ?? 0) + (summary?.counts.unclear ?? 0)
+        ? (summary?.handoffs.needYou ?? 0)
         : page === "applications"
           ? (summary?.counts.awaiting_review ?? 0)
           : 0;

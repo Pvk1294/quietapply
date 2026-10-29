@@ -36,22 +36,49 @@ export async function listGreenhouse(
     fetcher,
     `${API}/${encodeURIComponent(token)}/jobs?content=true`,
   );
-  return data.jobs.map((j) => {
-    // The AI disclaimer goes into the description, so the fit gate sees a "no AI tools" request.
-    const description = [htmlToText(decodeEntities(j.content ?? "")), j.ai_disclaimer ?? ""]
-      .join("\n")
-      .trim();
-    return {
-      ats: "greenhouse",
-      company: j.company_name ?? company,
-      externalId: String(j.id),
-      title: j.title,
-      url: j.absolute_url,
-      location: j.location?.name ?? "",
-      remote: /remote/i.test(j.location?.name ?? ""),
-      description,
-    };
-  });
+  return data.jobs.map((j) => toListing(token, j, company));
+}
+
+/** One job by id (`quietapply add`). The single-job endpoint always includes the description. */
+export async function greenhouseJob(
+  fetcher: Fetcher,
+  token: string,
+  jobId: string,
+  company = token,
+): Promise<JobListing> {
+  const j = await getJson<GhJob>(
+    fetcher,
+    `${API}/${encodeURIComponent(token)}/jobs/${encodeURIComponent(jobId)}`,
+  );
+  return toListing(token, j, company);
+}
+
+function toListing(token: string, j: GhJob, company: string): JobListing {
+  // The AI disclaimer goes into the description, so the fit gate sees a "no AI tools" request.
+  const description = [htmlToText(decodeEntities(j.content ?? "")), j.ai_disclaimer ?? ""].join("\n").trim();
+  return {
+    ats: "greenhouse",
+    company: j.company_name ?? company,
+    externalId: String(j.id),
+    title: j.title,
+    url: formUrl(token, j),
+    location: j.location?.name ?? "",
+    remote: /remote/i.test(j.location?.name ?? ""),
+    description,
+  };
+}
+
+/**
+ * Where the form lives. Boards on a company's own careers site (absolute_url is stripe.com/jobs/...?gh_jid=)
+ * redirect the Greenhouse job page there too, so use Greenhouse's embeddable form, which every board serves.
+ */
+export function formUrl(token: string, job: Pick<GhJob, "id" | "absolute_url">): string {
+  try {
+    if (/(^|\.)greenhouse\.io$/i.test(new URL(job.absolute_url).hostname)) return job.absolute_url;
+  } catch {
+    // no usable absolute_url
+  }
+  return `https://job-boards.greenhouse.io/embed/job_app?for=${encodeURIComponent(token)}&token=${job.id}`;
 }
 
 const TYPE: Record<string, FieldType> = {

@@ -1,6 +1,7 @@
 import type { Profile } from "../memory/profile.js";
 import type { Rules } from "./config.js";
-import { norm } from "./text.js";
+import { remoteOpenTo } from "./regions.js";
+import { companyKey, norm } from "./text.js";
 
 export interface JobFacts {
   company: string;
@@ -19,11 +20,13 @@ const includesWord = (hay: string, needle: string) => ` ${norm(hay)} `.includes(
 
 /**
  * The fit gate. Every job passes through it before the agent is started, and every skip is logged with its
- * reason, so you can see why something was not applied to.
+ * reason, so you can see why something was not applied to. `home` is the country you live in (see
+ * homeCountry): "remote" in your locations matches remote roles open to that country, not every remote role.
  */
-export function checkFit(job: JobFacts, rules: Rules, profile?: Profile): FitResult {
-  const company = norm(job.company);
-  if (rules.neverApply.some((c) => norm(c) === company))
+export function checkFit(job: JobFacts, rules: Rules, profile?: Profile, home?: string): FitResult {
+  // "Acme" on the list also covers "Acme, Inc." and "Acme (YC W21)".
+  const company = companyKey(job.company);
+  if (rules.neverApply.some((c) => companyKey(c) === company))
     return { fit: false, reason: "company is on your never-apply list" };
 
   const excluded = rules.excludeTitles.find((x) => includesWord(job.title, x));
@@ -34,11 +37,25 @@ export function checkFit(job: JobFacts, rules: Rules, profile?: Profile): FitRes
 
   if (rules.locations.length && job.location) {
     const loc = norm(job.location);
+    const isRemote = /\b(remote|anywhere|distributed|worldwide)\b/.test(loc);
+    let remoteElsewhere = false;
     const ok = rules.locations.some((l) => {
       const want = norm(l);
-      return loc.includes(want) || (want === "remote" && /remote|anywhere|distributed/.test(loc));
+      if (want !== "remote") return loc.includes(want);
+      if (!isRemote) return false;
+      if (remoteOpenTo(job.location ?? "", home).ok) return true;
+      remoteElsewhere = true;
+      return false;
     });
-    if (!ok) return { fit: false, reason: `location "${job.location}" is not in your locations` };
+    if (!ok)
+      return {
+        fit: false,
+        reason: remoteElsewhere
+          ? home
+            ? `remote role limited to "${job.location}", not where you live`
+            : `remote role limited to "${job.location}" and your country is not set`
+          : `location "${job.location}" is not in your locations`,
+      };
   }
 
   if (job.description && NO_AI.test(job.description))
@@ -48,7 +65,7 @@ export function checkFit(job: JobFacts, rules: Rules, profile?: Profile): FitRes
   const years = requiredYears(job.description ?? "");
   if (years !== undefined && profile?.totalYears !== undefined) {
     if (years > profile.totalYears + 1)
-      return { fit: false, reason: `asks for ${years}+ years; you have ${profile.totalYears}` };
+      return { fit: false, reason: `asks for ${years}+ years, you have ${profile.totalYears}` };
   }
   if (years !== undefined && (years < rules.experienceYears.min || years > rules.experienceYears.max))
     return { fit: false, reason: `asks for ${years}+ years, outside your range` };
@@ -124,8 +141,20 @@ const COMMON_SKILLS = [
   "figma",
 ];
 
+/** "New languages can be learned", "you don't need to know our stack": the languages named are not a requirement. */
+const LEARNABLE =
+  /can be learned|happy to teach|(learn|pick up) (new|our|other) (languages|stack|tools)|(do not|don.t) (need|expect you) to know|no (prior )?experience (with|in) (our|these|any specific) (languages|stack|tools)/i;
+
+/** Sentences about nice-to-haves: skills named there do not count against you. */
+const OPTIONAL = /nice to have|good to have|preferred|bonus|a plus|is a plus|not required|optional/i;
+
 function requiredSkills(description: string, profile: Profile): { matched: number; total: number } {
-  const desc = ` ${description.toLowerCase().replace(/[^a-z0-9+#.]+/g, " ")} `;
+  if (LEARNABLE.test(description)) return { matched: 0, total: 0 };
+  const required = description
+    .split(/(?<=[.!?\n])\s+|\n|<\/?(?:li|p|br)[^>]*>/i)
+    .filter((sentence) => !OPTIONAL.test(sentence))
+    .join(" ");
+  const desc = ` ${required.toLowerCase().replace(/[^a-z0-9+#.]+/g, " ")} `;
   const mine = new Set(profile.skills.map((s) => s.name.toLowerCase()));
   const alias: Record<string, string> = { golang: "go", postgres: "postgresql", node: "node.js" };
   const wanted = new Set<string>();

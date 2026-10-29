@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { type AppDetail, type AppStatus, api } from "../api";
 import { Icon } from "../icons";
 import { Avatar, ago, BLOCKED_LABEL, Empty, Pill, STATUS, toast, usePoll } from "../ui";
+import { AddJob } from "./AddJob";
 
 const FILTERS: { id: string; label: string; statuses?: AppStatus[] }[] = [
   { id: "all", label: "All" },
@@ -40,6 +41,7 @@ export function Applications({ query }: { query: string }) {
 
   return (
     <div className="stack">
+      <AddJob onAdded={reload} />
       <div className="toolbar">
         <div className="chips" role="tablist">
           {FILTERS.map((f) => {
@@ -94,7 +96,13 @@ export function Applications({ query }: { query: string }) {
             ))}
           </ul>
         ) : (
-          <Empty title="Nothing here">{data ? "No applications match this filter." : "Loading…"}</Empty>
+          <Empty title={data?.length ? "Nothing here" : "No applications yet"}>
+            {!data
+              ? "Loading…"
+              : data.length
+                ? "No applications match this filter."
+                : "Nothing to show yet. Add companies with quietapply init (or paste a job link above), then press Run now. While dry run is on, every filled-in form shows up here so you can check it."}
+          </Empty>
         )}
       </section>
       {open !== null && <Detail id={open} onClose={() => setOpen(null)} onChange={reload} />}
@@ -119,7 +127,7 @@ function Detail({ id, onClose, onChange }: { id: number; onClose: () => void; on
 
   const act = async (action: "approve" | "requeue" | "dismiss", msg: string) => {
     try {
-      await api.act(id, action);
+      await api.act(id, action, action === "approve" ? (app?.contentHash ?? undefined) : undefined);
       toast(msg);
       onChange();
       load();
@@ -128,9 +136,23 @@ function Detail({ id, onClose, onChange }: { id: number; onClose: () => void; on
     }
   };
 
-  const filled = app?.evidence
-    ? (safeJson(app.evidence) as { filled?: { field: string; value: string; source: string }[] })?.filled
+  const evidence = app?.evidence
+    ? (safeJson(app.evidence) as {
+        filled?: { field: string; value: string; source: string }[];
+        partial?: boolean;
+        email?: { to: string; subject: string; body: string; attachment: string | null };
+      })
     : undefined;
+  const messageAct = async (id: number, action: "approve" | "dismiss", hash: string, msg: string) => {
+    try {
+      await api.messageAct(id, action, hash);
+      toast(msg);
+      load();
+    } catch (e) {
+      toast((e as Error).message);
+    }
+  };
+  const filled = evidence?.filled;
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: clicking the backdrop closes the sheet; Escape is handled above
@@ -201,9 +223,81 @@ function Detail({ id, onClose, onChange }: { id: number; onClose: () => void; on
               </div>
             )}
 
+            {evidence?.email && (
+              <>
+                <h3 className="section-title">
+                  {app.status === "awaiting_review"
+                    ? "The email, exactly as it would be sent"
+                    : app.status === "submitted"
+                      ? "The email that was sent"
+                      : "The email"}
+                </h3>
+                <dl className="filled">
+                  <div>
+                    <dt>To</dt>
+                    <dd>{evidence.email.to}</dd>
+                  </div>
+                  <div>
+                    <dt>Subject</dt>
+                    <dd>{evidence.email.subject}</dd>
+                  </div>
+                  <div>
+                    <dt>Attached</dt>
+                    <dd>{evidence.email.attachment ?? "nothing"}</dd>
+                  </div>
+                </dl>
+                <pre className="email-body">{evidence.email.body}</pre>
+                {app.emails
+                  .filter((e) => e.message_id)
+                  .map((e) => (
+                    <p key={e.id} className="muted small">
+                      Sent {e.sent_at ? new Date(e.sent_at).toLocaleString() : ""} · Message-ID {e.message_id}
+                    </p>
+                  ))}
+              </>
+            )}
+
+            {app.messages.length > 0 && (
+              <>
+                <h3 className="section-title">Message to the hiring team</h3>
+                {app.messages.map((m) => (
+                  <div key={m.id} className="note">
+                    <strong>{m.recipient_name}</strong>{" "}
+                    <span className="muted small">
+                      · {MESSAGE_STATUS[m.status]}
+                      {m.note ? ` · ${m.note}` : ""}
+                    </span>
+                    <p>{m.text}</p>
+                    {m.status === "awaiting_review" && (
+                      <div className="linkedin-row">
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() =>
+                            messageAct(m.id, "approve", m.hash, "Approved: sent in the next run")
+                          }
+                        >
+                          <Icon.check /> Approve this message
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() => messageAct(m.id, "dismiss", m.hash, "Dismissed. It is never sent")}
+                        >
+                          Do not send
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+
             {filled?.length ? (
               <>
-                <h3 className="section-title">What the agent filled in</h3>
+                <h3 className="section-title">
+                  {evidence?.partial ? "Filled so far (waiting on your answers)" : "What the agent filled in"}
+                </h3>
                 <dl className="filled">
                   {filled.map((f) => (
                     <div key={f.field}>
@@ -217,6 +311,29 @@ function Detail({ id, onClose, onChange }: { id: number; onClose: () => void; on
                 </dl>
               </>
             ) : null}
+
+            {app.screenshots.length > 0 && (
+              <>
+                <h3 className="section-title">
+                  What the agent saw
+                  {app.screenshots.length > 1 ? ` (${app.screenshots.length} screenshots)` : ""}
+                </h3>
+                <div className="shots">
+                  {app.screenshots.map((s) => (
+                    <figure key={s.url} className="shot">
+                      <a href={s.url} target="_blank" rel="noreferrer noopener" title="Open full size">
+                        <img src={s.url} alt={`Form screenshot from run ${s.run}`} loading="lazy" />
+                      </a>
+                      <figcaption className="muted small">
+                        Run {s.run} · {new Date(s.at).toLocaleString()}
+                        {s.blockedRequests > 0 &&
+                          ` · dry run blocked ${s.blockedRequests} request${s.blockedRequests > 1 ? "s" : ""}`}
+                      </figcaption>
+                    </figure>
+                  ))}
+                </div>
+              </>
+            )}
 
             <h3 className="section-title">History</h3>
             <ol className="timeline">
@@ -240,6 +357,16 @@ function Detail({ id, onClose, onChange }: { id: number; onClose: () => void; on
     </div>
   );
 }
+
+const MESSAGE_STATUS: Record<string, string> = {
+  dry_run: "dry run draft, never sent",
+  awaiting_review: "waits for your OK",
+  approved: "approved, goes out in the next run",
+  sending: "being sent",
+  sent: "sent",
+  failed: "not sent",
+  refused: "not sent",
+};
 
 function safeJson(s: string): unknown {
   try {

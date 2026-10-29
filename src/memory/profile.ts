@@ -76,7 +76,8 @@ export const PROFILE_FIELDS: { field: string; pattern: RegExp; value: (p: Profil
   [
     {
       field: "first_name",
-      pattern: /^(legal )?first name|^given name|^preferred first name/,
+      pattern:
+        /^(legal )?first name|^given name|^preferred (first )?name|name you(d| would) prefer|what would you like us to call you/,
       value: firstName,
     },
     { field: "last_name", pattern: /^(legal )?last name|^surname|^family name/, value: lastName },
@@ -101,20 +102,37 @@ export const PROFILE_FIELDS: { field: string; pattern: RegExp; value: (p: Profil
     },
     {
       field: "current_company",
-      pattern: /current (company|employer)|^company$/,
+      // "Who is your current or previous employer?" too.
+      pattern: /current (or (previous|most recent|last) )?(company|employer)|^company$/,
       value: (p) => p.experience[0]?.company,
     },
     {
       field: "current_title",
-      pattern: /current (job )?title|current role/,
+      pattern: /current (or (previous|most recent|last) )?(job )?title|current role/,
       value: (p) => p.experience[0]?.title,
     },
     {
       field: "total_years",
-      pattern: /total (years of )?experience|years of (professional |relevant )?experience$/,
+      // "How many years of relevant, post college work experience do you have?", but not "... with Ruby?".
+      pattern:
+        /total (years of )?experience|^(how many )?years of ((professional|relevant|work|industry|post college|full time) )*experience( do you have)?$/,
       value: (p) => (p.totalYears === undefined ? undefined : String(p.totalYears)),
     },
+    {
+      field: "school",
+      pattern:
+        /^(school|university|college)( name)?$|^name of (your )?(school|university|college)|which (school|university|college) (are you|did you)/,
+      value: (p) => p.education[0]?.school,
+    },
   ];
+
+/**
+ * A question that wants a yes/no or a judgement ("Are you subject to restrictions with your current employer?")
+ * is never answered from a profile field, even when it mentions one.
+ */
+export function isClosedQuestion(normalised: string): boolean {
+  return /^(are|is|do|does|did|have|has|had|will|would|can|could|should|were|was) /.test(normalised);
+}
 
 /** A compact profile for the agent prompt: contact, recent roles and skills, without the long highlights. */
 export function profileForPrompt(profile: Profile): Record<string, unknown> {

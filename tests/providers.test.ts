@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { allowedTools, agentArgs as claudeArgs, parseStreamResult } from "../src/providers/claude-code.js";
-import { agentArgs as codexArgs, parseJsonl } from "../src/providers/codex.js";
+import { agentArgs as codexArgs, locateCodex, parseJsonl } from "../src/providers/codex.js";
 import type { AgentRunOptions } from "../src/providers/types.js";
 
 const opts: AgentRunOptions = {
@@ -50,6 +50,10 @@ describe("Codex provider", () => {
     expect(args).toContain('mcp_servers.desk.command="node"');
     expect(args).toContain('mcp_servers.desk.args=["cli.js","mcp","--application","7"]');
     expect(args).toContain('mcp_servers.desk.env={ QUIETAPPLY_HOME="/tmp/qa" }');
+    expect(args).toContain("--ignore-user-config");
+    // codex exec cancels MCP calls that need approval, so our own two servers are pre-approved.
+    expect(args).toContain('mcp_servers.desk.default_tools_approval_mode="approve"');
+    expect(args).toContain('mcp_servers.playwright.default_tools_approval_mode="approve"');
     expect(args.at(-1)).toBe("-");
   });
   it("reads the last agent message and failures from JSONL", () => {
@@ -63,5 +67,43 @@ describe("Codex provider", () => {
       failed: true,
       error: "quota exceeded",
     });
+  });
+});
+
+describe("finding the Codex CLI", () => {
+  const app = "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex";
+  const only =
+    (...files: string[]) =>
+    (f: string) =>
+      files.includes(f);
+
+  it("prefers QUIETAPPLY_CODEX_BIN, then codex.path in the config", () => {
+    expect(locateCodex({ env: { QUIETAPPLY_CODEX_BIN: "/x/codex" }, configured: "/y/codex" })).toEqual({
+      path: "/x/codex",
+      via: "env",
+    });
+    expect(locateCodex({ env: {}, configured: "~/bin/codex", home: "/Users/jane" })).toEqual({
+      path: "/Users/jane/bin/codex",
+      via: "config",
+    });
+  });
+  it("uses codex on PATH before the desktop app", () => {
+    const r = locateCodex({
+      env: { PATH: "/usr/bin:/opt/homebrew/bin" },
+      platform: "darwin",
+      home: "/Users/jane",
+      exists: only("/opt/homebrew/bin/codex", app),
+    });
+    expect(r).toEqual({ path: "/opt/homebrew/bin/codex", via: "path" });
+  });
+  it("falls back to the copy inside the ChatGPT or Codex app on macOS", () => {
+    const base = { env: { PATH: "/usr/bin" }, platform: "darwin" as const, home: "/Users/jane" };
+    expect(locateCodex({ ...base, exists: only(app) })).toEqual({ path: app, via: "app" });
+    const codexApp = "/Users/jane/Applications/Codex.app/Contents/Resources/codex";
+    expect(locateCodex({ ...base, exists: only(codexApp) })).toEqual({ path: codexApp, via: "app" });
+    expect(locateCodex({ ...base, exists: () => false })).toBeUndefined();
+  });
+  it("looks in app bundles only on macOS", () => {
+    expect(locateCodex({ env: { PATH: "/usr/bin" }, platform: "linux", exists: only(app) })).toBeUndefined();
   });
 });

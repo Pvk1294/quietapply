@@ -8,6 +8,8 @@ export interface StandardQuestion {
   question: string;
   /** Regexes over the normalised question text (see core/text.ts norm). */
   patterns: RegExp[];
+  /** Questions that match a pattern but ask something else, such as a consent to AI note-taking. */
+  notPatterns?: RegExp[];
   type: "text" | "yesno" | "number" | "choice" | "long";
   options?: string[];
   sensitive?: boolean;
@@ -30,7 +32,7 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
     ],
     type: "yesno",
     essential: true,
-    hint: "Name the countries if it differs, e.g. 'Yes in India; no in the US'.",
+    hint: "Name the countries if it differs, e.g. 'Yes in India, no in the US'.",
   },
   {
     key: "sponsorship",
@@ -38,6 +40,18 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
     patterns: [/sponsor/, /visa/],
     type: "yesno",
     essential: true,
+  },
+  {
+    key: "country",
+    question: "Which country do you live in?",
+    patterns: [
+      /country of residence/,
+      /(what|which) country (are|do) you (currently )?(live|living|based|located|reside|residing)/,
+      /^(current )?country$/,
+    ],
+    type: "text",
+    essential: true,
+    hint: "Forms often ask this separately from your city, e.g. 'United States'",
   },
   {
     key: "notice_period",
@@ -48,6 +62,7 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
       /earliest (possible )?(start|joining) date/,
       /when (can|could) you (start|join)/,
       /availability to start/,
+      /when (are|would) you (be )?available to (start|join)/,
     ],
     type: "text",
     essential: true,
@@ -131,14 +146,21 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
   {
     key: "referral",
     question: "How did you hear about this job?",
-    patterns: [/how did you (hear|learn|find out) about/, /^source$/, /where did you (find|see)/],
+    patterns: [
+      /how (did )?you (hear|heard|learn|learned|find out|found out) about/,
+      /^source$/,
+      /where did you (find|see|hear)/,
+    ],
     type: "text",
     default: "Company careers page",
   },
   {
     key: "highest_degree",
     question: "What is your highest level of education?",
-    patterns: [/highest (level of )?(education|degree|qualification)/],
+    patterns: [
+      /highest (level of )?(education|degree|qualification)/,
+      /^(your )?degree( obtained| earned)?$/,
+    ],
     type: "text",
   },
   {
@@ -152,7 +174,7 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
     question: "In two or three sentences, what kind of role are you looking for and why?",
     patterns: [/why (are you|do you want|this role|interested)/, /what (interests|excites) you/],
     type: "long",
-    hint: "Used as a base; the agent tailors it to each company without adding facts.",
+    hint: "Used as a base. The agent tailors it to each company without adding facts.",
   },
   {
     key: "proudest_work",
@@ -174,6 +196,8 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
       /^i (agree|consent|acknowledge)/,
       /(privacy (policy|notice)|data (processing|protection|storage)|storing my)/,
     ],
+    // Consent to being recorded or to AI note-takers in interviews is its own decision, not privacy consent.
+    notPatterns: [/\b(ai|artificial intelligence|notetak\w*|note tak\w*|record\w*|transcri\w*)\b/],
     type: "yesno",
     essential: true,
     hint: "Most forms require this box to be ticked.",
@@ -213,7 +237,8 @@ export const STANDARD_QUESTIONS: StandardQuestion[] = [
   {
     key: "pronouns",
     question: "Pronouns (optional)",
-    patterns: [/pronoun/],
+    // "pronouns", not "How do you pronounce your name?"
+    patterns: [/\bpronouns?\b/],
     type: "text",
     sensitive: true,
     default: DECLINE,

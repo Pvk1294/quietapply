@@ -1,7 +1,8 @@
 import type { Config } from "../core/config.js";
 import type { DB } from "../core/db.js";
 import { checkFit } from "../core/rules.js";
-import { addApplication } from "../core/store.js";
+import { addApplication, alreadyApplied } from "../core/store.js";
+import { homeCountry } from "../memory/answers.js";
 import type { Profile } from "../memory/profile.js";
 import { listAshby } from "../sources/ashby.js";
 import { listGreenhouse } from "../sources/greenhouse.js";
@@ -13,6 +14,8 @@ export interface DiscoverSummary {
   found: number;
   added: number;
   alreadyKnown: number;
+  /** Roles you already applied to (same company and title), here or in imported history. */
+  alreadyApplied: number;
   skipped: Record<string, number>;
   errors: { company: string; error: string }[];
 }
@@ -24,7 +27,15 @@ export async function discover(
   profile: Profile,
   fetcher: Fetcher,
 ): Promise<DiscoverSummary> {
-  const out: DiscoverSummary = { found: 0, added: 0, alreadyKnown: 0, skipped: {}, errors: [] };
+  const out: DiscoverSummary = {
+    found: 0,
+    added: 0,
+    alreadyKnown: 0,
+    alreadyApplied: 0,
+    skipped: {},
+    errors: [],
+  };
+  const home = homeCountry(db, profile);
   for (const c of config.companies) {
     if (!config.sources[c.ats]) continue;
     let jobs: JobListing[];
@@ -41,10 +52,14 @@ export async function discover(
     }
     for (const j of jobs) {
       out.found++;
-      const fit = checkFit(j, config.rules, profile);
+      const fit = checkFit(j, config.rules, profile, home);
       if (!fit.fit) {
         const key = fit.reason.replace(/"[^"]*"/g, "…");
         out.skipped[key] = (out.skipped[key] ?? 0) + 1;
+        continue;
+      }
+      if (alreadyApplied(db, j)) {
+        out.alreadyApplied++;
         continue;
       }
       const r = addApplication(db, {

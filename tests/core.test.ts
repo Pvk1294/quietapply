@@ -2,13 +2,14 @@ import { existsSync, mkdtempSync, readFileSync, statSync, writeFileSync } from "
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { Config, defaultConfig, LINKEDIN_ACK, loadConfig, saveConfig } from "../src/core/config.js";
+import { Config, defaultConfig, loadConfig, saveConfig } from "../src/core/config.js";
 import { openDb, openMemoryDb } from "../src/core/db.js";
 import { allowance, companyAllowed } from "../src/core/limits.js";
 import { acquireLock } from "../src/core/lock.js";
 import { ensureHome, paths } from "../src/core/paths.js";
 import { checkFit, requiredYears } from "../src/core/rules.js";
 import { addApplication, setStatus } from "../src/core/store.js";
+import { homeCountry, saveAnswer } from "../src/memory/answers.js";
 import { Profile } from "../src/memory/profile.js";
 
 const tmp = () => mkdtempSync(join(tmpdir(), "qa-test-"));
@@ -28,12 +29,21 @@ describe("config", () => {
     if (process.platform !== "win32") expect(statSync(p.home).mode & 0o777).toBe(0o700);
   });
 
-  it("keeps LinkedIn off unless the acknowledgment was typed exactly", () => {
+  it("keeps LinkedIn off unless the risk was accepted", () => {
     const p = ensureHome(paths(tmp()));
     writeFileSync(p.config, "sources:\n  linkedin: true\n");
     expect(loadConfig(p).sources.linkedin).toBe(false);
-    writeFileSync(p.config, `sources:\n  linkedin: true\nlinkedinAcknowledged: "${LINKEDIN_ACK}"\n`);
+    writeFileSync(
+      p.config,
+      'sources:\n  linkedin: true\nlinkedin:\n  acceptedAt: "2026-10-28T09:00:00.000Z"\n',
+    );
     expect(loadConfig(p).sources.linkedin).toBe(true);
+    expect(loadConfig(p).linkedin.perDay).toBe(5);
+  });
+
+  it("caps LinkedIn at 15 a day", () => {
+    expect(() => Config.parse({ linkedin: { perDay: 16 } })).toThrow();
+    expect(() => Config.parse({ linkedin: { perDay: 0 } })).toThrow();
   });
 
   it("rejects malformed schedule times", () => {
@@ -104,8 +114,54 @@ describe("fit gate", () => {
 
   it("passes a matching job", () => {
     expect(
-      checkFit({ company: "Acme", title: "Software Engineer", location: "Remote - US" }, rules, profile).fit,
+      checkFit(
+        { company: "Acme", title: "Software Engineer", location: "Remote - US" },
+        rules,
+        profile,
+        "united states",
+      ).fit,
     ).toBe(true);
+  });
+
+  describe("remote roles limited to a country", () => {
+    const fitAt = (location: string, home?: string) =>
+      checkFit({ company: "Acme", title: "Software Engineer", location }, rules, profile, home);
+
+    it("matches a plain or worldwide remote role wherever you live", () => {
+      expect(fitAt("Remote", "india").fit).toBe(true);
+      expect(fitAt("Remote, worldwide", "india").fit).toBe(true);
+      expect(fitAt("Remote (Anywhere)").fit).toBe(true);
+    });
+    it("skips remote roles in other countries (US, UK and Brazil were queued for someone in India)", () => {
+      for (const loc of ["Remote - US", "Remote, United Kingdom", "Remote - Brazil", "US-Remote"]) {
+        const r = fitAt(loc, "india");
+        expect(r.fit, loc).toBe(false);
+        if (!r.fit) expect(r.reason).toContain("not where you live");
+      }
+    });
+    it("matches remote roles in your own country or region", () => {
+      expect(fitAt("Remote - India", "india").fit).toBe(true);
+      expect(fitAt("Remote, EMEA", "germany").fit).toBe(true);
+      expect(fitAt("Remote (USA or Canada)", "canada").fit).toBe(true);
+      expect(fitAt("Remote - Oregon", "united states").fit).toBe(true);
+    });
+    it("skips a country-limited remote role when your country is not set, and says so", () => {
+      const r = fitAt("Remote - US");
+      expect(r.fit).toBe(false);
+      if (!r.fit) expect(r.reason).toContain("country is not set");
+    });
+    it("still matches an office location you listed", () => {
+      expect(fitAt("Springfield, Oregon", "india").fit).toBe(true);
+    });
+  });
+
+  it("finds your country from the setup answer, else from your profile location", () => {
+    const db = openMemoryDb();
+    expect(homeCountry(db, Profile.parse({ location: "Springfield, Oregon" }))).toBe("united states");
+    expect(homeCountry(db, Profile.parse({ location: "Bengaluru, India" }))).toBe("india");
+    expect(homeCountry(db, Profile.parse({ location: "Springfield" }))).toBeUndefined();
+    saveAnswer(db, { key: "country", question: "Which country do you live in?", answer: "UK" });
+    expect(homeCountry(db, Profile.parse({ location: "Springfield, Oregon" }))).toBe("united kingdom");
   });
   it.each([
     [{ company: "Initech", title: "Engineer" }, "never-apply"],
@@ -136,6 +192,35 @@ describe("fit gate", () => {
     const r = checkFit(job, rules, profile);
     expect(r.fit).toBe(false);
     if (!r.fit) expect(r.reason).toContain(reason);
+  });
+  it("does not count skills the posting calls optional or learnable", () => {
+    const stack = "We work mostly in Python, Django, Kafka, Kubernetes and Terraform.";
+    expect(checkFit({ company: "Acme", title: "Engineer", description: stack }, rules, profile).fit).toBe(
+      false,
+    );
+    expect(
+      checkFit(
+        {
+          company: "Acme",
+          title: "Engineer",
+          description: `${stack} New programming languages can be learned.`,
+        },
+        rules,
+        profile,
+      ).fit,
+    ).toBe(true);
+    expect(
+      checkFit(
+        {
+          company: "Acme",
+          title: "Engineer",
+          description:
+            "You know TypeScript and React. Nice to have: Python, Kafka, Kubernetes and Terraform.",
+        },
+        rules,
+        profile,
+      ).fit,
+    ).toBe(true);
   });
   it("reads required years", () => {
     expect(requiredYears("3-5 years of experience")).toBe(3);

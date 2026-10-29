@@ -6,7 +6,8 @@ export function Today({ summary }: { summary?: Summary }) {
   const { data: questions } = usePoll(() => api.questions("open"), 6000);
   if (!summary) return <div className="skeleton" />;
   const c = summary.counts;
-  const handoff = c.blocked + c.unclear;
+  const handoff = summary.handoffs.open;
+  const t = summary.today;
   const recent = (apps ?? []).filter((a) => a.status !== "queued" && a.status !== "skipped").slice(0, 6);
 
   return (
@@ -24,9 +25,21 @@ export function Today({ summary }: { summary?: Summary }) {
                 ? `${c.awaiting_review} application${c.awaiting_review > 1 ? "s" : ""} ready for your review`
                 : "Nothing needs you right now"}
           </h2>
+          <p className="today-line">
+            <strong>
+              {summary.dryRun ? "Filled" : "Applied"} {t.done}
+            </strong>
+            , couldn't do {t.couldnt}
+            {t.couldnt > 0 && (
+              <>
+                {" "}
+                (<a href="#/handoff">{t.needYou} need you</a>)
+              </>
+            )}
+          </p>
           <p className="muted">
             Next runs at {summary.schedule.join(", ")}
-            {summary.scheduleInstalled ? "" : " (schedule not installed: run quietapply schedule on)"}.
+            {summary.scheduleInstalled ? "" : " (not running automatically: turn it on in Settings)"}.
             {summary.lastRun
               ? ` Last run ${ago(summary.lastRun.started_at)}: ${summary.lastRun.summary ?? summary.lastRun.status}.`
               : ""}
@@ -44,7 +57,12 @@ export function Today({ summary }: { summary?: Summary }) {
           tone="violet"
         />
         <Stat href="#/applications?status=submitted" label="Applied" value={c.submitted} tone="green" />
-        <Stat href="#/handoff" label="Finish yourself" value={handoff} tone="red" />
+        <Stat
+          href="#/handoff"
+          label="Finish yourself"
+          value={summary.handoffs.needYou || handoff}
+          tone="red"
+        />
       </section>
 
       {summary.reviewMode && (
@@ -77,8 +95,8 @@ export function Today({ summary }: { summary?: Summary }) {
               ))}
             </ul>
           ) : (
-            <Empty title="No questions">
-              The agent asks here when a form needs something it does not know.
+            <Empty title="No questions, and that is fine">
+              When a form asks something new, it waits here for you. Answer once and it is remembered.
             </Empty>
           )}
         </section>
@@ -106,7 +124,10 @@ export function Today({ summary }: { summary?: Summary }) {
               ))}
             </ul>
           ) : (
-            <Empty title="No activity yet">Add companies in Settings, then press Run now.</Empty>
+            <Empty title="Nothing has happened yet">
+              Welcome! Run quietapply init to add your resume and companies, then press Run now. In dry run
+              nothing is submitted. Not sure where to start? Open Help / Tour in the sidebar.
+            </Empty>
           )}
         </section>
       </div>

@@ -2,6 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import YAML from "yaml";
 import { z } from "zod";
 import { type Paths, paths } from "./paths.js";
+import { SENSITIVE_CATEGORIES } from "./safety.js";
 
 export const ProviderId = z.enum(["claude-code", "codex", "fake"]);
 export type ProviderId = z.infer<typeof ProviderId>;
@@ -42,6 +43,11 @@ export const Config = z.object({
   browser: BrowserMode.default("playwright-profile"),
   /** Run the Playwright browser without a window. Off by default so you can watch the first runs. */
   headless: z.boolean().default(false),
+  /**
+   * Your answer to "Run automatically while your computer is on?" (init and Settings). The OS state is
+   * the truth (`quietapply schedule status`); this only remembers the choice so setup can suggest it.
+   */
+  autoStart: z.boolean().optional(),
   /** Local run times, 24h "HH:MM". */
   schedule: z.array(z.string().regex(/^\d{2}:\d{2}$/)).default(["09:00", "13:00", "19:00"]),
   timezone: z.string().default("auto"),
@@ -64,15 +70,92 @@ export const Config = z.object({
       linkedin: z.boolean().default(false),
     })
     .default({ greenhouse: true, lever: true, ashby: true, linkedin: false }),
-  /** Typed acknowledgment required before LinkedIn can be turned on. */
-  linkedinAcknowledged: z.string().optional(),
+  /**
+   * LinkedIn mode (off by default; `sources.linkedin` is the switch). It drives your own logged-in browser
+   * through Claude in Chrome, with its own small daily cap, and only after you accepted the risk.
+   */
+  linkedin: z
+    .object({
+      /** When you accepted the risk statement (ISO time). LinkedIn stays off without it. */
+      acceptedAt: z.string().optional(),
+      /** LinkedIn applications the agent may open per day, dry runs included. */
+      perDay: z.number().int().min(1).max(15).default(5),
+      /** Claude in Chrome deviceId to use when several browsers are connected to your Claude account. */
+      chromeDevice: z.string().optional(),
+      /**
+       * Messages to a recruiter or hiring manager after applying (LinkedIn only, off by default). Needs
+       * LinkedIn mode and its own yes. At most one message per person, ever.
+       */
+      messages: z
+        .object({
+          enabled: z.boolean().default(false),
+          /** When you said yes to the risk statement (ISO time). Messages stay off without it. */
+          acceptedAt: z.string().optional(),
+          /** When you said no (ISO time), so setup does not ask again. */
+          declinedAt: z.string().optional(),
+          perDay: z.number().int().min(1).max(10).default(3),
+        })
+        .default({ enabled: false, perDay: 3 }),
+    })
+    .default({ perDay: 5, messages: { enabled: false, perDay: 3 } }),
+  /**
+   * Applying by email, for postings that say "send your resume to ...". Off by default: QuietApply sends
+   * no mail unless you said yes. SMTP with an app password, kept in the OS keychain (or a 0600 file).
+   */
+  email: z
+    .object({
+      enabled: z.boolean().default(false),
+      /** When you said yes (ISO time). Email stays off without it. */
+      acceptedAt: z.string().optional(),
+      /** When you said no (ISO time), so setup does not ask again. */
+      declinedAt: z.string().optional(),
+      /** Your address, the one applications are sent from. */
+      from: z.string().optional(),
+      smtp: z
+        .object({
+          host: z.string().optional(),
+          /** 587 with STARTTLS (secure: false) or 465 with TLS from the start (secure: true). */
+          port: z.number().int().min(1).max(65535).default(587),
+          secure: z.boolean().default(false),
+          /** Login name, usually your address. The password is never stored here. */
+          user: z.string().optional(),
+        })
+        .default({ port: 587, secure: false }),
+      perDay: z.number().int().min(1).max(50).default(10),
+    })
+    .default({ enabled: false, smtp: { port: 587, secure: false }, perDay: 10 }),
+  /** People and addresses QuietApply never writes to: emails, LinkedIn profile links or names. */
+  doNotContact: z.array(z.string()).default([]),
+  /**
+   * Questions that always stop for you, even when an answer is stored: the stored answer is shown and you
+   * confirm it for that application. Remove a category to let it be filled from memory again.
+   */
+  safety: z
+    .object({
+      alwaysAsk: z.array(z.enum(SENSITIVE_CATEGORIES)).default([...SENSITIVE_CATEGORIES]),
+    })
+    .default({ alwaysAsk: [...SENSITIVE_CATEGORIES] }),
   companies: z.array(Company).default([]),
   rules: Rules.default(Rules.parse({})),
   dashboard: z.object({ port: z.number().int().default(4777) }).default({ port: 4777 }),
+  /**
+   * Phone access through Tailscale Serve (`quietapply phone`). The server itself stays on 127.0.0.1; this only
+   * says which tailnet host name and which Tailscale logins the dashboard accepts. Empty logins = nobody.
+   */
+  phone: z
+    .object({
+      /** This Mac's tailnet name, e.g. my-mac.tail1234.ts.net. Set by `quietapply phone`. */
+      host: z.string().optional(),
+      /** HTTPS port for Serve. 8443 by default so 443, which other apps may use, is left alone. */
+      httpsPort: z.number().int().min(1).max(65535).default(8443),
+      /** Tailscale logins (e.g. you@example.com) allowed to open the dashboard from the tailnet. */
+      allowedLogins: z.array(z.string()).default([]),
+    })
+    .default({ httpsPort: 8443, allowedLogins: [] }),
+  /** Where the Codex CLI is. Unset = PATH, then the copy inside the ChatGPT / Codex desktop app. */
+  codex: z.object({ path: z.string().optional() }).default({}),
 });
 export type Config = z.infer<typeof Config>;
-
-export const LINKEDIN_ACK = "I understand LinkedIn forbids automation and my account may be restricted";
 
 export function defaultConfig(): Config {
   return Config.parse({});
@@ -82,9 +165,12 @@ export function loadConfig(p: Paths = paths()): Config {
   if (!existsSync(p.config)) return defaultConfig();
   const raw = YAML.parse(readFileSync(p.config, "utf8")) ?? {};
   const config = Config.parse(raw);
-  // LinkedIn stays off unless the exact acknowledgment was typed.
-  if (config.sources.linkedin && config.linkedinAcknowledged !== LINKEDIN_ACK)
-    config.sources.linkedin = false;
+  // LinkedIn stays off unless you accepted the risk (the time is stored when you do).
+  if (config.sources.linkedin && !config.linkedin.acceptedAt) config.sources.linkedin = false;
+  // Sending mail or messages needs its own yes, stored with its time.
+  if (config.email.enabled && !config.email.acceptedAt) config.email.enabled = false;
+  if (config.linkedin.messages.enabled && (!config.linkedin.messages.acceptedAt || !config.sources.linkedin))
+    config.linkedin.messages.enabled = false;
   return config;
 }
 

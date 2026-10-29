@@ -62,6 +62,13 @@ export const Icon = {
       <circle cx="18" cy="18" r="2" />
     </Svg>
   ),
+  more: () => (
+    <Svg>
+      <circle cx="5" cy="12" r="1.2" />
+      <circle cx="12" cy="12" r="1.2" />
+      <circle cx="19" cy="12" r="1.2" />
+    </Svg>
+  ),
   play: () => (
     <Svg size={18}>
       <path d="M7 5l12 7-12 7z" fill="currentColor" stroke="none" />

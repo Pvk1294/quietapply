@@ -44,6 +44,8 @@ describe("question matching", () => {
   it("maps many wordings onto one standard key", () => {
     expect(keyForQuestion("How soon can you join?")).toBe("notice_period");
     expect(keyForQuestion("Earliest possible start date")).toBe("notice_period");
+    expect(keyForQuestion("When are you available to start full-time?")).toBe("notice_period");
+    expect(keyForQuestion("Degree")).toBe("highest_degree");
     expect(
       keyForQuestion("Will you now or in the future require sponsorship for employment visa status?"),
     ).toBe("sponsorship");
@@ -54,12 +56,45 @@ describe("question matching", () => {
   });
 });
 
+describe("look-alike questions (found on a real Lever form)", () => {
+  const notetaker =
+    "As part of our interview process, we use AI notetakers to transcribe conversations for accuracy and efficiency. Please see our candidate privacy policy for more information on how we process your data.";
+
+  it("does not answer 'How do you pronounce your name?' with the pronouns answer", () => {
+    expect(keyForQuestion("Name Pronunciation | How do you pronounce your name?")).toBeUndefined();
+    expect(keyForQuestion("What are your pronouns?")).toBe("pronouns");
+    saveAnswer(db, { key: "pronouns", question: "Pronouns (optional)", answer: "I prefer not to answer" });
+    expect(lookupAnswer(db, jane, "Name Pronunciation | How do you pronounce your name?").status).not.toBe(
+      "known",
+    );
+  });
+
+  it("does not treat consent to AI note-takers as privacy consent", () => {
+    expect(keyForQuestion(notetaker)).toBeUndefined();
+    expect(keyForQuestion("I agree to the privacy policy")).toBe("data_consent");
+    saveAnswer(db, {
+      key: "data_consent",
+      question:
+        "Do you agree to companies storing and processing your application data (privacy consent boxes)?",
+      answer: "Yes",
+    });
+    expect(lookupAnswer(db, jane, notetaker).status).not.toBe("known");
+  });
+});
+
 describe("answer memory", () => {
   it("answers profile fields from the profile", () => {
     const r = lookupAnswer(db, jane, "Email");
     expect(r).toMatchObject({ status: "known", memoryId: "profile:email", answer: "jane.doe@example.com" });
     expect(lookupAnswer(db, jane, "First Name")).toMatchObject({ answer: "Jane" });
     expect(lookupAnswer(db, jane, "LinkedIn Profile")).toMatchObject({ memoryId: "profile:linkedin" });
+    expect(lookupAnswer(db, jane, "Who is your current or previous employer?")).toMatchObject({
+      memoryId: "profile:current_company",
+      answer: "Initech",
+    });
+    expect(lookupAnswer(db, jane, "What is your current or previous job title?")).toMatchObject({
+      memoryId: "profile:current_title",
+    });
   });
 
   it("finds a stored answer under a different wording and cites its id", () => {

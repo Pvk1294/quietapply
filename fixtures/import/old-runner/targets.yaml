@@ -1,0 +1,10 @@
+roles: [backend engineer, software engineer]
+excludeTitles: [senior, staff]
+locations: [remote, Springfield]
+neverApply: [Initech]
+companies:
+  - https://boards.greenhouse.io/globex
+  - { name: Acme Rockets, url: "https://jobs.lever.co/acmerockets" }
+  - { name: Hooli, ats: ashby, token: hooli }
+  - https://example.com/careers
+experienceYears: { min: 0, max: 6 }

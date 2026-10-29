@@ -15,7 +15,7 @@ export function Questions({ onChange }: { onChange: () => void }) {
     <div className="stack">
       <p className="lead muted">
         The agent never guesses. When a form asks something it does not know, the application waits here.
-        Answer once; it is saved to your memory and reused on every form that asks the same thing.
+        Answer once. It is saved to your memory and reused on every form that asks the same thing.
       </p>
       {open?.length ? (
         <div className="cards">
@@ -25,7 +25,11 @@ export function Questions({ onChange }: { onChange: () => void }) {
         </div>
       ) : (
         <section className="card">
-          <Empty title={open ? "All caught up" : "Loading…"}>{open ? "No questions are waiting." : ""}</Empty>
+          <Empty title={open ? "All caught up" : "Loading…"}>
+            {open
+              ? "No questions are waiting. When a form asks something QuietApply does not know, it appears here instead of being guessed."
+              : ""}
+          </Empty>
         </section>
       )}
 
@@ -53,7 +57,8 @@ export function Questions({ onChange }: { onChange: () => void }) {
 }
 
 function QuestionCard({ q, onDone }: { q: Question; onDone: () => void }) {
-  const [answer, setAnswer] = useState("");
+  const confirm = q.kind === "confirm";
+  const [answer, setAnswer] = useState(q.suggested ?? "");
   const [scope, setScope] = useState<"global" | "company">("global");
   const [busy, setBusy] = useState(false);
   const company = q.applications[0]?.company;
@@ -91,6 +96,12 @@ function QuestionCard({ q, onDone }: { q: Question; onDone: () => void }) {
         )}
         <span className="muted small">{ago(q.created_at)}</span>
       </div>
+      {confirm && (
+        <p className="muted small">
+          A sensitive question: it is checked with you for every job. Your saved answer is filled in. Confirm
+          it, or change it for this job.
+        </p>
+      )}
       <h3 className="q-text">{q.question}</h3>
       {q.options.length > 0 && (
         <div className="options">
@@ -152,7 +163,7 @@ function QuestionCard({ q, onDone }: { q: Question; onDone: () => void }) {
             Skip
           </button>
           <button type="button" className="btn btn-primary" disabled={busy || !answer.trim()} onClick={save}>
-            Save answer
+            {confirm && answer.trim() === (q.suggested ?? "").trim() ? "Confirm" : "Save answer"}
           </button>
         </div>
       </div>

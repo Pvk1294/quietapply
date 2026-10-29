@@ -1,8 +1,9 @@
 import { copyFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
+import type { Config } from "../core/config.js";
 import type { DB } from "../core/db.js";
 import type { Paths } from "../core/paths.js";
-import { saveAnswer } from "../memory/answers.js";
+import { listAnswers, saveAnswer } from "../memory/answers.js";
 import { type Profile, saveProfile } from "../memory/profile.js";
 import { STANDARD_QUESTIONS } from "../memory/seed.js";
 import type { Provider } from "../providers/types.js";
@@ -46,4 +47,24 @@ export function seedDefaults(db: DB): number {
     n++;
   }
   return n;
+}
+
+/**
+ * What setup still lacks for real forms to go through, in plain words. Shown at the end of `init`
+ * (always with --yes, which asks nothing) and by `doctor`. Empty when nothing important is missing.
+ */
+export function setupGaps(db: DB, profile: Profile, config: Config): string[] {
+  const gaps: string[] = [];
+  if (!profile.location.trim()) gaps.push("your city and country (most forms ask where you live)");
+  const known = new Set(listAnswers(db).map((a) => a.key));
+  const essential = STANDARD_QUESTIONS.filter((q) => q.essential);
+  const missing = essential.filter((q) => !known.has(q.key));
+  if (missing.length)
+    gaps.push(
+      `${missing.length} of the ${essential.length} common questions (${missing.map((q) => q.key.replace(/_/g, " ")).join(", ")}): a form that asks one waits for you`,
+    );
+  if (!config.rules.roles.length)
+    gaps.push("job titles: without them every open role at your companies is queued");
+  if (!config.companies.length) gaps.push("careers pages to watch: discover has nothing to look at");
+  return gaps;
 }

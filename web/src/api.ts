@@ -30,9 +30,75 @@ export interface Application {
   openQuestions?: number;
 }
 
+export interface Screenshot {
+  run: number;
+  file: string;
+  at: string;
+  url: string;
+  /** Requests the dry-run guard stopped in that run. */
+  blockedRequests: number;
+}
+
 export interface AppDetail extends Application {
   events: { status: string; note: string | null; at: string }[];
   questions: Question[];
+  screenshots: Screenshot[];
+  /** Fingerprint of what would be sent. Approving sends it back, so the OK covers exactly this. */
+  contentHash: string | null;
+  emails: EmailRecord[];
+  messages: MessageRecord[];
+}
+
+export interface EmailRecord {
+  id: number;
+  to_addr: string;
+  subject: string;
+  body: string;
+  attachment: string | null;
+  status: "dry_run" | "awaiting_review" | "sending" | "sent" | "failed";
+  message_id: string | null;
+  error: string | null;
+  created_at: string;
+  sent_at: string | null;
+}
+
+export interface MessageRecord {
+  id: number;
+  recipient_name: string;
+  profile_url: string;
+  text: string;
+  hash: string;
+  status: "dry_run" | "awaiting_review" | "approved" | "sending" | "sent" | "failed" | "refused";
+  note: string | null;
+  created_at: string;
+  sent_at: string | null;
+}
+
+export interface EmailInfo {
+  enabled: boolean;
+  acceptedAt: string | null;
+  declinedAt: string | null;
+  from: string;
+  smtp: { host: string; port: number; secure: boolean; user: string };
+  hasPassword: boolean;
+  perDay: number;
+  sentToday: number;
+  reviewLeft: number;
+  doNotContact: string[];
+  question: string;
+  risk: string[];
+  storedIn?: string;
+}
+
+export interface MessagesInfo {
+  enabled: boolean;
+  acceptedAt: string | null;
+  declinedAt: string | null;
+  perDay: number;
+  maxPerDay: number;
+  sentToday: number;
+  question: string;
+  risk: string[];
 }
 
 export interface Question {
@@ -45,6 +111,9 @@ export interface Question {
   answer: string | null;
   created_at: string;
   answered_at: string | null;
+  /** "confirm": a sensitive question with a saved answer to check for this job. */
+  kind: "ask" | "confirm";
+  suggested: string | null;
   applications: { id: number; company: string; title: string }[];
 }
 
@@ -73,7 +142,45 @@ export interface Run {
   summary: string | null;
 }
 
+export type HandoffReason =
+  | "captcha"
+  | "login_required"
+  | "unknown_question"
+  | "file_upload"
+  | "unsupported_ats"
+  | "external_redirect"
+  | "email_only"
+  | "suspicious_page"
+  | "linkedin_limit"
+  | "fit_gate"
+  | "cap"
+  | "form_error"
+  | "unclear_submit"
+  | "other";
+
+export interface Handoff {
+  id: number;
+  reason: HandoffReason;
+  label: string;
+  help: string;
+  detail: string;
+  needed: string;
+  rule: string | null;
+  filled: { field: string; value: string; source?: string }[];
+  state: string;
+  needsYou: boolean;
+  canRetry: boolean;
+  retryBlocker: string | null;
+  created_at: string;
+  application: { id: number; company: string; title: string; url: string; ats: string; status: AppStatus };
+  questions: string[];
+  /** Your own details (name, email, links) to paste into the form. */
+  mine: { label: string; value: string }[];
+}
+
 export interface Summary {
+  today: { done: number; couldnt: number; needYou: number };
+  handoffs: { open: number; needYou: number };
   profileName: string;
   provider: string;
   browser: string;
@@ -91,6 +198,33 @@ export interface Summary {
   scheduleInstalled: boolean;
   lastRun: Run | null;
   companies: number;
+  linkedin: { enabled: boolean; stopped: { reason: string } | null };
+}
+
+/** Settings → Phone access (Tailscale Serve, tailnet only). */
+export interface PhoneInfo {
+  tailscale: "missing" | "logged_out" | "ready";
+  detail?: string;
+  on: boolean;
+  url?: string;
+  httpsPort: number;
+  allowedLogins: string[];
+  login?: string;
+  /** False when the page was opened through Tailscale: only the Mac itself may change phone access. */
+  canChange: boolean;
+}
+
+export interface LinkedInInfo {
+  enabled: boolean;
+  acceptedAt: string | null;
+  perDay: number;
+  usedToday: number;
+  remainingToday: number;
+  stopped: { at: string; reason: string; applicationId?: number } | null;
+  setupProblem: string | null;
+  chromeDevice: string | null;
+  risk: string[];
+  maxPerDay: number;
 }
 
 export interface Settings {
@@ -116,6 +250,15 @@ export interface Settings {
   home: string;
 }
 
+export interface AutoStartInfo {
+  on: boolean;
+  dashboard: boolean;
+  runs: boolean;
+  schedule: string[];
+  lines: string[];
+  canChange: boolean;
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const res = await fetch(path, {
     method,
@@ -132,8 +275,11 @@ export const api = {
   applications: (status?: string) =>
     request<Application[]>("GET", `/api/applications${status ? `?status=${status}` : ""}`),
   application: (id: number) => request<AppDetail>("GET", `/api/applications/${id}`),
-  act: (id: number, action: "approve" | "requeue" | "dismiss") =>
-    request<Application>("POST", `/api/applications/${id}/${action}`),
+  act: (id: number, action: "approve" | "requeue" | "dismiss", hash?: string) =>
+    request<Application>("POST", `/api/applications/${id}/${action}`, hash ? { hash } : undefined),
+  handoffs: () => request<Handoff[]>("GET", "/api/handoffs"),
+  handoffAct: (id: number, action: "applied" | "not_interested" | "retry") =>
+    request<Handoff>("POST", `/api/handoffs/${id}/${action}`),
   questions: (status: "open" | "answered" = "open") =>
     request<Question[]>("GET", `/api/questions?status=${status}`),
   answer: (id: number, answer: string, scope: "global" | "company") =>
@@ -149,6 +295,25 @@ export const api = {
   runNow: () => request<{ started: boolean }>("POST", "/api/run"),
   pause: (paused: boolean) => request<{ paused: boolean }>("POST", "/api/pause", { paused }),
   discover: () => request<{ found: number; added: number }>("POST", "/api/discover"),
+  linkedin: () => request<LinkedInInfo>("GET", "/api/linkedin"),
+  saveLinkedIn: (b: { enabled?: boolean; acceptRisk?: boolean; perDay?: number }) =>
+    request<LinkedInInfo>("PUT", "/api/linkedin", b),
+  resumeLinkedIn: () => request<LinkedInInfo>("POST", "/api/linkedin/resume"),
+  messagesInfo: () => request<MessagesInfo>("GET", "/api/linkedin/messages"),
+  saveMessages: (b: { enabled?: boolean; accept?: boolean; perDay?: number }) =>
+    request<MessagesInfo>("PUT", "/api/linkedin/messages", b),
+  messageAct: (id: number, action: "approve" | "dismiss", hash?: string) =>
+    request("POST", `/api/messages/${id}/${action}`, hash ? { hash } : undefined),
+  email: () => request<EmailInfo>("GET", "/api/email"),
+  saveEmail: (b: Record<string, unknown>) => request<EmailInfo>("PUT", "/api/email", b),
+  setEmailPassword: (password: string) => request<EmailInfo>("POST", "/api/email/password", { password }),
+  forgetEmailPassword: () => request<EmailInfo>("DELETE", "/api/email/password"),
+  addJob: (url: string) => request<{ id: number; created: boolean }>("POST", "/api/applications", { url }),
+  phone: () => request<PhoneInfo>("GET", "/api/phone"),
+  setPhone: (on: boolean) => request<PhoneInfo>("POST", "/api/phone", { on }),
+  setPhoneLogins: (logins: string[]) => request<PhoneInfo>("PUT", "/api/phone/logins", { logins }),
+  autoStart: () => request<AutoStartInfo>("GET", "/api/autostart"),
+  setAutoStart: (on: boolean) => request<{ ok: boolean; message: string }>("PUT", "/api/autostart", { on }),
   settings: () => request<Settings>("GET", "/api/settings"),
   saveSettings: (s: unknown) => request<{ config: Settings["config"] }>("PUT", "/api/settings", s),
 };

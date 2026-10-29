@@ -26,6 +26,18 @@ function siteNotes(p: Paths, url: string): string {
   }
 }
 
+/** Long dropdowns (a real form listed 3,301 universities) are cut short; the agent reads the rest on the page. */
+export const MAX_PROMPT_OPTIONS = 25;
+
+function promptOptions(options: string[] | undefined): { options?: string[]; moreOptions?: string } {
+  if (!options?.length) return {};
+  if (options.length <= MAX_PROMPT_OPTIONS) return { options };
+  return {
+    options: options.slice(0, MAX_PROMPT_OPTIONS),
+    moreOptions: `${options.length - MAX_PROMPT_OPTIONS} more on the page: type to search the dropdown`,
+  };
+}
+
 /**
  * The prompt for one application: fixed instructions, the ATS playbook, then only the data this form
  * needs (compact profile, answers matching the expected questions, a few core answers). The full answer
@@ -40,6 +52,8 @@ export function buildPrompt(opts: {
   form?: FormInfo;
   /** Where the resume copy for this run lives (inside the agent's working folder). */
   resumePath?: string;
+  /** Set for LinkedIn runs: today's remaining LinkedIn cap (this one included) and the browser to use. */
+  linkedin?: { remainingToday: number; chromeDevice?: string };
 }): string {
   const { db, p, app, profile, mode, form } = opts;
   const ctx = { company: app.company, ats: app.ats };
@@ -75,13 +89,23 @@ export function buildPrompt(opts: {
           location: app.location,
         },
         resumeFile: resume ?? "none on file: ask_human if the form requires a resume",
+        ...(opts.linkedin
+          ? {
+              linkedin: {
+                browserDeviceId:
+                  opts.linkedin.chromeDevice ??
+                  "not set: if more than one browser is connected, mark_blocked (other) and stop",
+                linkedInApplicationsLeftToday: opts.linkedin.remainingToday,
+              },
+            }
+          : {}),
         profile: profileForPrompt(profile),
         knownAnswers: [...answers.values()],
         expectedQuestions: form?.fields.map((f) => ({
           label: f.label,
           type: f.type,
           required: f.required,
-          options: f.options,
+          ...promptOptions(f.options),
         })),
       },
       null,

@@ -49,3 +49,26 @@ export function similarity(a: string, b: string): number {
   for (const t of ta) if (tb.has(t)) inter++;
   return inter / (ta.size + tb.size - inter);
 }
+
+/**
+ * A company name reduced to what identifies it, so "Hooli, Inc.", "Hooli" and "Hooli (YC W16)"
+ * are one company for the duplicate check and the per-company cap.
+ */
+export function companyKey(name: string): string {
+  const key = norm(name.replace(/\([^)]*\)/g, " "))
+    .replace(
+      /\b(inc|llc|ltd|limited|pvt|private|corp|corporation|co|company|gmbh|plc|technologies|technology|labs|india|software|solutions|services|group|hq)\b/g,
+      " ",
+    )
+    .replace(/\s+/g, " ")
+    .trim();
+  return key || norm(name);
+}
+
+/** A job title reduced for the duplicate check: "Software Engineer - Backend (Remote)" ≈ "Software Engineer, Backend". */
+export function titleKey(title: string): string {
+  return norm(title.replace(/\([^)]*\)/g, " "))
+    .replace(/\b(remote|hybrid|onsite|on site|india|bengaluru|bangalore)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}

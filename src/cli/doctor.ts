@@ -1,11 +1,14 @@
 import { existsSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, win32 } from "node:path";
 import { loadConfig } from "../core/config.js";
-import { paths } from "../core/paths.js";
+import { openDb } from "../core/db.js";
+import { packageRoot, paths } from "../core/paths.js";
+import { messagesEnabled } from "../linkedin/messages.js";
 import { loadProfile } from "../memory/profile.js";
 import { getProvider } from "../providers/index.js";
 import { version } from "../providers/spawn.js";
-import { scheduleInstalled } from "../scheduler/index.js";
+import { macProtectedFolder, scheduleState } from "../scheduler/index.js";
+import { setupGaps } from "./setup.js";
 
 export interface Check {
   name: string;
@@ -13,20 +16,44 @@ export interface Check {
   detail: string;
 }
 
-const CHROME_PATHS: Record<string, string[]> = {
-  darwin: [
-    "/Applications/Google Chrome.app",
-    "/Applications/Microsoft Edge.app",
-    "/Applications/Chromium.app",
-  ],
-  linux: [
-    "/usr/bin/google-chrome",
-    "/usr/bin/google-chrome-stable",
-    "/usr/bin/chromium",
-    "/usr/bin/microsoft-edge",
-  ],
-  win32: ["C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"],
-};
+/** Where Chrome and Edge are usually installed. On Windows: per machine (both Program Files) or per user. */
+export function browserCandidates(platform: NodeJS.Platform, env: NodeJS.ProcessEnv = process.env): string[] {
+  if (platform === "darwin")
+    return [
+      "/Applications/Google Chrome.app",
+      "/Applications/Microsoft Edge.app",
+      "/Applications/Chromium.app",
+    ];
+  if (platform === "linux")
+    return [
+      "/usr/bin/google-chrome",
+      "/usr/bin/google-chrome-stable",
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser",
+      "/usr/bin/microsoft-edge",
+    ];
+  if (platform === "win32") {
+    const roots = [
+      env.ProgramFiles ?? "C:\\Program Files",
+      env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)",
+      env.LOCALAPPDATA,
+    ].filter((r): r is string => !!r);
+    return roots.flatMap((r) => [
+      win32.join(r, "Google", "Chrome", "Application", "chrome.exe"),
+      win32.join(r, "Microsoft", "Edge", "Application", "msedge.exe"),
+    ]);
+  }
+  return [];
+}
+
+/** The first Chrome or Edge that exists. */
+export function findBrowser(
+  platform: NodeJS.Platform = process.platform,
+  env: NodeJS.ProcessEnv = process.env,
+  exists: (f: string) => boolean = existsSync,
+): string | undefined {
+  return browserCandidates(platform, env).find(exists);
+}
 
 /** Everything a run needs, checked without changing anything. */
 export async function doctor(): Promise<Check[]> {
@@ -82,11 +109,11 @@ export async function doctor(): Promise<Check[]> {
           .join(" · ") || "not installed",
     });
     if (config.browser !== "claude-in-chrome") {
-      const chrome = (CHROME_PATHS[process.platform] ?? []).find((f) => existsSync(f));
+      const chrome = findBrowser();
       checks.push({
         name: "Browser (Chrome/Edge)",
         ok: chrome ? true : "warn",
-        detail: chrome ?? "not found in the usual places; Playwright can install its own",
+        detail: chrome ?? "not found in the usual places, Playwright can install its own",
       });
       const npx = await version("npx");
       checks.push({ name: "npx (for Playwright MCP)", ok: !!npx, detail: npx ?? "not found" });
@@ -97,7 +124,7 @@ export async function doctor(): Promise<Check[]> {
         detail:
           config.auth === "subscription"
             ? "needs the Claude in Chrome extension signed in to your Claude plan"
-            : "not available with an API key; use playwright-profile",
+            : "not available with an API key, use playwright-profile",
       });
     }
     checks.push({
@@ -112,16 +139,66 @@ export async function doctor(): Promise<Check[]> {
       ok: config.companies.length ? true : "warn",
       detail: `${config.companies.length} on the watch list`,
     });
+    if (config.sources.linkedin && config.browser !== "claude-in-chrome")
+      checks.push({
+        name: "Claude in Chrome (LinkedIn)",
+        ok: "warn",
+        detail:
+          "LinkedIn runs use your own Chrome through the Claude in Chrome extension, signed in to LinkedIn",
+      });
+    if (existsSync(p.db)) {
+      const gaps = setupGaps(openDb(p), profile, config);
+      checks.push({
+        name: "Setup answers",
+        ok: gaps.length ? "warn" : true,
+        detail: gaps.length
+          ? `missing ${gaps.join(" · ")}. Run quietapply init`
+          : "location and common questions set",
+      });
+    }
+    checks.push({
+      name: "Email applications",
+      ok: !config.email.enabled
+        ? true
+        : config.email.from && config.email.smtp.host && config.email.smtp.user
+          ? true
+          : "warn",
+      detail: !config.email.enabled
+        ? "off (default): no mail is ever sent"
+        : config.email.from && config.email.smtp.host
+          ? `on since ${config.email.acceptedAt}, from ${config.email.from}, ${config.email.perDay} a day`
+          : "on, but the address or mail server is missing: finish the Email card in Settings",
+    });
+    checks.push({
+      name: "Recruiter messages",
+      ok: true,
+      detail: messagesEnabled(config)
+        ? `on since ${config.linkedin.messages.acceptedAt}, ${config.linkedin.messages.perDay} a day`
+        : "off (default): no LinkedIn messages are sent",
+    });
     checks.push({
       name: "LinkedIn",
       ok: true,
-      detail: config.sources.linkedin ? "ON (you acknowledged the terms-of-service risk)" : "off (default)",
+      detail: config.sources.linkedin
+        ? `ON since ${config.linkedin.acceptedAt} (you accepted the risk); ${config.linkedin.perDay} a day`
+        : "off (default)",
     });
   }
+  const auto = scheduleState();
   checks.push({
-    name: "Schedule",
-    ok: scheduleInstalled() ? true : "warn",
-    detail: scheduleInstalled() ? "installed" : "not installed: quietapply schedule on",
+    name: "Run automatically",
+    ok: auto.dashboard && auto.runs ? true : "warn",
+    detail:
+      auto.dashboard && auto.runs
+        ? `on: dashboard at login, runs at ${(config?.schedule ?? []).join(", ")}`
+        : `${auto.runs ? "runs scheduled, but the dashboard does not start at login" : auto.dashboard ? "dashboard at login, but no run schedule" : "off"}: quietapply schedule on`,
   });
+  const folder = process.platform === "darwin" ? macProtectedFolder(packageRoot()) : undefined;
+  if (folder)
+    checks.push({
+      name: "Install folder",
+      ok: "warn",
+      detail: `QuietApply is in ~/${folder}. The scheduler cannot read that folder in the background on macOS. Clone it somewhere else, such as ~/code, before schedule on`,
+    });
   return checks;
 }

@@ -1,0 +1,52 @@
+name: Bug report
+description: Something did not work as the README says.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Do not paste personal data**: no resume text, real answers, emails, phone numbers, logs from `~/.quietapply/logs` or screenshots of real forms with your details. Reproduce with the demo persona (`quietapply demo`) or redact first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. quietapply init ...
+        2. quietapply run --max 1
+    validations:
+      required: true
+  - type: input
+    id: doctor
+    attributes:
+      label: Output of `quietapply doctor` (redacted)
+  - type: dropdown
+    id: provider
+    attributes:
+      label: AI
+      options: [Claude Code, Codex, None (demo)]
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser mode
+      options: [Playwright (separate profile), Playwright extension, Claude in Chrome]
+  - type: input
+    id: env
+    attributes:
+      label: OS, Node.js version, QuietApply commit
+      placeholder: macOS 15.4, Node 22.14, abc1234
+    validations:
+      required: true
+  - type: input
+    id: site
+    attributes:
+      label: Job site, if the problem is on one form
+      placeholder: Greenhouse / Lever / Ashby, and the public job URL

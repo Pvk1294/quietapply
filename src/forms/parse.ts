@@ -19,7 +19,15 @@ export function parseForm(html: string): FormInfo {
     const tag = el.tagName.toLowerCase();
     const inputType = (el.getAttribute("type") ?? "text").toLowerCase();
     if (tag === "input" && SKIP_INPUT.has(inputType)) continue;
-    if (el.getAttribute("aria-hidden") === "true" || el.getAttribute("tabindex") === "-1") continue;
+    // Ashby's Yes/No questions are two buttons over a hidden checkbox.
+    const yesNo = el.closest(".ashby-application-form-input-yesno");
+    // File inputs are usually hidden behind an "Attach" button (Lever sets tabindex -1), but are real fields.
+    if (
+      inputType !== "file" &&
+      !yesNo &&
+      (el.getAttribute("aria-hidden") === "true" || el.getAttribute("tabindex") === "-1")
+    )
+      continue;
     const name = el.getAttribute("name") ?? el.getAttribute("id") ?? "";
     if (!name || seen.has(name)) continue;
     seen.add(name);
@@ -27,7 +35,13 @@ export function parseForm(html: string): FormInfo {
     let type: FieldType = "text";
     let options: string[] | undefined;
     let label = "";
-    if (tag === "select") {
+    if (el.getAttribute("role") === "combobox") {
+      // A custom dropdown (Greenhouse's React select): the options only exist once it is opened.
+      type = name.endsWith("[]") ? "multiselect" : "select";
+    } else if (yesNo) {
+      type = "radio";
+      options = yesNo.querySelectorAll("button").map((b) => clean(b.text));
+    } else if (tag === "select") {
       type = el.hasAttribute("multiple") ? "multiselect" : "select";
       options = el
         .querySelectorAll("option")
@@ -35,7 +49,9 @@ export function parseForm(html: string): FormInfo {
         .map((o) => clean(o.text));
     } else if (tag === "textarea") type = "textarea";
     else if (inputType === "radio" || inputType === "checkbox") {
-      const group = form.querySelectorAll(`input[name="${cssEscape(name)}"]`);
+      const group = form
+        .querySelectorAll(`input[name="${cssEscape(name)}"]`)
+        .filter((g) => !SKIP_INPUT.has((g.getAttribute("type") ?? "").toLowerCase()));
       type = inputType === "radio" ? "radio" : group.length > 1 ? "multiselect" : "checkbox";
       options = group.map((g) => optionLabel(form, g)).filter(Boolean);
       label = groupLabel(el);
@@ -45,10 +61,18 @@ export function parseForm(html: string): FormInfo {
     else if (inputType === "number") type = "number";
 
     label ||= fieldLabel(form, el);
+    // "Attach" / "Upload" is the button text; the question is the upload group's own label ("Resume/CV").
+    let group: HTMLElement | undefined;
+    if (type === "file" && (!label || GENERIC_FILE_LABEL.test(label))) {
+      group = uploadGroup(form, el);
+      if (group) label = groupTitle(form, group) || label;
+    }
     if (!label) continue;
     const required =
       el.hasAttribute("required") ||
       el.getAttribute("aria-required") === "true" ||
+      group?.getAttribute("aria-required") === "true" ||
+      /_required_/.test(ashbyTitle(el)?.getAttribute("class") ?? "") ||
       /\*\s*$|\(required\)/i.test(label);
     fields.push({
       label: label.replace(/\s*\*\s*$|\s*\(required\)\s*$/i, "").trim(),
@@ -59,12 +83,49 @@ export function parseForm(html: string): FormInfo {
     });
   }
 
-  const text = root.innerHTML;
   const captcha =
-    /class="[^"]*\b(h-captcha|g-recaptcha|cf-turnstile)\b[^"]*"(?![^>]*data-size="invisible")/i.test(text) ||
-    /data-captcha="visible"/i.test(text);
+    root
+      .querySelectorAll(".h-captcha, .g-recaptcha, .cf-turnstile")
+      .some((w) => w.getAttribute("data-size") !== "invisible" && !isLeverSubmitCaptcha(w)) ||
+    root.querySelector('[data-captcha="visible"]') !== null;
   const accountRequired = form.querySelectorAll('input[type="password"]').length > 0;
   return { fields, captcha, accountRequired };
+}
+
+const GENERIC_FILE_LABEL = /^(attach|upload|choose( a)? file|browse|select file|drop files? here)\b/i;
+
+/**
+ * Lever puts `<div id="h-captcha" class="h-captcha">` on every apply form and renders it invisible: it only
+ * challenges on Submit, if at all. A challenge that does appear is handled live (`mark_blocked`).
+ */
+function isLeverSubmitCaptcha(w: HTMLElement): boolean {
+  return w.getAttribute("id") === "h-captcha" && w.closest("form") !== null;
+}
+
+/** Ashby marks a required question on its title (`class="… _required_xyz …"`), not on the input. */
+function ashbyTitle(el: HTMLElement): HTMLElement | null | undefined {
+  return el
+    .closest(".ashby-application-form-field-entry")
+    ?.querySelector(".ashby-application-form-question-title");
+}
+
+/** The container of an upload question (Greenhouse: `div[role=group][aria-labelledby]`). */
+function uploadGroup(form: HTMLElement, el: HTMLElement): HTMLElement | undefined {
+  for (
+    let node = el.parentNode as HTMLElement | null, depth = 0;
+    node && depth < 6;
+    node = node.parentNode, depth++
+  ) {
+    if (node.getAttribute?.("role") === "group" || node.tagName?.toLowerCase() === "fieldset") return node;
+    if (node === form) break;
+  }
+  return undefined;
+}
+
+function groupTitle(form: HTMLElement, group: HTMLElement): string {
+  const by = group.getAttribute("aria-labelledby");
+  const title = by ? form.querySelector(`#${by}`) : group.querySelector("legend, .label, .upload-label");
+  return clean(title?.text ?? "");
 }
 
 function clean(s: string): string {
@@ -116,6 +177,7 @@ function holdsOnly(node: HTMLElement, name: string | undefined): boolean {
   const names = new Set(
     node
       .querySelectorAll("input, select, textarea")
+      .filter((c) => !SKIP_INPUT.has((c.getAttribute("type") ?? "").toLowerCase()))
       .map((c) => c.getAttribute("name") ?? c.getAttribute("id")),
   );
   return names.size <= 1 && (!name || names.has(name) || names.size === 0);

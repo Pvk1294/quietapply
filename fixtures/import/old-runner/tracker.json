@@ -1,0 +1,68 @@
+{
+  "updated": "2026-10-20",
+  "applications": [
+    {
+      "company": "Acme Rockets",
+      "role": "Software Engineer I",
+      "location": "Remote (US)",
+      "job_url": "https://jobs.lever.co/acmerockets/11111111-1111-1111-1111-111111111111",
+      "status": "Applied",
+      "applied_at": "2026-09-16T10:15:00-07:00"
+    },
+    {
+      "company": "Globex, Inc.",
+      "role": "Backend Engineer",
+      "location": "Springfield",
+      "job_url": "https://boards.greenhouse.io/globex/jobs/2222222",
+      "status": "Rejected",
+      "applied_at": "2026-10-10T09:00:00-07:00"
+    },
+    {
+      "company": "Initrode",
+      "role": "Full Stack Developer",
+      "location": "Remote",
+      "job_url": "",
+      "status": "Interview",
+      "applied_at": "2026-10-12"
+    },
+    {
+      "company": "Acme Rockets",
+      "role": "Software Engineer I",
+      "location": "Remote (US)",
+      "job_url": "https://jobs.lever.co/acmerockets/11111111-1111-1111-1111-111111111111",
+      "status": "Applied",
+      "applied_at": "2026-09-16T10:15:00-07:00"
+    },
+    {
+      "company": "Hooli",
+      "role": "Platform Engineer",
+      "location": "Remote",
+      "job_url": "https://jobs.ashbyhq.com/hooli/33333333",
+      "status": "Prepared",
+      "applied_at": ""
+    },
+    {
+      "company": "Vandelay Industries",
+      "role": "Backend Developer",
+      "location": "Remote",
+      "job_url": "https://jobboard.example.com/search?q=backend",
+      "status": "Applied",
+      "applied_at": "2026-10-03"
+    },
+    {
+      "company": "Soylent Corp",
+      "role": "Software Engineer",
+      "location": "Remote",
+      "job_url": "https://jobboard.example.com/search?q=backend",
+      "status": "Applied",
+      "applied_at": "2026-10-03"
+    },
+    {
+      "company": "",
+      "role": "Mystery role",
+      "job_url": "https://example.com/x",
+      "status": "Applied",
+      "applied_at": "2026-10-01"
+    }
+  ]
+}

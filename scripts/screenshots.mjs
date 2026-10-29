@@ -12,6 +12,8 @@ const candidates = [
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
   "/usr/bin/google-chrome",
   "/usr/bin/chromium",
+  "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
 ].filter(Boolean);
 const executablePath = candidates.find((c) => existsSync(c));
 
@@ -31,6 +33,8 @@ for (const [suffix, viewport, scheme] of [
   ["dark", { width: 1360, height: 860 }, "dark"],
 ]) {
   const context = await browser.newContext({ viewport, deviceScaleFactor: 2, colorScheme: scheme });
+  // The first-run tour opens by itself; keep it out of the page shots (it has its own below).
+  await context.addInitScript(() => localStorage.setItem("quietapply-tour-done", "1"));
   const page = await context.newPage();
   for (const s of shots) {
     if (suffix === "dark" && s.name !== "today") continue;
@@ -38,6 +42,29 @@ for (const [suffix, viewport, scheme] of [
     await page.waitForLoadState("networkidle");
     await page.waitForTimeout(600);
     await page.screenshot({ path: `${out}${s.name}-${suffix}.png` });
+  }
+  if (suffix !== "dark") {
+    // The walkthrough, one picture per step (desktop), and the LinkedIn step on a phone.
+    for (let n = 1; n <= 9; n++) {
+      if (suffix === "mobile" && n !== 7) continue;
+      await page.goto(`${base}/#/today?tour=${n}`);
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: `${out}tour-${n}${suffix === "mobile" ? "-mobile" : ""}.png` });
+    }
+    if (suffix === "desktop") {
+      // LinkedIn mode: the plain-words risk step a user sees before it can be turned on.
+      await page.goto(`${base}/#/settings`);
+      await page.reload();
+      await page.waitForLoadState("networkidle");
+      await page.getByRole("button", { name: /Set up LinkedIn mode/ }).click();
+      await page.waitForTimeout(400);
+      await page.locator("#linkedin").scrollIntoViewIfNeeded();
+      await page.locator("#linkedin").screenshot({ path: `${out}linkedin-risk.png` });
+      await page.goto(`${base}/#/questions`);
+      await page.waitForTimeout(400);
+    }
   }
   await context.close();
 }

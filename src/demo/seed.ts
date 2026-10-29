@@ -1,13 +1,15 @@
-import { copyFileSync, rmSync } from "node:fs";
+import { copyFileSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { Config, saveConfig } from "../core/config.js";
 import { type DB, openDb } from "../core/db.js";
+import { recordHandoff } from "../core/handoffs.js";
 import { ensureHome, packageRoot, paths } from "../core/paths.js";
 import { addApplication, askQuestion, finishRun, setStatus, startRun } from "../core/store.js";
 import { saveAnswer } from "../memory/answers.js";
 import { Profile, saveProfile } from "../memory/profile.js";
+import { runFolder } from "../runner/evidence.js";
 import { runOnce } from "../runner/run.js";
 import { defaultFetcher } from "../sources/http.js";
 
@@ -128,7 +130,7 @@ export async function createDemo(home = join(tmpdir(), "quietapply-demo")): Prom
     location: "Remote - US",
     source: "greenhouse",
   });
-  addApplication(db2, {
+  const globex = addApplication(db2, {
     company: "Globex Corporation",
     title: "Backend Developer",
     url: fx("lever-globex-apply.html"),
@@ -153,7 +155,13 @@ export async function createDemo(home = join(tmpdir(), "quietapply-demo")): Prom
     source: "greenhouse",
   });
   db2.close();
-  await runOnce({ p, fetcher: defaultFetcher, trigger: "manual" });
+  const run = await runOnce({ p, fetcher: defaultFetcher, trigger: "manual" });
+  // The scripted agent has no browser; give the Globex dry run the screenshot a real agent would have taken.
+  if (run.runId) {
+    const folder = runFolder(p, run.runId, globex.id);
+    mkdirSync(folder, { recursive: true });
+    copyFileSync(join(packageRoot(), "fixtures", "demo", "globex-dry-run.png"), join(folder, "form.png"));
+  }
   return home;
 }
 
@@ -195,7 +203,7 @@ function seedHistory(db: DB): void {
 
   const review = add("Cyberdyne", "Software Engineer, Billing", "greenhouse", "Remote - US", "cyberdyne");
   setStatus(db, review, "awaiting_review", {
-    reason: "filled; waiting for your OK in the dashboard",
+    reason: "filled, waiting for your OK in the dashboard",
     evidence: JSON.stringify({
       filled: [
         { field: "First Name", value: "Jane", source: "profile:first_name" },
@@ -227,16 +235,61 @@ function seedHistory(db: DB): void {
   const email = add("Vandelay Industries", "Software Developer", "greenhouse", "Springfield", "vandelay");
   setStatus(db, email, "blocked", {
     reason: "The posting asks for a CV by email to a recruiter.",
-    blockedCategory: "email_only",
+    blockedCategory: "external_redirect",
+  });
+  recordHandoff(db, {
+    applicationId: email,
+    reason: "external_redirect",
+    detail: "The posting asks for a CV by email to a recruiter.",
+    needed: "Email your CV to the recruiter named on the posting.",
+    filled: [{ field: "Email", value: "jane.doe@example.com" }],
   });
   at(email, 20);
 
   const video = add("Prestige Worldwide", "Full-Stack Developer", "ashby", "Remote", "prestige");
   setStatus(db, video, "blocked", {
     reason: "Step 2 asks for a 2-minute video introduction.",
-    blockedCategory: "human_only",
+    blockedCategory: "other",
+  });
+  recordHandoff(db, {
+    applicationId: video,
+    reason: "other",
+    detail: "Step 2 asks for a 2-minute video introduction.",
+    needed: "Record the video and finish the form yourself.",
+    filled: [
+      { field: "First Name", value: "Jane" },
+      { field: "Last Name", value: "Doe" },
+      { field: "Email", value: "jane.doe@example.com" },
+    ],
   });
   at(video, 27);
+
+  const captcha = add("Soylent Corp", "Platform Engineer", "greenhouse", "Remote", "soylent");
+  setStatus(db, captcha, "blocked", { reason: "A visible CAPTCHA on the form.", blockedCategory: "captcha" });
+  recordHandoff(db, {
+    applicationId: captcha,
+    reason: "captcha",
+    detail: "A visible CAPTCHA on the form. QuietApply never solves these.",
+    filled: [
+      { field: "First Name", value: "Jane" },
+      { field: "Last Name", value: "Doe" },
+      { field: "Email", value: "jane.doe@example.com" },
+      { field: "Phone", value: "+1 555 010 0199" },
+    ],
+  });
+  at(captcha, 4);
+
+  const workday = add("Wonka Industries", "Software Engineer II", "unknown", "Remote", "wonka");
+  setStatus(db, workday, "blocked", {
+    reason: "wonka.wd1.myworkdayjobs.com is not automated yet.",
+    blockedCategory: "unsupported_ats",
+  });
+  recordHandoff(db, {
+    applicationId: workday,
+    reason: "unsupported_ats",
+    detail: "wonka.wd1.myworkdayjobs.com is not automated yet.",
+  });
+  at(workday, 5);
 
   const skipped: [string, string, string][] = [
     ["Acme Rockets", "Principal Engineer, Propulsion", 'title contains excluded word "principal"'],
@@ -252,6 +305,12 @@ function seedHistory(db: DB): void {
       `${company}-${title}`.toLowerCase().replace(/\W+/g, "-"),
     );
     setStatus(db, id, "skipped", { reason });
+    recordHandoff(db, {
+      applicationId: id,
+      reason: "fit_gate",
+      detail: `Skipped by your rules: ${reason}.`,
+      rule: reason,
+    });
     at(id, 28);
   }
 

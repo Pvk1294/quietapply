@@ -1,6 +1,8 @@
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { run, version } from "./spawn.js";
+import { existsSync, writeFileSync } from "node:fs";
+import { join, win32 } from "node:path";
+import { CHROME_CLICK_TOOLS, LINKEDIN_CHROME_TOOLS, LINKEDIN_DENIED_CHROME_TOOLS } from "../linkedin/mode.js";
+import { chromeGuardSettings } from "../runner/chrome-guard.js";
+import { resolveCommand, run, version } from "./spawn.js";
 import {
   type AgentRunOptions,
   type AgentRunResult,
@@ -10,13 +12,41 @@ import {
   USAGE_LIMIT_RE,
 } from "./types.js";
 
-const BIN = process.env.QUIETAPPLY_CLAUDE_BIN ?? "claude";
+/**
+ * The Claude Code CLI: QUIETAPPLY_CLAUDE_BIN, else "claude" from PATH. On Windows, when it is not on PATH,
+ * also the native installer's `%USERPROFILE%\.local\bin\claude.exe` and npm's `%APPDATA%\npm\claude.cmd`.
+ */
+export function locateClaude(
+  o: { env?: NodeJS.ProcessEnv; platform?: NodeJS.Platform; exists?: (f: string) => boolean } = {},
+): string {
+  const env = o.env ?? process.env;
+  if (env.QUIETAPPLY_CLAUDE_BIN) return env.QUIETAPPLY_CLAUDE_BIN;
+  if ((o.platform ?? process.platform) !== "win32") return "claude";
+  const exists = o.exists ?? existsSync;
+  const onPath = resolveCommand("claude", { platform: "win32", env, exists });
+  if (onPath !== "claude") return onPath;
+  const extra = [
+    env.USERPROFILE && win32.join(env.USERPROFILE, ".local", "bin", "claude.exe"),
+    env.APPDATA && win32.join(env.APPDATA, "npm", "claude.cmd"),
+  ].filter((f): f is string => !!f);
+  return extra.find(exists) ?? "claude";
+}
+
+const BIN = locateClaude();
 
 /** Tools the agent may call. Built-in file and shell tools are off: it acts only through MCP. */
-export function allowedTools(opts: Pick<AgentRunOptions, "browser" | "mcpServers">): string[] {
+export function allowedTools(
+  opts: Pick<AgentRunOptions, "browser" | "mcpServers" | "linkedin" | "chromeGuardDir">,
+): string[] {
   const tools = Object.keys(opts.mcpServers).map((name) => `mcp__${name}__*`);
-  if (opts.browser === "claude-in-chrome") tools.push("mcp__claude-in-chrome__*");
+  if (opts.linkedin) tools.push(...LINKEDIN_CHROME_TOOLS);
+  else if (opts.browser === "claude-in-chrome") tools.push("mcp__claude-in-chrome__*");
   return tools;
+}
+
+/** Tools refused outright: LinkedIn's long list, and in dry run or review every tool that can click around `computer`. */
+export function deniedTools(opts: Pick<AgentRunOptions, "linkedin" | "chromeGuardDir">): string[] {
+  return opts.linkedin ? LINKEDIN_DENIED_CHROME_TOOLS : opts.chromeGuardDir ? CHROME_CLICK_TOOLS : [];
 }
 
 export function mcpConfigJson(servers: Record<string, McpServerSpec>): string {
@@ -43,7 +73,10 @@ export function agentArgs(opts: AgentRunOptions, mcpConfigPath: string): string[
     "--allowedTools",
     allowedTools(opts).join(","),
   ];
-  if (opts.browser === "claude-in-chrome") args.push("--chrome");
+  const denied = deniedTools(opts);
+  if (denied.length) args.push("--disallowedTools", denied.join(","));
+  if (opts.browser === "claude-in-chrome" || opts.linkedin) args.push("--chrome");
+  if (opts.chromeGuardDir) args.push("--settings", chromeGuardSettings(opts.chromeGuardDir));
   if (opts.model) args.push("--model", opts.model);
   return args;
 }

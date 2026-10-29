@@ -6,3 +6,4 @@
 - "Additional information" is a free-text box: leave it empty unless a cover letter answer exists.
 - Lever uses hCaptcha on some boards. A visible challenge means `mark_blocked` with `captcha`.
 - Success: "Application submitted!" message on the same page.
+- Some dropdowns list thousands of options (universities). A full page snapshot can then be too large to read: pick the option with `browser_select_option` by its label, and if the school is not listed choose the "Other" option the question names.

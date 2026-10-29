@@ -1,5 +1,5 @@
 import { type DB, now } from "./db.js";
-import { sameQuestion } from "./text.js";
+import { companyKey, sameQuestion, titleKey } from "./text.js";
 
 export const APP_STATUSES = [
   "queued",
@@ -27,6 +27,8 @@ export const BLOCKED_CATEGORIES = [
   "site_error",
   "no_ai_policy",
   "missing_data",
+  "linkedin_warning",
+  "unsupported_site",
   "other",
 ] as const;
 export type BlockedCategory = (typeof BLOCKED_CATEGORIES)[number];
@@ -45,6 +47,10 @@ export interface Application {
   blocked_category: string | null;
   evidence: string | null;
   review_approved: number;
+  /** The fingerprint of what you approved in review (see core/safety.ts contentHash). */
+  approved_hash: string | null;
+  /** Set when the posting asks for an email application: the address to write to. */
+  apply_email: string | null;
   created_at: string;
   updated_at: string;
   submitted_at: string | null;
@@ -108,7 +114,7 @@ export function setStatus(
   db: DB,
   id: number,
   status: AppStatus,
-  extra: { reason?: string; blockedCategory?: BlockedCategory; evidence?: string } = {},
+  extra: { reason?: string; blockedCategory?: string; evidence?: string } = {},
 ): void {
   const t = now();
   db.prepare(
@@ -129,9 +135,41 @@ export function setStatus(
   logEvent(db, id, status, extra.reason);
 }
 
-export function approveReview(db: DB, id: number): void {
-  db.prepare("UPDATE applications SET review_approved = 1, updated_at = ? WHERE id = ?").run(now(), id);
-  setStatus(db, id, "queued", { reason: "approved in review; will submit next run" });
+/** Your OK in review, bound to the fingerprint of exactly what you saw. */
+export function approveReview(db: DB, id: number, hash: string): void {
+  db.prepare(
+    "UPDATE applications SET review_approved = 1, approved_hash = ?, updated_at = ? WHERE id = ?",
+  ).run(hash, now(), id);
+  setStatus(db, id, "queued", { reason: "approved in review, will submit next run" });
+}
+
+/** The approval no longer matches what would be sent, so it is withdrawn and you are asked again. */
+export function withdrawApproval(db: DB, id: number): void {
+  db.prepare(
+    "UPDATE applications SET review_approved = 0, approved_hash = NULL, updated_at = ? WHERE id = ?",
+  ).run(now(), id);
+}
+
+/** Point an application at another URL (LinkedIn's "Apply on company website" leads to the company's own form). */
+export function moveApplication(db: DB, id: number, to: { url: string; ats: string }): void {
+  db.prepare("UPDATE applications SET url = ?, ats = ?, updated_at = ? WHERE id = ?").run(
+    to.url,
+    to.ats,
+    now(),
+    id,
+  );
+}
+
+/** Fill in company, title and location once the agent has read them on the job page. */
+export function updateJobFacts(
+  db: DB,
+  id: number,
+  facts: { company: string; title: string; location?: string | null; description?: string | null },
+): void {
+  db.prepare(
+    `UPDATE applications SET company = ?, title = ?, location = COALESCE(?, location),
+       description = COALESCE(?, description), updated_at = ? WHERE id = ?`,
+  ).run(facts.company, facts.title, facts.location ?? null, facts.description ?? null, now(), id);
 }
 
 function logEvent(db: DB, applicationId: number, status: string, note?: string): void {
@@ -149,21 +187,61 @@ export function applicationEvents(db: DB, id: number): { status: string; note: s
     .all(id) as unknown as { status: string; note: string | null; at: string }[];
 }
 
-/** Submitted (or in-flight) applications since a moment, for daily and per-company caps. */
+/**
+ * Submitted (or in-flight) applications since a moment, for daily and per-company caps. A submitted one
+ * counts from when it was sent (so a later status change does not move it), and companies match by
+ * companyKey, so "Acme" and "Acme, Inc." share one cap. Imported history counts too.
+ */
 export function countSubmittedSince(db: DB, sinceIso: string, company?: string): number {
-  const sql =
-    "SELECT COUNT(*) AS n FROM applications WHERE status IN ('submitted','submitting','unclear') AND updated_at >= ?" +
-    (company ? " AND lower(company) = lower(?)" : "");
-  const row = (company ? db.prepare(sql).get(sinceIso, company) : db.prepare(sql).get(sinceIso)) as {
-    n: number;
-  };
-  return row.n;
+  const rows = db
+    .prepare(
+      `SELECT company FROM applications WHERE status IN ('submitted','submitting','unclear')
+         AND COALESCE(submitted_at, updated_at) >= ?`,
+    )
+    .all(sinceIso) as { company: string }[];
+  if (!company) return rows.length;
+  const key = companyKey(company);
+  return rows.filter((r) => companyKey(r.company) === key).length;
 }
 
+/**
+ * Applications QuietApply itself submitted. Imported history is left out: it says where you applied, not
+ * that QuietApply has earned your trust, so review mode still covers its first applications.
+ */
 export function countEverSubmitted(db: DB): number {
   return (
-    db.prepare("SELECT COUNT(*) AS n FROM applications WHERE status = 'submitted'").get() as { n: number }
+    db
+      .prepare("SELECT COUNT(*) AS n FROM applications WHERE status = 'submitted' AND source != 'import'")
+      .get() as { n: number }
   ).n;
+}
+
+/**
+ * An earlier application to the same company and role (submitted, being submitted, or imported from
+ * another tracker), other than `exceptId`. Matching is by companyKey and titleKey, not by URL, because the
+ * same opening is often posted under several links.
+ */
+export function alreadyApplied(
+  db: DB,
+  job: { company: string; title: string },
+  exceptId?: number,
+): Application | undefined {
+  const c = companyKey(job.company);
+  const t = titleKey(job.title);
+  if (!c || !t) return undefined;
+  const rows = db
+    .prepare(
+      `SELECT * FROM applications WHERE status IN ('submitted','submitting','unclear') AND id != ?
+         ORDER BY COALESCE(submitted_at, updated_at)`,
+    )
+    .all(exceptId ?? -1) as unknown as Application[];
+  return rows.find((r) => companyKey(r.company) === c && titleKey(r.title) === t);
+}
+
+/** "already applied to this role on 2026-09-16 (#12, imported)": the skip reason for a duplicate. */
+export function duplicateReason(earlier: Application): string {
+  const when = (earlier.submitted_at ?? earlier.updated_at).slice(0, 10);
+  return `already applied to this role on ${when} (#${earlier.id}${earlier.source === "import" ? ", imported" : ""})`;
 }
 
 // ---------- questions ----------
@@ -178,6 +256,10 @@ export interface Question {
   status: "open" | "answered" | "dismissed";
   answer: string | null;
   memory_id: number | null;
+  /** "ask": no answer yet. "confirm": a sensitive question with a stored answer you confirm per application. */
+  kind: "ask" | "confirm";
+  /** For "confirm": the stored answer, shown pre-filled for you to confirm or change. */
+  suggested: string | null;
   created_at: string;
   answered_at: string | null;
 }
@@ -188,6 +270,9 @@ export interface NewQuestion {
   context?: string;
   options?: string[];
   fieldType?: string;
+  /** "confirm": a sensitive question for one application; never merged with other applications' cards. */
+  kind?: "ask" | "confirm";
+  suggested?: string;
 }
 
 /**
@@ -195,19 +280,27 @@ export interface NewQuestion {
  * shows one card even when several applications are waiting on it.
  */
 export function askQuestion(db: DB, q: NewQuestion): { id: number; duplicate: boolean } {
-  const open = db.prepare("SELECT id, question FROM questions WHERE status = 'open'").all() as {
+  const kind = q.kind ?? "ask";
+  const open = db.prepare("SELECT id, question, kind FROM questions WHERE status = 'open'").all() as {
     id: number;
     question: string;
+    kind: string;
   }[];
-  const dup = open.find((o) => sameQuestion(o.question, q.question));
+  const dup = open.find(
+    (o) =>
+      o.kind === kind &&
+      sameQuestion(o.question, q.question) &&
+      // A confirmation belongs to one application: the same question for another job is its own card.
+      (kind === "ask" || (!!q.applicationId && questionApplications(db, o.id).includes(q.applicationId))),
+  );
   if (dup) {
     if (q.applicationId) linkQuestion(db, dup.id, q.applicationId);
     return { id: dup.id, duplicate: true };
   }
   const res = db
     .prepare(
-      `INSERT INTO questions(application_id, question, context, options, field_type, status, created_at)
-       VALUES(?, ?, ?, ?, ?, 'open', ?)`,
+      `INSERT INTO questions(application_id, question, context, options, field_type, status, created_at, kind, suggested)
+       VALUES(?, ?, ?, ?, ?, 'open', ?, ?, ?)`,
     )
     .run(
       q.applicationId ?? null,
@@ -216,6 +309,8 @@ export function askQuestion(db: DB, q: NewQuestion): { id: number; duplicate: bo
       q.options?.length ? JSON.stringify(q.options) : null,
       q.fieldType ?? "text",
       now(),
+      kind,
+      q.suggested ?? null,
     );
   const id = Number(res.lastInsertRowid);
   if (q.applicationId) linkQuestion(db, id, q.applicationId);
@@ -293,4 +388,44 @@ export function finishRun(db: DB, id: number, status: string, summary: string, l
 
 export function listRuns(db: DB, limit = 50): Run[] {
   return db.prepare("SELECT * FROM runs ORDER BY id DESC LIMIT ?").all(limit) as unknown as Run[];
+}
+
+// ---------- confirmations ----------
+
+/** Sensitive questions you confirmed for one application (see config safety.alwaysAsk). */
+export function confirmAnswer(
+  db: DB,
+  c: { applicationId: number; question: string; answer: string; memoryId: number },
+): void {
+  db.prepare(
+    `INSERT INTO confirmations(application_id, question, answer, memory_id, at) VALUES(?, ?, ?, ?, ?)
+     ON CONFLICT(application_id, question) DO UPDATE SET answer = excluded.answer,
+       memory_id = excluded.memory_id, at = excluded.at`,
+  ).run(c.applicationId, c.question.trim(), c.answer, c.memoryId, now());
+}
+
+export interface Confirmation {
+  question: string;
+  answer: string;
+  memory_id: number | null;
+}
+
+/** Your confirmation of a sensitive question for one application: by its wording or by the answer cited. */
+export function confirmationFor(
+  db: DB,
+  applicationId: number,
+  question: string,
+  memoryId?: number,
+): Confirmation | undefined {
+  const rows = db
+    .prepare("SELECT question, answer, memory_id FROM confirmations WHERE application_id = ?")
+    .all(applicationId) as unknown as Confirmation[];
+  return rows.find(
+    (r) => sameQuestion(r.question, question) || (memoryId !== undefined && r.memory_id === memoryId),
+  );
+}
+
+/** The posting asks for an email application: remember where to. */
+export function setApplyEmail(db: DB, id: number, to: string): void {
+  db.prepare("UPDATE applications SET apply_email = ?, updated_at = ? WHERE id = ?").run(to, now(), id);
 }

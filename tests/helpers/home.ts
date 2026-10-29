@@ -24,10 +24,14 @@ export const JANE = Profile.parse({
   resumeFile: "resume.pdf",
 });
 
-/** A temp data folder with Jane Doe's profile, a few answers and the given config. */
+/**
+ * A temp data folder with Jane Doe's profile, a few answers and the given config. Sensitive questions are
+ * filled from memory here (alwaysAsk empty) so the fixture runs test the fill pipeline; the default, where
+ * they always come back to you, is tested in safety.test.ts.
+ */
 export function makeHome(config: Partial<Config> = {}): Paths {
   const p = ensureHome(paths(mkdtempSync(join(tmpdir(), "qa-home-"))));
-  saveConfig({ ...defaultConfig(), provider: "fake", ...config }, p);
+  saveConfig({ ...defaultConfig(), provider: "fake", safety: { alwaysAsk: [] }, ...config }, p);
   saveProfile(JANE, p);
   const db = openDb(p);
   const seed: [string, string, string][] = [

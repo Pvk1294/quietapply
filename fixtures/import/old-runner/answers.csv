@@ -1,0 +1,9 @@
+key,question,answer,company,source
+notice_period,What is your notice period?,30 days,,asked 2026-09-16
+salary_expectation,What are your salary expectations?,"USD 120,000 per year, negotiable",,asked 2026-09-16
+relocation,Are you willing to relocate?,Yes,,asked 2026-09-19
+,"Rate yourself 1-10 in data structures and algorithms",8,,asked 2026-09-24
+,Do you know anyone who works at Globex?,No,Globex,asked 2026-10-01
+,"Describe a project that failed","My first parser missed many formats, so I collected real samples from testers and rebuilt it.
+It now covers every format we see.",,asked 2026-09-28
+,Question left unanswered,,,asked 2026-10-02

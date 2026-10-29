@@ -34,7 +34,8 @@ export function Memory() {
           </ul>
         ) : (
           <Empty title={data ? "No answers yet" : "Loading…"}>
-            Answers you give in Questions or during setup appear here.
+            Answers you give during quietapply init or on the Questions page are saved here, and reused on
+            every form that asks the same thing.
           </Empty>
         )}
       </section>

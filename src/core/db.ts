@@ -86,6 +86,66 @@ const MIGRATIONS: string[] = [
    );
 
    CREATE TABLE kv (key TEXT PRIMARY KEY, value TEXT NOT NULL);`,
+  // Why a job was skipped or handed back ("Finish yourself").
+  `CREATE TABLE handoffs (
+     id INTEGER PRIMARY KEY,
+     application_id INTEGER NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+     reason TEXT NOT NULL,
+     detail TEXT NOT NULL,
+     needed TEXT NOT NULL,
+     rule TEXT,
+     filled TEXT NOT NULL DEFAULT '[]',
+     state TEXT NOT NULL DEFAULT 'open',
+     created_at TEXT NOT NULL,
+     resolved_at TEXT
+   );
+   CREATE INDEX handoffs_state ON handoffs(state);
+   CREATE INDEX handoffs_app ON handoffs(application_id);`,
+  // Approval bound to content, questions you confirm per application, emails and recruiter messages.
+  `ALTER TABLE applications ADD COLUMN approved_hash TEXT;
+   ALTER TABLE applications ADD COLUMN apply_email TEXT;
+   ALTER TABLE questions ADD COLUMN kind TEXT NOT NULL DEFAULT 'ask';
+   ALTER TABLE questions ADD COLUMN suggested TEXT;
+
+   CREATE TABLE confirmations (
+     application_id INTEGER NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+     question TEXT NOT NULL,
+     answer TEXT NOT NULL,
+     memory_id INTEGER,
+     at TEXT NOT NULL,
+     PRIMARY KEY (application_id, question)
+   );
+
+   CREATE TABLE emails (
+     id INTEGER PRIMARY KEY,
+     application_id INTEGER NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+     to_addr TEXT NOT NULL,
+     subject TEXT NOT NULL,
+     body TEXT NOT NULL,
+     attachment TEXT,
+     hash TEXT NOT NULL,
+     status TEXT NOT NULL,
+     message_id TEXT,
+     error TEXT,
+     created_at TEXT NOT NULL,
+     sent_at TEXT
+   );
+   CREATE INDEX emails_to ON emails(lower(to_addr));
+
+   CREATE TABLE messages (
+     id INTEGER PRIMARY KEY,
+     application_id INTEGER NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+     recipient_name TEXT NOT NULL,
+     profile_url TEXT NOT NULL,
+     text TEXT NOT NULL,
+     hash TEXT NOT NULL,
+     status TEXT NOT NULL,
+     approved_hash TEXT,
+     note TEXT,
+     created_at TEXT NOT NULL,
+     sent_at TEXT
+   );
+   CREATE INDEX messages_profile ON messages(profile_url);`,
 ];
 
 export type DB = DatabaseSync;

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<title>Frontend Engineer | Hooli (fixture)</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- QuietApply test fixture: a made-up job on a page shaped loosely like a LinkedIn job view. Not LinkedIn markup, never loaded from LinkedIn, never submits anywhere. -->
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; max-width: 780px; margin: 32px auto; padding: 0 16px; color: #1d1d1d; background: #f4f2ee; }
+  .card { background: #fff; border-radius: 8px; padding: 20px 24px; margin-bottom: 16px; box-shadow: 0 0 0 1px #e0dfdc; }
+  .job-title { font-size: 24px; margin: 0 0 4px; } .muted { color: #666; }
+  .apply { display: inline-block; background: #0a66c2; color: #fff; border: 0; border-radius: 20px; padding: 8px 20px; font-weight: 600; text-decoration: none; margin-top: 12px; }
+  .easy-apply-dialog { border: 1px solid #ccc; } label { display: block; margin: 12px 0 4px; font-weight: 600; }
+  input[type=text], input[type=email], input[type=tel], input[type=number], select { width: 100%; padding: 8px; border: 1px solid #999; border-radius: 4px; font: inherit; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1 class="job-title">Frontend Engineer</h1>
+  <div class="muted"><span class="job-company">Hooli</span> · <span class="job-location">Remote (United States)</span></div>
+  <button type="button" class="apply" data-apply="easy">Easy Apply</button>
+</div>
+<div class="card job-description">
+  <h2>About the job</h2>
+  <p>Hooli is looking for a frontend engineer to build the next version of its video chat in React and TypeScript. You will work with a small product team and own features end to end.</p>
+  <p>You have 3+ years of experience building web apps with React and TypeScript, and you care about accessibility.</p>
+</div>
+<div class="card hiring-team">
+  <h2>Meet the hiring team</h2>
+  <a class="hiring-person" href="https://www.linkedin.com/in/pat-recruiter-example/">Pat Recruiter</a>
+  <span class="muted">Technical Recruiter at Hooli (made-up person)</span>
+  <button type="button" class="message">Message</button>
+</div>
+<div class="card easy-apply-dialog" role="dialog" aria-label="Apply to Hooli">
+  <h2>Apply to Hooli</h2>
+  <form id="easy-apply" action="#" onsubmit="event.preventDefault(); document.getElementById('done').hidden = false;">
+    <h3>Contact info</h3>
+    <label for="first">First name</label><input type="text" id="first" name="firstName" required>
+    <label for="last">Last name</label><input type="text" id="last" name="lastName" required>
+    <label for="email">Email address</label><input type="email" id="email" name="email" required>
+    <label for="phone">Mobile phone number</label><input type="tel" id="phone" name="phone" required>
+    <h3>Resume</h3>
+    <label for="resume">Upload resume</label><input type="file" id="resume" name="resume">
+    <h3>Additional questions</h3>
+    <label for="q1">Are you legally authorized to work in the United States?</label>
+    <select id="q1" name="q1" required><option value="">Select an option</option><option>Yes</option><option>No</option></select>
+    <label for="q2">Will you now or in the future require sponsorship for employment visa status?</label>
+    <select id="q2" name="q2" required><option value="">Select an option</option><option>Yes</option><option>No</option></select>
+    <label for="q3">How many years of work experience do you have with React?</label><input type="number" id="q3" name="q3" required>
+    <h3>Review</h3>
+    <label><input type="checkbox" name="follow" checked> Follow Hooli to stay up to date with their page.</label>
+    <button type="submit" class="apply">Submit application</button>
+  </form>
+  <p id="done" hidden>Your application was sent to Hooli (fixture: nothing was sent).</p>
+</div>
+</body>
+</html>

@@ -1,7 +1,8 @@
 import type { DB } from "../core/db.js";
 import { now } from "../core/db.js";
+import { countryOf } from "../core/regions.js";
 import { norm, sameQuestion, similarity } from "../core/text.js";
-import { PROFILE_FIELDS, type Profile } from "./profile.js";
+import { isClosedQuestion, PROFILE_FIELDS, type Profile } from "./profile.js";
 import { STANDARD_QUESTIONS, standardQuestion } from "./seed.js";
 
 /**
@@ -45,7 +46,8 @@ export interface NewAnswer {
   scope?: Scope;
   scopeValue?: string | null;
   sensitive?: boolean;
-  source?: "resume" | "setup" | "you" | "default" | "demo";
+  /** "import" or "import: <where from>" for answers brought in with `quietapply import`. */
+  source?: "resume" | "setup" | "you" | "default" | "demo" | "import" | `import: ${string}`;
 }
 
 /** Save an answer. An answer with the same key (or same question) and scope is updated instead of duplicated. */
@@ -128,10 +130,21 @@ export function markUsed(db: DB, id: number): void {
   db.prepare("UPDATE answers SET uses = uses + 1 WHERE id = ?").run(id);
 }
 
+/**
+ * The country you live in, for the fit gate's "remote" check: your answer to "Which country do you live
+ * in?", else the country in your profile's location.
+ */
+export function homeCountry(db: DB, profile?: Profile): string | undefined {
+  const answer = listAnswers(db).find((a) => a.key === "country" && a.scope === "global")?.answer;
+  return countryOf(answer) ?? countryOf(profile?.location);
+}
+
 /** Which standard key, if any, a form question is asking about. */
 export function keyForQuestion(question: string): string | undefined {
   const n = norm(question);
-  return STANDARD_QUESTIONS.find((q) => q.patterns.some((p) => p.test(n)))?.key;
+  return STANDARD_QUESTIONS.find(
+    (q) => q.patterns.some((p) => p.test(n)) && !q.notPatterns?.some((p) => p.test(n)),
+  )?.key;
 }
 
 export interface LookupContext {
@@ -186,7 +199,7 @@ export function lookupAnswer(
 ): LookupResult {
   const n = norm(question);
   const key = keyForQuestion(question);
-  if (!key) {
+  if (!key && !isClosedQuestion(n)) {
     for (const f of PROFILE_FIELDS) {
       const value = f.pattern.test(n) ? f.value(profile) : undefined;
       if (value)

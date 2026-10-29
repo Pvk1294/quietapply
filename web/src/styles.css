@@ -23,6 +23,9 @@
   --shadow-lg: 0 20px 40px -12px rgb(16 24 40 / 0.25);
   --radius: 14px;
   --sidebar: 236px;
+  /* One centered column for the header, banners and page content, so every edge lines up. */
+  --page: 1200px;
+  --gutter: 32px;
   color-scheme: light;
 }
 
@@ -213,7 +216,9 @@ nav {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 32px;
+  max-width: calc(var(--page) + 2 * var(--gutter));
+  margin: 0 auto;
+  padding: 16px var(--gutter);
   background: color-mix(in srgb, var(--bg) 85%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid transparent;
@@ -268,13 +273,15 @@ nav {
 }
 
 .content {
-  padding: 8px 32px 48px;
-  max-width: 1120px;
+  max-width: calc(var(--page) + 2 * var(--gutter));
+  margin: 0 auto;
+  padding: 8px var(--gutter) 48px;
 }
 
 .banner {
-  margin: 0 32px 12px;
-  max-width: calc(1120px - 64px);
+  width: calc(100% - 2 * var(--gutter));
+  max-width: var(--page);
+  margin: 0 auto 12px;
   padding: 10px 14px;
   border-radius: 12px;
   font-size: 14px;
@@ -336,6 +343,11 @@ nav {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 18px;
+}
+
+/* Grid columns shrink to the screen instead of growing to their longest line. */
+.two-col > * {
+  min-width: 0;
 }
 
 .lead {
@@ -1209,6 +1221,35 @@ textarea {
   word-break: break-word;
 }
 
+.shots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.shot {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shot a {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.shot img {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  object-position: top;
+}
+
 .source {
   font:
     11.5px ui-monospace,
@@ -1348,6 +1389,7 @@ textarea {
     padding: 4px 16px 32px;
   }
   .banner {
+    width: auto;
     margin: 0 16px 10px;
   }
   .hero {
@@ -1494,4 +1536,237 @@ textarea {
     /* biome-ignore lint/complexity/noImportantStyles: reduced motion must win over every transition */
     transition: none !important;
   }
+}
+
+/* Finish yourself */
+.today-line {
+  margin: 6px 0 2px;
+  font-size: 1.02rem;
+}
+.group-help {
+  margin: -4px 16px 8px;
+  font-size: 0.9rem;
+}
+.handoff {
+  border-top: 1px solid var(--line, rgba(128, 128, 128, 0.2));
+  list-style: none;
+}
+.handoff-body {
+  padding: 0 16px 14px 56px;
+  display: grid;
+  gap: 8px;
+}
+.handoff-body p {
+  margin: 0;
+}
+.handoff-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.link-btn {
+  justify-self: start;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+  min-height: 32px;
+}
+.copy-grid {
+  display: grid;
+  gap: 6px;
+}
+.copy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(128, 128, 128, 0.08);
+}
+.copy-text {
+  display: grid;
+  min-width: 0;
+}
+.copy-label {
+  font-size: 0.78rem;
+  opacity: 0.7;
+  text-transform: capitalize;
+}
+.copy-value {
+  overflow-wrap: anywhere;
+}
+.small {
+  font-size: 0.85rem;
+}
+@media (max-width: 640px) {
+  .handoff-body {
+    padding-left: 16px;
+  }
+  .handoff-actions .btn {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+}
+
+/* ---------- phones: no sideways scrolling, 44px tap targets ---------- */
+
+@media (max-width: 760px) {
+  .main {
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  .content code,
+  .copy-row,
+  .kv dd {
+    overflow-wrap: anywhere;
+  }
+  /* Long questions and titles wrap instead of running off the card. */
+  .list:not(.table) .row-title,
+  .row-sub {
+    white-space: normal;
+  }
+  .brand-mobile {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+  .controls .btn {
+    height: 44px;
+    min-width: 44px;
+  }
+  .btn,
+  .btn-sm {
+    height: auto;
+    min-height: 44px;
+  }
+  .chip,
+  .segmented button,
+  .link-btn,
+  .search {
+    min-height: 44px;
+  }
+  .card-head a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .search input {
+    align-self: stretch;
+  }
+  .answer-text {
+    min-height: 44px;
+    padding: 10px 0;
+  }
+  .tab {
+    min-height: 48px;
+    justify-content: center;
+    background: none;
+    border: 0;
+    font-family: inherit;
+    line-height: inherit;
+    cursor: pointer;
+  }
+  .more-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+  }
+  .more-menu {
+    position: fixed;
+    right: 8px;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow-lg);
+  }
+  .more-menu a,
+  .more-menu button {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 48px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 10px;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+  }
+  .more-menu a:hover {
+    text-decoration: none;
+  }
+  .more-menu .active {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+}
+
+/* ---------- Settings → Phone access ---------- */
+
+/* Opened from the tour: keep the card's title clear of the sticky header. */
+#phone,
+#autostart {
+  scroll-margin-top: 88px;
+}
+
+.phone-setup ol {
+  margin: 6px 0 0 18px;
+  padding: 0;
+}
+.phone-setup li {
+  margin-bottom: 4px;
+}
+.phone-url {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  overflow-wrap: anywhere;
+}
+.phone-logins {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.phone-logins input {
+  flex: 1;
+  min-width: 0;
+}
+.banner.phone-error {
+  width: auto;
+  margin: 10px 0 0;
+}
+
+.email-body {
+  white-space: pre-wrap;
+  font: inherit;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 8px 0 12px;
+  overflow-wrap: anywhere;
+}
+.messages-section {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.messages-section h4 {
+  margin: 0 0 6px;
 }

@@ -20,6 +20,13 @@ export interface AgentRunOptions {
   /** MCP servers the agent may use, by name: always "desk", plus "playwright" unless using Claude in Chrome. */
   mcpServers: Record<string, McpServerSpec>;
   browser: BrowserMode;
+  /** A LinkedIn run: Claude in Chrome with only the look/click/type tools (no page scripts or network reads). */
+  linkedin?: boolean;
+  /**
+   * Set for Claude in Chrome runs in dry run or review mode (no network guard there): the run folder, where the
+   * tool-level hook (browser/chrome-guard.cjs) reads the desk's submit lock and logs what it refuses.
+   */
+  chromeGuardDir?: string;
   cwd: string;
   timeoutMs: number;
   logPath: string;
