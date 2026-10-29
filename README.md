@@ -11,7 +11,7 @@ QuietApply uses the Claude Code or Codex you already have (subscription or API k
 > **Status: v0.1, early. Expect rough edges.** What has actually been tested:
 > - **Claude Code:** one real application submitted end to end (Ashby, review mode, Playwright browser), and dry runs on real Greenhouse, Lever and Ashby forms.
 > - **Codex:** one dry run on the bundled Lever fixture (Codex CLI 0.165, signed in with ChatGPT). No real job yet.
-> - **macOS** is where all of the above ran. **Linux:** the full test suite and a demo smoke test pass in a Node 22 container, but no real application has run there. **Windows:** support is new (Task Scheduler, npm `.cmd` shims, Windows paths) and CI runs on Windows, but it has never run on a real Windows machine. The scheduler (`schedule on`) is unit-tested on all three and has not run for real on any.
+> - **macOS** is where all of the above ran, including running automatically (`schedule on`: the dashboard at login and the run schedule). **Linux:** the full test suite and a demo smoke test pass in a Node 22 container, but no real application has run there, and the systemd units are tested with a mock. **Windows:** CI runs the test suite and the README's PowerShell steps on Windows, but it has never run on a real Windows PC. See [Windows](#windows).
 > - **Not on npm yet.** Install from a clone, as below. `npx quietapply` does not work.
 
 ## Real results so far
@@ -59,7 +59,8 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 - **Screenshots:** the agent screenshots the form at the end of every run, and each application's page in the dashboard shows them next to what was typed.
 - **Duplicate protection:** an application is marked "submitting" before Submit is clicked, so an unclear result is never resent blindly.
 - **Caps:** 15 a day and 2 per company per 30 days by default.
-- **Scheduler:** launchd (macOS), a systemd user timer (Linux) or a Task Scheduler task (Windows). Missed runs are coalesced into one; a failed run is retried once; a lock stops overlapping runs; usage limits are waited out. (Unit-tested, not yet run for real on any of them.)
+- **Runs on its own while your computer is on** (setup asks, default yes; an On/Off switch in Settings): the dashboard starts at login and runs happen at your times. A run missed while the computer was off or asleep happens once, soon after login or wake; a failed run is retried once; a lock stops overlapping runs; usage limits are waited out. Same commands everywhere (`quietapply schedule on|off|status`); underneath it is launchd (macOS), systemd user units (Linux) or Task Scheduler (Windows). See [Running on its own](#running-on-its-own).
+- **Import from another tracker:** `quietapply import <folder>` brings in your profile, the answers you gave, past applications (never applied to twice, and they count toward the per-company limit) and your targets, from JSON, YAML or CSV with an optional mapping. See [docs/import.md](docs/import.md).
 
 | Questions | Application detail | On a phone |
 |---|---|---|
@@ -67,7 +68,7 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 
 ## Quickstart
 
-There is no npm package yet: you clone the repo and build it. You need Node.js 22.13 or newer, Google Chrome or Microsoft Edge, and one of:
+There is no npm package yet: you clone the repo and build it. You need Node.js 22.13 or newer, Google Chrome or Microsoft Edge, and one of (on Windows, see [Windows](#windows) for the exact PowerShell steps):
 
 - [Claude Code](https://code.claude.com/docs) signed in with a Claude plan, or with `ANTHROPIC_API_KEY`
 - [Codex CLI](https://github.com/openai/codex) signed in with ChatGPT, or with `CODEX_API_KEY`
@@ -86,14 +87,16 @@ Port 4777 taken? Use `node dist/cli/index.js demo --port 4790`.
 
 ```bash
 npm link                              # makes the `quietapply` command available (or use node dist/cli/index.js)
-quietapply init                       # AI, resume -> profile, city, common questions, job titles, companies
+quietapply init                       # AI, resume -> profile, city, common questions, job titles, companies, run automatically?
+quietapply import ~/old-tracker       # optional: profile, answers and past applications from another tracker (docs/import.md)
 quietapply doctor                     # checks the CLI, login, browser, data folder and what setup still lacks
 quietapply discover                   # finds open roles at your companies that pass your rules
 quietapply add <job-url>              # or queue one job; title and company come from the job site's API
 quietapply run --max 1                # one application now, in dry run: the form is filled, nothing is submitted
 quietapply dashboard                  # http://127.0.0.1:4777
 quietapply phone                      # optional: the same dashboard on your phone, over Tailscale (docs/phone.md)
-quietapply schedule on                # runs at the times in config.yaml
+quietapply schedule on                # run automatically: dashboard at login + runs at your times (init asks this too)
+quietapply schedule status            # what is installed, the times, the next and the last run
 ```
 
 The first runs open a separate Chrome profile in `~/.quietapply/browser-profile`. Your everyday browser is not touched.
@@ -104,6 +107,50 @@ A few things worth knowing before the first run:
 - **Expect questions at first.** Most real forms ask something setup did not cover (an essay, a clearance, "have you worked here before?"). Those forms wait on the Questions page until you answer, then go through on a later run.
 - **`npm link` and permissions.** If it fails with a permission error, your Node install puts global commands in a system folder. Use `node dist/cli/index.js` instead of `quietapply`, or a Node version manager such as nvm or fnm.
 - **On macOS, keep the clone out of Desktop, Documents and Downloads** if you want the scheduler. macOS blocks background jobs from reading those folders, and a scheduled run then hangs. `doctor` warns about it.
+
+## Running on its own
+
+`quietapply init` asks **"Run automatically while your computer is on?"** (default yes). Change it any time in **Settings → Run automatically** or with:
+
+```bash
+quietapply schedule on       # the dashboard at login + runs at the times in Settings (09:00, 13:00, 19:00)
+quietapply schedule status
+quietapply schedule off
+```
+
+- **The dashboard starts when you log in**, and runs happen at your times while the computer is on.
+- **Nothing runs while the computer is off.** A run missed while it was off or asleep happens **once**, soon after you log in or it wakes (only the latest missed one, never a backlog).
+- **Dry run still holds:** nothing is submitted until you turn dry run off.
+
+| | Dashboard at login | Run schedule (checks every 15 minutes) |
+|---|---|---|
+| macOS | LaunchAgent `dev.quietapply.dashboard` | LaunchAgent `dev.quietapply.tick` |
+| Linux | systemd user service `quietapply-dashboard.service` | systemd user timer `quietapply.timer` (`Persistent=true`) |
+| Windows | Task Scheduler `QuietApply\dashboard` at sign-in (Startup folder if refused) | Task Scheduler `QuietApply\tick` |
+
+On macOS keep the clone out of Desktop, Documents and Downloads: background jobs cannot read those folders, and `doctor` and `init` warn about it.
+
+## Windows
+
+The same commands work in **PowerShell** on Windows 10 and 11 (no administrator rights needed):
+
+```powershell
+winget install OpenJS.NodeJS.LTS     # Node.js 22.13 or newer (or the installer from nodejs.org)
+winget install Git.Git
+# Microsoft Edge is already installed; Google Chrome works too. Reopen PowerShell afterwards.
+git clone https://github.com/Pvk1294/quietapply
+cd quietapply
+npm install
+npm run build
+node dist/cli/index.js demo          # fake data on http://127.0.0.1:4777
+npm link                             # then `quietapply` works in any new PowerShell window
+quietapply init
+quietapply doctor
+quietapply schedule on
+quietapply schedule status
+```
+
+If PowerShell says "running scripts is disabled on this system", run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once (or type `npm.cmd` / `quietapply.cmd`). Data goes to `%USERPROFILE%\.quietapply`. **Honest status:** these steps and the full test suite run in CI on `windows-latest`, but QuietApply has not been used on a real Windows PC yet. Details: [tutorial](docs/tutorial.md#windows).
 
 ## How it works
 

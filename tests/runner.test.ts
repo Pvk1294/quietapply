@@ -156,6 +156,10 @@ describe("desk safety", () => {
     expect(getApplication(db, id)?.status).toBe("submitting");
     desk.recordResult({ outcome: "submitted", evidence: "Thank you for applying" });
     expect(getApplication(db, id)?.status).toBe("submitted");
+    // What was typed is kept after Submit, with the confirmation added.
+    const kept = JSON.parse(getApplication(db, id)!.evidence!);
+    expect(kept.result).toBe("Thank you for applying");
+    expect(kept.filled.length).toBe(filled.length);
 
     const dry = new Desk(db, { ...config, dryRun: true }, JANE, p, id);
     expect(dry.startSubmit(filled)).toMatchObject({ proceed: false, mode: "dry_run" });

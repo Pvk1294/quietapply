@@ -36,6 +36,52 @@ jobs:
       - name: Demo smoke test (start the dashboard with demo data, check it answers, stop it)
         run: node scripts/smoke-demo.mjs 4790
 
+  # The README's Windows steps, as written, in PowerShell: install from the clone, the demo, npm link,
+  # init, doctor, import and running automatically for real (Task Scheduler), then off again.
+  windows-readme:
+    name: Windows README steps (PowerShell)
+    runs-on: windows-latest
+    continue-on-error: true
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      QUIETAPPLY_HOME: ${{ runner.temp }}\qa-home
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: npm install and build
+        run: |
+          npm install
+          npm run build
+      - name: Demo (fake data, dashboard answers)
+        run: node scripts/smoke-demo.mjs 4791
+      - name: npm link, then the quietapply command
+        run: |
+          npm link
+          quietapply --version
+          quietapply init --yes --provider fake
+          quietapply doctor
+          if ($LASTEXITCODE -gt 1) { exit 1 }
+          $global:LASTEXITCODE = 0
+      - name: Import the example tracker
+        run: |
+          quietapply import fixtures\import\old-runner --dry-run
+          quietapply import fixtures\import\old-runner
+          quietapply status
+      - name: Run automatically (Task Scheduler), status, off
+        run: |
+          quietapply schedule on --print
+          quietapply schedule on
+          quietapply schedule status
+          schtasks /Query /TN "QuietApply\tick"
+          schtasks /Query /TN "QuietApply\dashboard"
+          quietapply schedule off
+          quietapply schedule status
+
   secrets:
     runs-on: ubuntu-latest
     steps:

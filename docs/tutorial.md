@@ -2,7 +2,7 @@
 
 Hi! This guide walks you through QuietApply from nothing to your first practice application. Take it slowly; nothing here sends a real application, and you can stop at any point. All the screenshots use a made-up person, **Jane Doe**, and made-up companies.
 
-**What you need:** Node.js 22.13 or newer, Google Chrome, and either [Claude Code](https://code.claude.com/docs) or [Codex CLI](https://github.com/openai/codex), signed in. A few minutes. That is all.
+**What you need:** Node.js 22.13 or newer, Google Chrome or Microsoft Edge, and either [Claude Code](https://code.claude.com/docs) or [Codex CLI](https://github.com/openai/codex), signed in. A few minutes. That is all. On Windows, see [Windows](#windows) for the exact PowerShell steps.
 
 ## 1. Try it first with fake data (2 minutes)
 
@@ -36,7 +36,10 @@ quietapply init          # the friendly setup
 3. lets you fix your name, email, phone and city,
 4. asks the handful of questions nearly every form asks (work authorization, notice period, and so on). **Leave any empty to skip it**; you will be asked later, only when a form needs it,
 5. asks which job titles (at least one) and locations you want (`remote` means remote roles open in your country), which companies to never apply to, and which careers pages to watch,
-6. asks, as a plain yes/no that defaults to no, whether you want the optional LinkedIn mode (see [below](#linkedin-mode-optional)).
+6. asks, as a plain yes/no that defaults to no, whether you want the optional LinkedIn mode (see [below](#linkedin-mode-optional)),
+7. asks **"Run automatically while your computer is on?"** The default is **Yes**: the dashboard then starts by itself when you log in, and QuietApply runs at the times in Settings (see [step 7](#7-let-it-run-on-its-own)).
+
+**Already tracking applications somewhere else?** `quietapply import <folder>` brings in your profile, the answers you have given, the jobs you already applied to and your target roles and companies, from JSON, YAML or CSV. Jobs you already applied to are never applied to again. See [import.md](import.md).
 
 Then check that everything is in place:
 
@@ -83,14 +86,54 @@ Some things only a person should do: CAPTCHAs, video answers, tests, apply-by-em
 
 ![Finish yourself page](screenshots/handoff-desktop.png)
 
-## 7. Let it run on a schedule
+## 7. Let it run on its own
+
+If you said yes in `init`, this is already on. Otherwise turn it on in **Settings → Run automatically** (one switch), or in the terminal:
 
 ```bash
-quietapply schedule on    # runs at the times in Settings: 09:00, 13:00, 19:00
-quietapply schedule off
+quietapply schedule on       # the dashboard at login + runs at 09:00, 13:00 and 19:00
+quietapply schedule status   # what is installed, the times, the next and the last run
+quietapply schedule off      # removes both
 ```
 
+What "on" means, on every computer:
+
+- **The dashboard starts when you log in**, so <http://127.0.0.1:4777> is simply there.
+- **Runs happen at the times in Settings** while the computer is on. Change the times in Settings and press Save.
+- **Nothing runs while the computer is off.** If it was off or asleep at a run time, that run happens **once**, soon after you log in or it wakes, never several times in a row.
+- **Dry run still holds.** Running on its own only fills forms until you turn dry run off.
+
+The commands are the same on macOS, Linux and Windows. Underneath, QuietApply uses what each system already has: a LaunchAgent on macOS, a systemd user service and timer on Linux, Task Scheduler on Windows. On a Mac, keep the QuietApply folder out of Desktop, Documents and Downloads: macOS does not let background jobs read those folders.
+
 **Pause** in the top bar stops everything until you press Resume.
+
+## Windows
+
+QuietApply works on Windows 10 and 11 the same way. Use **PowerShell** (not as administrator). These are the exact steps:
+
+```powershell
+winget install OpenJS.NodeJS.LTS     # Node.js 22.13 or newer (or the installer from nodejs.org)
+winget install Git.Git
+# Microsoft Edge is already installed; Google Chrome works too.
+# Close and reopen PowerShell so node, npm and git are found.
+
+git clone https://github.com/Pvk1294/quietapply
+cd quietapply
+npm install
+npm run build
+node dist/cli/index.js demo          # fake data, dashboard on http://127.0.0.1:4777
+
+npm link                             # then `quietapply` works in any new PowerShell window
+quietapply init
+quietapply doctor
+quietapply schedule on               # dashboard at sign-in + the run schedule
+quietapply schedule status
+```
+
+- **"running scripts is disabled on this system"** when you type `npm` or `quietapply`: PowerShell blocks npm's script shims. Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, or type `npm.cmd` and `quietapply.cmd` instead.
+- Your data goes to `%USERPROFILE%\.quietapply`. Paths with a backslash work everywhere, for example `quietapply init --resume "$HOME\Documents\resume.pdf"`.
+- Running automatically uses two Task Scheduler tasks in a **QuietApply** folder: `dashboard` (at your sign-in) and `tick` (every 15 minutes). They run as you, with no window and no admin rights. If Windows refuses the sign-in task, the dashboard starts from your Startup folder instead.
+- **Honest status:** every step above runs in CI on a Windows machine (GitHub Actions, `windows-latest`), but QuietApply has not yet been used on a real Windows PC. Please [open an issue](https://github.com/Pvk1294/quietapply/issues) if something is different on yours.
 
 ## LinkedIn mode (optional)
 

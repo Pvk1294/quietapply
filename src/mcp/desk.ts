@@ -453,9 +453,10 @@ export class Desk {
     }
     if (input.outcome === "submitted" && a.status !== "submitting")
       throw new Error("record_result(submitted) without start_submit approving it first");
+    // The result is added to what was typed, so the application still shows every value after Submit.
     setStatus(this.db, a.id, input.outcome, {
       reason: input.evidence.slice(0, 500),
-      evidence: input.evidence,
+      evidence: withResult(a.evidence, input.evidence),
     });
     // A job that was handed back earlier (a rule, a question) and then went through is done.
     if (input.outcome === "submitted") closeHandoffs(this.db, a.id, "applied");
@@ -761,4 +762,17 @@ export class Desk {
     );
     return { ok: true };
   }
+}
+
+/** The recorded evidence (what was typed) with the outcome the agent saw added as `result`. */
+export function withResult(evidence: string | null, result: string): string {
+  let before: Record<string, unknown> = {};
+  try {
+    const parsed = evidence ? JSON.parse(evidence) : {};
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) before = parsed;
+  } catch {
+    // older plain-text evidence: kept as the earlier note
+    if (evidence) before = { note: evidence };
+  }
+  return JSON.stringify({ ...before, result, resultAt: new Date().toISOString() });
 }
