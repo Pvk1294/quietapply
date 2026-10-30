@@ -1,5 +1,6 @@
 import { existsSync, statSync } from "node:fs";
-import { join, win32 } from "node:path";
+import { join } from "node:path";
+import { findBrowser } from "../core/browser.js";
 import { loadConfig } from "../core/config.js";
 import { openDb } from "../core/db.js";
 import { packageRoot, paths } from "../core/paths.js";
@@ -8,6 +9,7 @@ import { loadProfile } from "../memory/profile.js";
 import { getProvider } from "../providers/index.js";
 import { version } from "../providers/spawn.js";
 import { macProtectedFolder, scheduleState } from "../scheduler/index.js";
+import { MIN_NODE, nodeTooOld } from "./node-check.js";
 import { setupGaps } from "./setup.js";
 
 export interface Check {
@@ -16,54 +18,14 @@ export interface Check {
   detail: string;
 }
 
-/** Where Chrome and Edge are usually installed. On Windows: per machine (both Program Files) or per user. */
-export function browserCandidates(platform: NodeJS.Platform, env: NodeJS.ProcessEnv = process.env): string[] {
-  if (platform === "darwin")
-    return [
-      "/Applications/Google Chrome.app",
-      "/Applications/Microsoft Edge.app",
-      "/Applications/Chromium.app",
-    ];
-  if (platform === "linux")
-    return [
-      "/usr/bin/google-chrome",
-      "/usr/bin/google-chrome-stable",
-      "/usr/bin/chromium",
-      "/usr/bin/chromium-browser",
-      "/usr/bin/microsoft-edge",
-    ];
-  if (platform === "win32") {
-    const roots = [
-      env.ProgramFiles ?? "C:\\Program Files",
-      env["ProgramFiles(x86)"] ?? "C:\\Program Files (x86)",
-      env.LOCALAPPDATA,
-    ].filter((r): r is string => !!r);
-    return roots.flatMap((r) => [
-      win32.join(r, "Google", "Chrome", "Application", "chrome.exe"),
-      win32.join(r, "Microsoft", "Edge", "Application", "msedge.exe"),
-    ]);
-  }
-  return [];
-}
-
-/** The first Chrome or Edge that exists. */
-export function findBrowser(
-  platform: NodeJS.Platform = process.platform,
-  env: NodeJS.ProcessEnv = process.env,
-  exists: (f: string) => boolean = existsSync,
-): string | undefined {
-  return browserCandidates(platform, env).find(exists);
-}
-
 /** Everything a run needs, checked without changing anything. */
 export async function doctor(): Promise<Check[]> {
   const p = paths();
   const checks: Check[] = [];
-  const [major, minor] = process.versions.node.split(".").map(Number) as [number, number];
   checks.push({
     name: "Node.js",
-    ok: major > 22 || (major === 22 && minor >= 13),
-    detail: `${process.versions.node} (needs 22.13+ for built-in SQLite)`,
+    ok: !nodeTooOld(process.versions.node),
+    detail: `${process.versions.node} (needs ${MIN_NODE}+ for built-in SQLite)`,
   });
 
   const homeOk = existsSync(p.home);
@@ -112,8 +74,10 @@ export async function doctor(): Promise<Check[]> {
       const chrome = findBrowser();
       checks.push({
         name: "Browser (Chrome/Edge)",
-        ok: chrome ? true : "warn",
-        detail: chrome ?? "not found in the usual places, Playwright can install its own",
+        ok: !!chrome,
+        detail:
+          chrome ??
+          "not found. Real runs need Google Chrome (https://www.google.com/chrome) or Microsoft Edge; the demo does not",
       });
       const npx = await version("npx");
       checks.push({ name: "npx (for Playwright MCP)", ok: !!npx, detail: npx ?? "not found" });
