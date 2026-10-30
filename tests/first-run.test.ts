@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import { MIN_NODE, nodeTooOld, nodeTooOldMessage } from "../src/cli/node-check.js";
 import { browserCandidates, playwrightBrowserArgs } from "../src/core/browser.js";
@@ -57,7 +58,7 @@ describe("Node.js too old", () => {
       [
         "--input-type=module",
         "-e",
-        `Object.defineProperty(process.versions, "node", { value: "20.20.2" }); await import("${join(process.cwd(), built).replaceAll("\\", "/")}");`,
+        `Object.defineProperty(process.versions, "node", { value: "20.20.2" }); await import("${pathToFileURL(built).href}");`,
       ],
       { encoding: "utf8" },
     );
