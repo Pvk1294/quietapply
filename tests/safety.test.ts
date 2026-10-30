@@ -148,9 +148,9 @@ describe("where Submit may be clicked", () => {
     expect(submitHostAllowed(page, job).ok).toBe(ok);
   });
   it("allows the job link's own site and LinkedIn in LinkedIn mode", () => {
-    expect(submitHostAllowed("https://stripe.com/jobs/apply?gh_jid=1", "https://stripe.com/jobs/1").ok).toBe(
-      true,
-    );
+    expect(
+      submitHostAllowed("https://initech.com/jobs/apply?gh_jid=1", "https://initech.com/jobs/1").ok,
+    ).toBe(true);
     expect(submitHostAllowed("https://www.linkedin.com/jobs/view/1", job, { linkedin: true }).ok).toBe(true);
   });
   it("sends a form on another site to Finish yourself instead of submitting", () => {

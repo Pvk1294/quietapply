@@ -83,15 +83,15 @@ describe("quietapply add <url>", () => {
       JSON.stringify({
         id: 6176758,
         title: "Backend/API Engineer",
-        company_name: "Stripe",
-        absolute_url: "https://stripe.com/jobs/search?gh_jid=6176758",
+        company_name: "Initech",
+        absolute_url: "https://initech.com/jobs/search?gh_jid=6176758",
         location: { name: "US" },
         content: "&lt;p&gt;Build APIs.&lt;/p&gt;",
       });
-    const r = await addJob(db, "https://job-boards.greenhouse.io/stripe/jobs/6176758", api);
-    expect(r).toMatchObject({ company: "Stripe", title: "Backend/API Engineer" });
+    const r = await addJob(db, "https://job-boards.greenhouse.io/initech/jobs/6176758", api);
+    expect(r).toMatchObject({ company: "Initech", title: "Backend/API Engineer" });
     expect(getApplication(db, r.id)?.url).toBe(
-      "https://job-boards.greenhouse.io/embed/job_app?for=stripe&token=6176758",
+      "https://job-boards.greenhouse.io/embed/job_app?for=initech&token=6176758",
     );
   });
 

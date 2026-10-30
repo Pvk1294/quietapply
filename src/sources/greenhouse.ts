@@ -69,7 +69,7 @@ function toListing(token: string, j: GhJob, company: string): JobListing {
 }
 
 /**
- * Where the form lives. Boards on a company's own careers site (absolute_url is stripe.com/jobs/...?gh_jid=)
+ * Where the form lives. Boards on a company's own careers site (absolute_url is initech.com/jobs/...?gh_jid=)
  * redirect the Greenhouse job page there too, so use Greenhouse's embeddable form, which every board serves.
  */
 export function formUrl(token: string, job: Pick<GhJob, "id" | "absolute_url">): string {

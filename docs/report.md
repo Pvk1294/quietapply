@@ -1,7 +1,7 @@
 # QuietApply: night 2 report (28 Oct 2026)
 
 **Summary**
-1. **Dogfooded on 3 real, live jobs in dry run** (Jane Doe persona, never submitted): GitLab on Greenhouse, Palantir on Lever, Linear on Ashby. I found 22 problems in the form parser, answer lookup, prompt and agent, fixed them, and saved sanitized copies of the three forms as test fixtures.
+1. **Dogfooded on 3 real, live jobs in dry run** (Jane Doe persona, never submitted): GitLab on Greenhouse, a Lever job, Linear on Ashby. I found 22 problems in the form parser, answer lookup, prompt and agent, fixed them, and saved sanitized copies of the three forms as test fixtures.
 2. **Dry run is now enforced in the browser, not just in the prompt.** A network guard blocks every request that would send data. It mattered: Ashby saves what you type as you type, and Greenhouse uploads the resume the moment it is attached. A dry run without the guard would have sent both.
 3. **New:** screenshots on each application in the dashboard; `quietapply add <url>` fetches the title, company, location and description; a test for the interactive `init` flow (it found a bug, now fixed).
 4. **Checks pass:** lint, types, build and 108 tests (78 before), also on a fresh clone. Branch `dot/170-quietapply-real-job-dry-runs-screenshots`, not pushed.
@@ -10,7 +10,7 @@
 | Job | ATS | Before fixes | After fixes |
 |---|---|---|---|
 | [GitLab: Backend Engineer (Ruby), Create: Change Record](https://job-boards.greenhouse.io/gitlab/jobs/8891301002) | Greenhouse | ~6 fields filled (none recorded), 3 questions (1 merged two questions), no screenshot | 12 fields recorded (incl. dropdowns, EEO), 3 exact questions, screenshot |
-| [Palantir: Backend Software Engineer, Application Development](https://jobs.lever.co/palantir/10dfc8bc-99ad-4ca2-ab76-853cb90a92c2) | Lever | **0 fields filled**, 7 questions (2 merged or annotated), 148 KB prompt | 14 fields recorded, 7 exact questions, 16 KB prompt, screenshot |
+| Backend Software Engineer, Application Development (a Lever job) | Lever | **0 fields filled**, 7 questions (2 merged or annotated), 148 KB prompt | 14 fields recorded, 7 exact questions, 16 KB prompt, screenshot |
 | [Linear: Senior / Staff Fullstack Engineer](https://jobs.ashbyhq.com/linear/d3bc1ced-3ce4-4086-a050-555055dbb1ff) | Ashby | ~6 fields filled (none recorded), 6 questions, no screenshot | 7 fields recorded, 5 exact questions, screenshot |
 
 Each run took 25 to 55 seconds with Sonnet, about USD 0.08 to 0.27 at API prices (it ran on your plan). All stopped at "needs answers", which is right: each form had required questions that Jane's memory cannot answer (essays, clearance, "worked here before?").
@@ -40,21 +40,21 @@ flowchart TD
 
 **Answer lookup** ([answers.ts](../src/memory/answers.ts), [profile.ts](../src/memory/profile.ts), [seed.ts](../src/memory/seed.ts))
 - "Are you subject to any employment agreements … with your current employer?" was answered **"Initech"** (the current-company field). Yes/no questions are no longer answered from profile fields.
-- "Please tell us how you heard about this opportunity" missed the stored "Company careers page" default. Now it matches, and the agent mapped it to Palantir's "Palantir Website" option.
+- "Please tell us how you heard about this opportunity" missed the stored "Company careers page" default. Now it matches, and the agent mapped it to the company's own "Website" option.
 - University, years of experience and "preferred name" now come from the profile.
 - Two of the three forms asked for country of residence, so there is a new essential setup question, "Which country do you live in?". `init` now asks 8 questions instead of 7.
 
 **Prompt and agent** ([system.md](../prompts/system.md), [desk.ts](../src/mcp/desk.ts), [prompt.ts](../src/runner/prompt.ts))
-- Palantir's university dropdown has 3,301 options, which made a **148 KB prompt** (about 37k tokens). Dropdowns in the prompt are now cut to 25 options with a "N more on the page" note: 16 KB.
+- The Lever form's university dropdown has 3,301 options, which made a **148 KB prompt** (about 37k tokens). Dropdowns in the prompt are now cut to 25 options with a "N more on the page" note: 16 KB.
 - The agent merged two questions into one card, or added notes ("…(required, free text)"), so the saved answer would not match next time. It now asks one question per card with the form's exact label; notes go into the context. The desk strips a trailing `*`.
-- On Palantir it filled nothing once it saw an unknown question. In all three runs, what it had filled was never recorded and no screenshot was taken. Now it fills everything it knows, records progress with `start_submit` even when questions are open (shown as "Filled so far" in the dashboard), and always takes a screenshot.
-- Greenhouse boards on a company's own careers site (for example [Stripe's](https://boards-api.greenhouse.io/v1/boards/stripe/jobs/6176758), whose `absolute_url` is stripe.com) redirect away from Greenhouse. Discovery and `add` now store [Greenhouse's embeddable form](https://job-boards.greenhouse.io/embed/job_app?for=stripe&token=6176758) for those boards.
+- On the Lever job it filled nothing once it saw an unknown question. In all three runs, what it had filled was never recorded and no screenshot was taken. Now it fills everything it knows, records progress with `start_submit` even when questions are open (shown as "Filled so far" in the dashboard), and always takes a screenshot.
+- Greenhouse boards on a company's own careers site (their `absolute_url` is the company's own domain) redirect away from Greenhouse. Discovery and `add` now store [Greenhouse's embeddable form](https://developers.greenhouse.io/job-board.html) URL for those boards.
 
 **Fixtures:** [greenhouse-hooli-real-form.html](../fixtures/ats/greenhouse-hooli-real-form.html), [lever-vandelay-real-form.html](../fixtures/ats/lever-vandelay-real-form.html) and [ashby-pendant-real-form.html](../fixtures/ats/ashby-pendant-real-form.html) contain the form markup only. Scripts, styles, site keys and descriptions are removed, company names are replaced with made-up ones, and the long dropdown is cut to 40 options. Tests: [real-forms.test.ts](../tests/real-forms.test.ts).
 
 ## The three features
 - **Screenshots in the dashboard:** Playwright now writes into each application's run folder (`logs/run-N/app-M/`). The application sheet shows every screenshot there, newest first, with the run, the time and how many requests the guard blocked. Images are served only from those folders and only as plain image names; the test tries path tricks ([evidence.ts](../src/runner/evidence.ts), [server test](../tests/server.test.ts)). The demo includes one, so you can see it without an AI.
-- **`quietapply add <url>`** looks the job up with [Greenhouse's job endpoint](https://developers.greenhouse.io/job-board.html), [Lever's posting endpoint](https://github.com/lever/postings-api) or the [Ashby board](https://developers.ashbyhq.com/docs/public-job-posting-api). Lever and Ashby return no company name, so it comes from your company list, or from the board name ("palantir" → "Palantir"). `--company`/`--title` override it; `--no-fetch` skips the lookup; a failed lookup still queues the job. Tried live: all three jobs plus Stripe came back right ([add.ts](../src/cli/add.ts), [add.test.ts](../tests/add.test.ts)).
+- **`quietapply add <url>`** looks the job up with [Greenhouse's job endpoint](https://developers.greenhouse.io/job-board.html), [Lever's posting endpoint](https://github.com/lever/postings-api) or the [Ashby board](https://developers.ashbyhq.com/docs/public-job-posting-api). Lever and Ashby return no company name, so it comes from your company list, or from the board name ("globex" → "Globex"). `--company`/`--title` override it; `--no-fetch` skips the lookup; a failed lookup still queues the job. Tried live: all three jobs plus a fourth came back right ([add.ts](../src/cli/add.ts), [add.test.ts](../tests/add.test.ts)).
 - **Interactive `init` test:** a scripted user answers the real prompt calls. It covers a first run, a re-run that asks only what is missing, API-key login, Ctrl-C and `--yes` ([init.test.ts](../tests/init.test.ts)). **Bug found:** re-running `init` dropped contact details you had corrected; they are now kept.
 
 ## Still broken or not done
@@ -81,7 +81,7 @@ flowchart TD
 1. QuietApply v0.1 works end to end in dry-run mode: setup from a resume, answer memory, question queue, runner, Greenhouse/Lever/Ashby, dashboard, scheduler. It never submits while dry run is on.
 2. Checked live once: your Claude Code (Sonnet) with Playwright MCP filled the Lever fixture page on localhost. It cited a memory id for every field and stopped before Submit ([script](../scripts/live-dry-run.mjs)).
 3. Checks pass on a fresh clone and on GitHub CI: lint, types, build and 78 tests.
-4. Private repo: [github.com/Pvk1294/quietapply](https://github.com/Pvk1294/quietapply), branch `v0.1-night1`. Everything is pushed (you approved the push), and GitHub CI is green: Linux and macOS, Node 22 and 24, plus the gitleaks secret scan.
+4. Repo: [github.com/Pvk1294/quietapply](https://github.com/Pvk1294/quietapply), branch `v0.1-night1`. Everything is pushed (you approved the push), and GitHub CI is green: Linux and macOS, Node 22 and 24, plus the gitleaks secret scan.
 5. No real application, email or post was sent. None of your data or your old code was copied or changed.
 
 ## What works
@@ -131,7 +131,7 @@ flowchart TD
 - **Live mode (dry run off) has never submitted a real application.** By design, nothing real was tried tonight.
 - **Not built yet:**
   - Workday, LinkedIn (off; config only), reply tracking, Windows scheduling
-  - npm publishing, so `npx quietapply` does not work yet; for now: clone, then `npm link`
+  - npm publishing (done: `quietapply@0.1.0` is on npm)
   - screenshot evidence in the dashboard (the agent saves screenshots to `logs/`, but the UI does not show them yet)
 - **Not tested end to end:** the interactive `init` flow (its building blocks are tested, and a non-interactive `init --yes` was run).
 - **Not wired in:** Claude in Chrome mode is built into the command line but was not tried.
@@ -192,12 +192,12 @@ Three gaps from the lists above are closed.
 - **Tour can be resumed.** Leaving the tour unfinished (a link in a step, Skip, Escape, a reload) no longer loses it: a "Continue quick tour, Step N of 9" banner in the bottom-right corner reopens it at that step, and Done or its × ends it. No semicolons in dashboard, status or CLI text. Tests: `tests/tour-state.test.ts`.
 
 ## Launch-readiness check (branch `dot/199-quietapply-launch-readiness-check-before`)
-A fresh clone in a temp folder, with a throwaway data folder, following the README word for word: `npm install`, `npm run build`, `demo`, `npm link` (into a temp prefix), interactive `init` with the Jane Doe resume and Claude Code, `doctor`, `discover` (GitLab), `add` (a Palantir Lever job), `run --id` in dry run. Every step worked. The dry run filled 17 fields, the guard blocked 13 requests (including Lever's hCaptcha and Cloudflare checks), and 6 real questions went to the queue.
+A fresh clone in a temp folder, with a throwaway data folder, following the README word for word: `npm install`, `npm run build`, `demo`, `npm link` (into a temp prefix), interactive `init` with the Jane Doe resume and Claude Code, `doctor`, `discover` (GitLab), `add` (a Lever job), `run --id` in dry run. Every step worked. The dry run filled 17 fields, the guard blocked 13 requests (including Lever's hCaptcha and Cloudflare checks), and 6 real questions went to the queue.
 - **Fixed:** "remote" in your locations matched remote roles in any country. It now matches only remote roles open where you live (your country answer, else the country in your profile location), with a reason for each skip. On GitLab's live board, 27 remote roles limited to other countries were skipped for a US persona ([regions.ts](../src/core/regions.ts)).
-- **Fixed:** "How do you pronounce your name?" was answered with the pronouns answer, and an AI-notetaker consent was ticked from the privacy-consent answer. Both seen on the live Palantir form ([seed.ts](../src/memory/seed.ts)).
+- **Fixed:** "How do you pronounce your name?" was answered with the pronouns answer, and an AI-notetaker consent was ticked from the privacy-consent answer. Both seen on a live Lever form ([seed.ts](../src/memory/seed.ts)).
 - **Fixed:** `init` accepted an empty job-title list (the grey example text looked pre-filled), and `discover` then queued 178 GitLab roles. Titles are now required, and `init`, `doctor` and `discover` say what setup still lacks. `init --yes` lists the missing city, common answers and titles.
 - **Fixed:** the dashboard and `demo` crashed with a stack trace when port 4777 was taken. `schedule on` and `doctor` warn when the clone is in Desktop, Documents or Downloads on macOS.
-- **Docs:** README status now says exactly what was tested; the applications figure is 437 since 16 September; Codex 0.165; scheduler and Linux untested; no npm package; start with `run --max 1`; use Playwright for dry runs. Issue and pull request templates; SECURITY.md has a fallback while private vulnerability reporting is off. Screenshots retaken from the demo.
+- **Docs:** README status now says exactly what was tested; the applications figure is 437 since 16 September; Codex 0.165; scheduler and Linux untested; start with `run --max 1`; use Playwright for dry runs. Issue and pull request templates; SECURITY.md has a fallback while private vulnerability reporting is off. Screenshots retaken from the demo.
 
 ### Second round on the same branch (29 Oct): real numbers, safety, email and messages
 - **The 880 figure is true for two runners together.** The author's runner logged 437 applications (16 Sep to 15 Oct 2026) and his sister's logged 463 (29 Sep to 28 Oct), so 900 in six weeks. The README now says that, and has a "Real results so far" table from the author's log: 76 acknowledged (all automatic emails), 19 rejected, 4 assessments, 2 interviews. Most of those went through LinkedIn Easy Apply and Indian job boards, which QuietApply does not use by default. The README says so too.

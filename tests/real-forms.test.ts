@@ -165,8 +165,8 @@ describe("prompt size on a real form", () => {
 describe("Greenhouse boards on a company's own careers site", () => {
   it("uses the embeddable Greenhouse form instead of the company page", () => {
     expect(
-      formUrl("stripe", { id: 6176758, absolute_url: "https://stripe.com/jobs/search?gh_jid=6176758" }),
-    ).toBe("https://job-boards.greenhouse.io/embed/job_app?for=stripe&token=6176758");
+      formUrl("initech", { id: 6176758, absolute_url: "https://initech.com/jobs/search?gh_jid=6176758" }),
+    ).toBe("https://job-boards.greenhouse.io/embed/job_app?for=initech&token=6176758");
     const own = "https://job-boards.greenhouse.io/hooli/jobs/123";
     expect(formUrl("hooli", { id: 123, absolute_url: own })).toBe(own);
   });

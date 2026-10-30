@@ -9,10 +9,10 @@ Hi! This guide walks you through QuietApply from nothing to your first practice 
 If you would like to look around before giving it your resume, this is the way. It needs no AI and touches nothing real.
 
 ```bash
-git clone https://github.com/Pvk1294/quietapply && cd quietapply
-npm install && npm run build
-node dist/cli/index.js demo          # add --port 4790 if 4777 is taken
+npx quietapply@latest demo           # add --port 4790 if 4777 is taken
 ```
+
+(Prefer a clone? `git clone https://github.com/Pvk1294/quietapply && cd quietapply`, then `npm install && npm run build`, then `node dist/cli/index.js demo`.)
 
 Open <http://127.0.0.1:4777>. The first time, a short tour pops up and explains each part in plain words. You can skip it and reopen it any time from **Help / Tour** in the sidebar.
 
@@ -25,7 +25,7 @@ The demo is Jane Doe, a fictional engineer. Here is her **Today** page: what nee
 ## 2. Set it up for yourself (3 minutes)
 
 ```bash
-npm link                 # makes the `quietapply` command available (or use node dist/cli/index.js)
+npm install -g quietapply   # makes the `quietapply` command available (from a clone: npm link)
 quietapply init          # the friendly setup
 ```
 
