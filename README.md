@@ -68,7 +68,7 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 
 ## Quickstart
 
-You need Node.js 22.13 or newer, Google Chrome or Microsoft Edge, and one of (on Windows, see [Windows](#windows) for the exact PowerShell steps):
+You need [Node.js](https://nodejs.org) 22.13 or newer (check with `node --version`; the LTS installer from nodejs.org is fine), Google Chrome or Microsoft Edge, and one of (on Windows, see [Windows](#windows) for the exact PowerShell steps):
 
 - [Claude Code](https://code.claude.com/docs) signed in with a Claude plan, or with `ANTHROPIC_API_KEY`
 - [Codex CLI](https://github.com/openai/codex) signed in with ChatGPT, or with `CODEX_API_KEY`
@@ -87,7 +87,14 @@ Port 4777 taken? Add `--port 4790`.
 npm install -g quietapply            # makes the `quietapply` command available
 ```
 
-If that fails with a permission error, your Node install puts global commands in a system folder: use a Node version manager such as nvm or fnm, or run `npm install -g --prefix ~/.local quietapply` and put `~/.local/bin` on your PATH.
+If that fails with `EACCES`, your Node install puts global commands in a system folder (the nodejs.org installer does on a Mac). Skip `sudo` and install into your home folder instead:
+
+```bash
+npm install -g --prefix ~/.local quietapply
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc   # then open a new terminal
+```
+
+Something else went wrong? See [If the install fails](#if-the-install-fails).
 
 *Alternative, from a clone* (to read or change the code):
 
@@ -121,6 +128,21 @@ A few things worth knowing before the first run:
 - **Expect questions at first.** Most real forms ask something setup did not cover (an essay, a clearance, "have you worked here before?"). Those forms wait on the Questions page until you answer, then go through on a later run.
 - **On macOS, if you run from a clone, keep it out of Desktop, Documents and Downloads** if you want the scheduler. (A global npm install is fine.) macOS blocks background jobs from reading those folders, and a scheduled run then hangs. `doctor` warns about it.
 
+### If the install fails
+
+| What you see | What it means | What to do |
+|---|---|---|
+| `command not found: npx`, or `node` | Node.js is not installed | Install the LTS version from [nodejs.org](https://nodejs.org), then open a new terminal |
+| `QuietApply needs Node.js 22.13 or newer` | Your Node.js is too old | Install the LTS version from [nodejs.org](https://nodejs.org), or `brew install node`, or `nvm install --lts`. Open a new terminal, then run the same command again |
+| `No such built-in module: node:sqlite` | The same thing, from version 0.1.0, which crashed instead of saying so | The same fix |
+| `EBADENGINE` and `Required: {"node":">=22.13"}` | The same thing, from `npm install` in a clone | The same fix |
+| `EACCES: permission denied` | npm cannot write to the system folder | Install into your home folder, as [above](#quickstart). Or skip the install: `npx quietapply@latest` runs any command, but use a real install before `schedule on` |
+| `sh: quietapply: command not found` after `npx quietapply` | You are inside a clone that is not built yet | Run `npx quietapply@latest demo`, or `npm install && npm run build` first |
+| `xcode-select: note: No developer tools were found` after `git clone` | A new Mac has no git yet | You do not need a clone. Use `npx quietapply@latest demo`, or accept the install macOS offers |
+| `port 4777 is already in use` | A dashboard is already running, or something else has the port | Open <http://127.0.0.1:4777>, or add `--port 4790` |
+
+`quietapply doctor` checks everything else: the AI, its login, the browser and the data folder.
+
 ## Running on its own
 
 `quietapply init` asks **"Run automatically while your computer is on?"** (default yes). Change it any time in **Settings → Run automatically** or with:
@@ -130,6 +152,8 @@ quietapply schedule on       # the dashboard at login + runs at the times in Set
 quietapply schedule status
 quietapply schedule off
 ```
+
+Run `schedule on` from a real install, not through `npx`: npx keeps its copy in a temporary cache that can be cleared at any time, and the schedule would break without a sound. On Linux it needs systemd; without it (most containers, WSL by default) `schedule on` says so and installs nothing.
 
 - **The dashboard starts when you log in**, and runs happen at your times while the computer is on.
 - **Nothing runs while the computer is off.** A run missed while it was off or asleep happens **once**, soon after you log in or it wakes (only the latest missed one, never a backlog).

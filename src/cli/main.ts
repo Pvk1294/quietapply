@@ -145,6 +145,7 @@ program
       log: (l) => console.log(l),
     });
     console.log(`\n${s.status}: ${s.message}`);
+    if (s.status === "failed") process.exitCode = 1;
   });
 
 program
