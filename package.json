@@ -1,6 +1,6 @@
 {
   "name": "quietapply",
-  "version": "0.1.0-dev",
+  "version": "0.1.0",
   "description": "A self-hosted job-application agent that runs on your own Claude Code or Codex, applies on company job boards, and asks you before it guesses.",
   "license": "MIT",
   "type": "module",
