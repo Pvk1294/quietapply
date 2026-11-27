@@ -6,6 +6,7 @@ import { defaultConfig, loadConfig, saveConfig } from "../src/core/config.js";
 import { kvGet, openDb, openMemoryDb } from "../src/core/db.js";
 import { ensureHome, paths } from "../src/core/paths.js";
 import {
+  isTemporaryCopy,
   macProtectedFolder,
   markScheduleStart,
   scheduleOff,
@@ -185,5 +186,37 @@ describe("macOS protected folders", () => {
     );
     expect(macProtectedFolder(at("code", "quietapply", "dist", "cli", "index.js"), home)).toBeUndefined();
     expect(macProtectedFolder(at("DesktopApps", "quietapply", "index.js"), home)).toBeUndefined();
+  });
+});
+
+describe("schedule on from a temporary npx copy", () => {
+  it("recognises npm's npx cache on every platform's path style", () => {
+    expect(isTemporaryCopy("/Users/jo/.npm/_npx/ab12/node_modules/quietapply/dist/cli/index.js")).toBe(true);
+    expect(
+      isTemporaryCopy(
+        "C:\\Users\\Jo\\AppData\\Local\\npm-cache\\_npx\\ab12\\node_modules\\quietapply\\dist\\cli\\index.js",
+      ),
+    ).toBe(true);
+    expect(isTemporaryCopy("/usr/local/lib/node_modules/quietapply/dist/cli/index.js")).toBe(false);
+    expect(isTemporaryCopy("/home/jo/my_npx_notes/quietapply/dist/cli/index.js")).toBe(false);
+  });
+
+  it("refuses to install anything and says to install it first", () => {
+    const userHome = tmp();
+    const p = ensureHome(paths(join(userHome, ".quietapply")));
+    const { ran, exec } = recorder();
+    for (const platform of ["darwin", "linux", "win32"] as const) {
+      const r = scheduleOn(p, "/home/jo/.npm/_npx/ab12/node_modules/quietapply/dist/cli/index.js", {
+        platform,
+        exec,
+        userHome,
+      });
+      expect(r.ok).toBe(false);
+      expect(r.message).toContain("npm install -g quietapply");
+      expect(r.files).toEqual([]);
+    }
+    expect(ran).toEqual([]);
+    expect(setAutoStart(p, "/x/_npx/y/index.js", true, { platform: "linux", exec, userHome }).ok).toBe(false);
+    expect(loadConfig(p).autoStart).toBeUndefined();
   });
 });

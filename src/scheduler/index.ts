@@ -71,6 +71,13 @@ export function scheduleOn(
   const exec = opts.exec ?? realExec;
   const userHome = opts.userHome ?? homedir();
   const port = opts.port ?? 4777;
+  if (isTemporaryCopy(cli))
+    return {
+      ok: false,
+      message:
+        "QuietApply is running from a temporary npx copy, which npm deletes later, so a schedule pointing at it would stop working.\nInstall it first (npm install -g quietapply), then run: quietapply schedule on",
+      files: [],
+    };
   const write = (file: string, text: string | Buffer) => {
     mkdirSync(join(file, ".."), { recursive: true });
     writeFileSync(file, text);
@@ -171,6 +178,11 @@ function onMessage(port: number): string {
 function windowsUser(): string {
   const name = process.env.USERNAME ?? userInfo().username;
   return process.env.USERDOMAIN ? `${process.env.USERDOMAIN}\\${name}` : name;
+}
+
+/** True when `cli` lives in npm's temporary `npx` cache (a `_npx` folder), which npm may delete at any time. */
+export function isTemporaryCopy(cli: string): boolean {
+  return cli.split(/[\\/]/).includes("_npx");
 }
 
 /**

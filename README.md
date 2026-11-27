@@ -144,21 +144,36 @@ The same commands work in **PowerShell** on Windows 10 and 11 (no administrator 
 
 ```powershell
 winget install OpenJS.NodeJS.LTS     # Node.js 22.13 or newer (or the installer from nodejs.org)
-winget install Git.Git
 # Microsoft Edge is already installed; Google Chrome works too. Reopen PowerShell afterwards.
-git clone https://github.com/Pvk1294/quietapply
-cd quietapply
-npm install
-npm run build
-node dist/cli/index.js demo          # fake data on http://127.0.0.1:4777
-npm link                             # then `quietapply` works in any new PowerShell window
+npx quietapply@latest demo           # fake data on http://127.0.0.1:4777, nothing to install
+npm install -g quietapply            # the `quietapply` command, in any new PowerShell window
 quietapply init
 quietapply doctor
-quietapply schedule on
+quietapply run --max 1               # first run, in dry run
+quietapply schedule on               # dashboard at sign-in + the run schedule
 quietapply schedule status
 ```
 
-If PowerShell says "running scripts is disabled on this system", run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once (or type `npm.cmd` / `quietapply.cmd`). Data goes to `%USERPROFILE%\.quietapply`. **Honest status:** these steps and the full test suite run in CI on `windows-latest`, but QuietApply has not been used on a real Windows PC yet. Details: [tutorial](docs/tutorial.md#windows).
+To run from a clone instead, add `winget install Git.Git`, then `git clone https://github.com/Pvk1294/quietapply`, `cd quietapply`, `npm install`, `npm run build`, `node dist/cli/index.js demo` and `npm link`.
+
+If PowerShell says "running scripts is disabled on this system", run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once (or type `npm.cmd` / `quietapply.cmd`). Data goes to `%USERPROFILE%\.quietapply`. Running automatically uses two Task Scheduler tasks in a **QuietApply** folder (`dashboard` at sign-in, `tick` every 15 minutes), as you, with no window; if Windows refuses the sign-in task, the dashboard starts from your Startup folder. **Honest status:** the test suite and the PowerShell steps run in CI on `windows-latest`, but QuietApply has not been used on a real Windows PC yet. Details: [tutorial](docs/tutorial.md#windows).
+
+## Supported systems and known limits
+
+| | Status |
+|---|---|
+| **macOS** | The one it was built and used on, including automatic runs (launchd). |
+| **Linux** | Test suite and demo pass in CI and in a container; automatic runs use systemd user units (tested with a mock). No real application has run there. |
+| **Windows 10/11** | Test suite and the PowerShell steps above pass in CI. Automatic runs use Task Scheduler. Never run on a real Windows PC. |
+| **Node.js** | 22.13 or newer (CI runs 22 and 24). Older versions lack the built-in SQLite it uses. |
+
+- **Needs Chrome or Edge**, and for real applications Claude Code or Codex signed in. The demo needs neither.
+- **The first run downloads the browser tool** (Playwright MCP, through `npx`), so it needs internet and takes longer.
+- **Automatic runs only happen while the computer is on and you are signed in.** Nothing runs while it is off; one missed run catches up after login or wake.
+- **`schedule on` needs the installed command**, not a temporary `npx` run: the schedule remembers where the program lives, and npm deletes `npx` copies. QuietApply refuses and tells you to `npm install -g quietapply` first.
+- **On macOS, keep a clone out of Desktop, Documents and Downloads** if you want automatic runs; `doctor` warns.
+- **What has really been tested:** one real application with Claude Code on macOS, dry runs on real Greenhouse, Lever and Ashby forms, one Codex dry run on a fixture. Everything else is covered by tests and fixtures only. Keep dry run on and review mode on until you trust it.
+- **Not supported:** LinkedIn automation by default (opt-in, risky), Workday, and any site that needs an account or a CAPTCHA (those go to "Finish yourself").
 
 ## How it works
 

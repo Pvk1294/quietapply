@@ -735,7 +735,7 @@ export function createApp(opts: AppOptions): Hono {
     }
     const rel = normalize(decoded).replace(/^(\.\.[/\\])+/, "");
     let file = join(webRoot, rel);
-    if (rel.startsWith("/assets/") && !existsSync(file)) return c.text("Not found", 404);
+    if (decoded.startsWith("/assets/") && !existsSync(file)) return c.text("Not found", 404);
     if (!file.startsWith(webRoot) || !existsSync(file) || rel === "/" || !extname(file))
       file = join(webRoot, "index.html");
     if (!existsSync(file)) return c.text("Dashboard not built. Run `npm run build`.", 500);

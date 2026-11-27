@@ -113,22 +113,19 @@ QuietApply works on Windows 10 and 11 the same way. Use **PowerShell** (not as a
 
 ```powershell
 winget install OpenJS.NodeJS.LTS     # Node.js 22.13 or newer (or the installer from nodejs.org)
-winget install Git.Git
 # Microsoft Edge is already installed; Google Chrome works too.
-# Close and reopen PowerShell so node, npm and git are found.
+# Close and reopen PowerShell so node and npm are found.
 
-git clone https://github.com/Pvk1294/quietapply
-cd quietapply
-npm install
-npm run build
-node dist/cli/index.js demo          # fake data, dashboard on http://127.0.0.1:4777
-
-npm link                             # then `quietapply` works in any new PowerShell window
+npx quietapply@latest demo           # fake data, dashboard on http://127.0.0.1:4777
+npm install -g quietapply            # then `quietapply` works in any new PowerShell window
 quietapply init
 quietapply doctor
+quietapply run --max 1               # first run, in dry run
 quietapply schedule on               # dashboard at sign-in + the run schedule
 quietapply schedule status
 ```
+
+To run from a clone instead: `winget install Git.Git`, `git clone https://github.com/Pvk1294/quietapply`, `cd quietapply`, `npm install`, `npm run build`, `node dist/cli/index.js demo`, `npm link`.
 
 - **"running scripts is disabled on this system"** when you type `npm` or `quietapply`: PowerShell blocks npm's script shims. Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, or type `npm.cmd` and `quietapply.cmd` instead.
 - Your data goes to `%USERPROFILE%\.quietapply`. Paths with a backslash work everywhere, for example `quietapply init --resume "$HOME\Documents\resume.pdf"`.
