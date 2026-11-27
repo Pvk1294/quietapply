@@ -9,10 +9,10 @@ Hi! This guide walks you through QuietApply from nothing to your first practice 
 If you would like to look around before giving it your resume, this is the way. It needs no AI and touches nothing real.
 
 ```bash
-git clone https://github.com/Pvk1294/quietapply && cd quietapply
-npm install && npm run build
-node dist/cli/index.js demo          # add --port 4790 if 4777 is taken
+npx quietapply@latest demo           # add --port 4790 if 4777 is taken
 ```
+
+(From a clone instead: `git clone https://github.com/Pvk1294/quietapply && cd quietapply`, then `npm install && npm run build`, then `node dist/cli/index.js demo`.)
 
 Open <http://127.0.0.1:4777>. The first time, a short tour pops up and explains each part in plain words. You can skip it and reopen it any time from **Help / Tour** in the sidebar.
 
@@ -25,7 +25,7 @@ The demo is Jane Doe, a fictional engineer. Here is her **Today** page: what nee
 ## 2. Set it up for yourself (3 minutes)
 
 ```bash
-npm link                 # makes the `quietapply` command available (or use node dist/cli/index.js)
+npm install -g quietapply   # makes the `quietapply` command available (or use `npx quietapply@latest` in front of each command)
 quietapply init          # the friendly setup
 ```
 
@@ -113,22 +113,19 @@ QuietApply works on Windows 10 and 11 the same way. Use **PowerShell** (not as a
 
 ```powershell
 winget install OpenJS.NodeJS.LTS     # Node.js 22.13 or newer (or the installer from nodejs.org)
-winget install Git.Git
 # Microsoft Edge is already installed; Google Chrome works too.
-# Close and reopen PowerShell so node, npm and git are found.
+# Close and reopen PowerShell so node and npm are found.
 
-git clone https://github.com/Pvk1294/quietapply
-cd quietapply
-npm install
-npm run build
-node dist/cli/index.js demo          # fake data, dashboard on http://127.0.0.1:4777
-
-npm link                             # then `quietapply` works in any new PowerShell window
+npx quietapply@latest demo           # fake data, dashboard on http://127.0.0.1:4777
+npm install -g quietapply            # then `quietapply` works in any new PowerShell window
 quietapply init
 quietapply doctor
+quietapply run --max 1               # first run, in dry run
 quietapply schedule on               # dashboard at sign-in + the run schedule
 quietapply schedule status
 ```
+
+To run from a clone instead: `winget install Git.Git`, `git clone https://github.com/Pvk1294/quietapply`, `cd quietapply`, `npm install`, `npm run build`, `node dist/cli/index.js demo`, `npm link`.
 
 - **"running scripts is disabled on this system"** when you type `npm` or `quietapply`: PowerShell blocks npm's script shims. Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once, or type `npm.cmd` and `quietapply.cmd` instead.
 - Your data goes to `%USERPROFILE%\.quietapply`. Paths with a backslash work everywhere, for example `quietapply init --resume "$HOME\Documents\resume.pdf"`.

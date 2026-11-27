@@ -12,7 +12,7 @@ QuietApply uses the Claude Code or Codex you already have (subscription or API k
 > - **Claude Code:** one real application submitted end to end (Ashby, review mode, Playwright browser), and dry runs on real Greenhouse, Lever and Ashby forms.
 > - **Codex:** one dry run on the bundled Lever fixture (Codex CLI 0.165, signed in with ChatGPT). No real job yet.
 > - **macOS** is where all of the above ran, including running automatically (`schedule on`: the dashboard at login and the run schedule). **Linux:** the full test suite and a demo smoke test pass in a Node 22 container, but no real application has run there, and the systemd units are tested with a mock. **Windows:** CI runs the test suite and the README's PowerShell steps on Windows, but it has never run on a real Windows PC. See [Windows](#windows).
-> - **Not on npm yet.** Install from a clone, as below. `npx quietapply` does not work.
+> - **On npm as [`quietapply`](https://www.npmjs.com/package/quietapply)** (v0.1.0): `npx quietapply@latest demo` runs the demo, `npm install -g quietapply` installs the command. The published package was installed into an empty folder and taken through `init`, `demo` and a dry run with the built-in fake AI. You can also run from a clone.
 
 ## Real results so far
 
@@ -68,35 +68,43 @@ Most auto-apply bots send as many LinkedIn Easy Apply forms as they can. That ge
 
 ## Quickstart
 
-There is no npm package yet: you clone the repo and build it. You need Node.js 22.13 or newer, Google Chrome or Microsoft Edge, and one of (on Windows, see [Windows](#windows) for the exact PowerShell steps):
+You need Node.js 22.13 or newer, Google Chrome or Microsoft Edge, and, for real applications, one of (on Windows, see [Windows](#windows) for the exact PowerShell steps):
 
 - [Claude Code](https://code.claude.com/docs) signed in with a Claude plan, or with `ANTHROPIC_API_KEY`
 - [Codex CLI](https://github.com/openai/codex) signed in with ChatGPT, or with `CODEX_API_KEY`
 
-**Try it first with fake data** (nothing leaves your machine, no AI needed):
+**1. Try it first with fake data** (nothing leaves your machine, no AI needed, nothing to install):
+
+```bash
+npx quietapply@latest demo           # fake persona "Jane Doe", fixture pages, dashboard on :4777
+```
+
+Open <http://127.0.0.1:4777>. Port 4777 taken? Add `--port 4790`. Stop it with Ctrl+C. The demo uses a throwaway data folder, so it never touches your real setup.
+
+**2. Set it up for yourself:**
+
+```bash
+npm install -g quietapply             # the `quietapply` command, from npm
+quietapply init                       # AI, resume -> profile, city, common questions, job titles, companies, run automatically?
+quietapply doctor                     # checks the CLI, login, browser, data folder and what setup still lacks
+quietapply discover                   # finds open roles at your companies that pass your rules
+quietapply add <job-url>              # or queue one job; title and company come from the job site's API
+quietapply run --max 1                # first run: one application, in dry run: the form is filled, nothing is submitted
+quietapply dashboard                  # http://127.0.0.1:4777
+quietapply import ~/old-tracker       # optional: profile, answers and past applications from another tracker (docs/import.md)
+quietapply phone                      # optional: the same dashboard on your phone, over Tailscale (docs/phone.md)
+quietapply schedule on                # run automatically: dashboard at login + runs at your times (init asks this too)
+quietapply schedule status            # what is installed, the times, the next and the last run
+```
+
+Prefer not to install anything globally? `npx quietapply@latest init`, `npx quietapply@latest run --max 1` and so on work for everything except `schedule on`: use the global install for that, because the scheduler remembers where the program lives and an `npx` copy is temporary.
+
+**Or from a clone** (to read or change the code):
 
 ```bash
 git clone https://github.com/Pvk1294/quietapply && cd quietapply
 npm install && npm run build
-node dist/cli/index.js demo          # fake persona "Jane Doe", fixture pages, dashboard on :4777
-```
-
-Port 4777 taken? Use `node dist/cli/index.js demo --port 4790`.
-
-**Set it up for yourself:**
-
-```bash
-npm link                              # makes the `quietapply` command available (or use node dist/cli/index.js)
-quietapply init                       # AI, resume -> profile, city, common questions, job titles, companies, run automatically?
-quietapply import ~/old-tracker       # optional: profile, answers and past applications from another tracker (docs/import.md)
-quietapply doctor                     # checks the CLI, login, browser, data folder and what setup still lacks
-quietapply discover                   # finds open roles at your companies that pass your rules
-quietapply add <job-url>              # or queue one job; title and company come from the job site's API
-quietapply run --max 1                # one application now, in dry run: the form is filled, nothing is submitted
-quietapply dashboard                  # http://127.0.0.1:4777
-quietapply phone                      # optional: the same dashboard on your phone, over Tailscale (docs/phone.md)
-quietapply schedule on                # run automatically: dashboard at login + runs at your times (init asks this too)
-quietapply schedule status            # what is installed, the times, the next and the last run
+node dist/cli/index.js demo          # same demo; use `node dist/cli/index.js` in place of `quietapply`, or run `npm link` once
 ```
 
 The first runs open a separate Chrome profile in `~/.quietapply/browser-profile`. Your everyday browser is not touched.
@@ -105,8 +113,8 @@ A few things worth knowing before the first run:
 
 - **Start with `--max 1`.** A plain `quietapply run` works through the whole queue, up to your daily limit (15), and each application is one agent session on your plan.
 - **Expect questions at first.** Most real forms ask something setup did not cover (an essay, a clearance, "have you worked here before?"). Those forms wait on the Questions page until you answer, then go through on a later run.
-- **`npm link` and permissions.** If it fails with a permission error, your Node install puts global commands in a system folder. Use `node dist/cli/index.js` instead of `quietapply`, or a Node version manager such as nvm or fnm.
-- **On macOS, keep the clone out of Desktop, Documents and Downloads** if you want the scheduler. macOS blocks background jobs from reading those folders, and a scheduled run then hangs. `doctor` warns about it.
+- **`npm install -g` (or `npm link`) and permissions.** If it fails with a permission error (EACCES), your Node install puts global commands in a system folder. Use `npx quietapply@latest ...` instead of `quietapply`, or a Node version manager such as nvm or fnm.
+- **On macOS, keep the program (a clone, or the folder you run it from) out of Desktop, Documents and Downloads** if you want the scheduler. macOS blocks background jobs from reading those folders, and a scheduled run then hangs. `doctor` warns about it.
 
 ## Running on its own
 
@@ -136,21 +144,36 @@ The same commands work in **PowerShell** on Windows 10 and 11 (no administrator 
 
 ```powershell
 winget install OpenJS.NodeJS.LTS     # Node.js 22.13 or newer (or the installer from nodejs.org)
-winget install Git.Git
 # Microsoft Edge is already installed; Google Chrome works too. Reopen PowerShell afterwards.
-git clone https://github.com/Pvk1294/quietapply
-cd quietapply
-npm install
-npm run build
-node dist/cli/index.js demo          # fake data on http://127.0.0.1:4777
-npm link                             # then `quietapply` works in any new PowerShell window
+npx quietapply@latest demo           # fake data on http://127.0.0.1:4777, nothing to install
+npm install -g quietapply            # the `quietapply` command, in any new PowerShell window
 quietapply init
 quietapply doctor
-quietapply schedule on
+quietapply run --max 1               # first run, in dry run
+quietapply schedule on               # dashboard at sign-in + the run schedule
 quietapply schedule status
 ```
 
-If PowerShell says "running scripts is disabled on this system", run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once (or type `npm.cmd` / `quietapply.cmd`). Data goes to `%USERPROFILE%\.quietapply`. **Honest status:** these steps and the full test suite run in CI on `windows-latest`, but QuietApply has not been used on a real Windows PC yet. Details: [tutorial](docs/tutorial.md#windows).
+To run from a clone instead, add `winget install Git.Git`, then `git clone https://github.com/Pvk1294/quietapply`, `cd quietapply`, `npm install`, `npm run build`, `node dist/cli/index.js demo` and `npm link`.
+
+If PowerShell says "running scripts is disabled on this system", run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once (or type `npm.cmd` / `quietapply.cmd`). Data goes to `%USERPROFILE%\.quietapply`. Running automatically uses two Task Scheduler tasks in a **QuietApply** folder (`dashboard` at sign-in, `tick` every 15 minutes), as you, with no window; if Windows refuses the sign-in task, the dashboard starts from your Startup folder. **Honest status:** the test suite and the PowerShell steps run in CI on `windows-latest`, but QuietApply has not been used on a real Windows PC yet. Details: [tutorial](docs/tutorial.md#windows).
+
+## Supported systems and known limits
+
+| | Status |
+|---|---|
+| **macOS** | The one it was built and used on, including automatic runs (launchd). |
+| **Linux** | Test suite and demo pass in CI and in a container; automatic runs use systemd user units (tested with a mock). No real application has run there. |
+| **Windows 10/11** | Test suite and the PowerShell steps above pass in CI. Automatic runs use Task Scheduler. Never run on a real Windows PC. |
+| **Node.js** | 22.13 or newer (CI runs 22 and 24). Older versions lack the built-in SQLite it uses. |
+
+- **Needs Chrome or Edge**, and for real applications Claude Code or Codex signed in. The demo needs neither.
+- **The first run downloads the browser tool** (Playwright MCP, through `npx`), so it needs internet and takes longer.
+- **Automatic runs only happen while the computer is on and you are signed in.** Nothing runs while it is off; one missed run catches up after login or wake.
+- **`schedule on` needs the installed command**, not a temporary `npx` run: the schedule remembers where the program lives, and npm deletes `npx` copies. QuietApply refuses and tells you to `npm install -g quietapply` first.
+- **On macOS, keep a clone out of Desktop, Documents and Downloads** if you want automatic runs; `doctor` warns.
+- **What has really been tested:** one real application with Claude Code on macOS, dry runs on real Greenhouse, Lever and Ashby forms, one Codex dry run on a fixture. Everything else is covered by tests and fixtures only. Keep dry run on and review mode on until you trust it.
+- **Not supported:** LinkedIn automation by default (opt-in, risky), Workday, and any site that needs an account or a CAPTCHA (those go to "Finish yourself").
 
 ## How it works
 
