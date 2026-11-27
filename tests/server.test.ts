@@ -251,3 +251,24 @@ describe("Settings → Run automatically", () => {
     expect(loadConfig(p).autoStart).toBe(false);
   });
 });
+
+describe("dashboard static routes", () => {
+  it("returns 404 for unknown API routes instead of the dashboard page", async () => {
+    const { app } = setup();
+    const res = await app.request("/api/nonexistent", { headers: HOST });
+    expect(res.status).toBe(404);
+    expect(res.headers.get("content-type")).toContain("application/json");
+  });
+
+  it("answers a malformed URL escape with 400, not a server error", async () => {
+    const { app } = setup();
+    expect((await app.request("/%E0%A4%A", { headers: HOST })).status).toBe(400);
+  });
+
+  it("returns 404 for a missing asset and never leaves the web folder", async () => {
+    const { app } = setup();
+    expect((await app.request("/assets/nope.js", { headers: HOST })).status).toBe(404);
+    const traversal = await app.request("/..%2f..%2fetc/passwd", { headers: HOST });
+    expect(await traversal.text()).not.toContain("root:");
+  });
+});

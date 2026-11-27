@@ -724,8 +724,18 @@ export function createApp(opts: AppOptions): Hono {
   // Static dashboard (built by Vite into dist/web).
   const webRoot = join(packageRoot(), "dist", "web");
   app.get("*", (c) => {
-    const rel = normalize(decodeURIComponent(new URL(c.req.url).pathname)).replace(/^(\.\.[/\\])+/, "");
+    const pathname = new URL(c.req.url).pathname;
+    // Unknown API routes and missing assets are 404s, not the dashboard page with a 200.
+    if (pathname.startsWith("/api/")) return c.json({ error: "not found" }, 404);
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(pathname);
+    } catch {
+      return c.text("Bad request", 400);
+    }
+    const rel = normalize(decoded).replace(/^(\.\.[/\\])+/, "");
     let file = join(webRoot, rel);
+    if (rel.startsWith("/assets/") && !existsSync(file)) return c.text("Not found", 404);
     if (!file.startsWith(webRoot) || !existsSync(file) || rel === "/" || !extname(file))
       file = join(webRoot, "index.html");
     if (!existsSync(file)) return c.text("Dashboard not built. Run `npm run build`.", 500);

@@ -17,6 +17,7 @@ import { isPaused, runOnce } from "../runner/run.js";
 import { scheduleOn, scheduleState, scheduleStatusLines, setAutoStart } from "../scheduler/index.js";
 import { dueSlot, retryDue } from "../scheduler/slots.js";
 import { defaultFetcher } from "../sources/http.js";
+import { positiveInt } from "./args.js";
 import { doctor } from "./doctor.js";
 
 const pkg = JSON.parse(readFileSync(join(packageRoot(), "package.json"), "utf8")) as { version: string };
@@ -135,8 +136,8 @@ program
   .command("run")
   .description("One run now over the queued applications")
   .option("--dry-run", "fill forms but never submit (default while dryRun is on in config)")
-  .option("--max <n>", "at most this many applications", Number)
-  .option("--id <n>", "only this application", Number)
+  .option("--max <n>", "at most this many applications", positiveInt)
+  .option("--id <n>", "only this application", positiveInt)
   .action(async (o: { dryRun?: boolean; max?: number; id?: number }) => {
     const s = await runOnce({
       dryRun: o.dryRun,
@@ -238,12 +239,14 @@ program
   });
 
 program
-  .command("answer <id> <answer...>")
+  .command("answer")
+  .argument("<id>", "question number", positiveInt)
+  .argument("<answer...>", "the answer")
   .description("Answer a queued question from the terminal")
   .option("--company", "remember only for the company that asked")
-  .action((id: string, words: string[], o: { company?: boolean }) => {
+  .action((id: number, words: string[], o: { company?: boolean }) => {
     const db = openDb(ensureHome(paths()));
-    const r = answerQuestion(db, Number(id), {
+    const r = answerQuestion(db, id, {
       answer: words.join(" "),
       scope: o.company ? "company" : "global",
     });
@@ -253,7 +256,7 @@ program
 program
   .command("dashboard")
   .description("Open the local dashboard (http://127.0.0.1:4777)")
-  .option("--port <n>", "port", Number)
+  .option("--port <n>", "port", positiveInt)
   .action(async (o: { port?: number }) => {
     const { startDashboard } = await import("../server/index.js");
     await startDashboard({ port: o.port });
@@ -262,7 +265,7 @@ program
 program
   .command("phone [action]")
   .description("Open the dashboard on your phone through Tailscale (tailnet only). `phone off` undoes it")
-  .option("--port <n>", "dashboard port", Number)
+  .option("--port <n>", "dashboard port", positiveInt)
   .action(async (action: string | undefined, o: { port?: number }) => {
     if (action && action !== "off")
       throw new Error(`Unknown action "${action}". Use: quietapply phone [off]`);
@@ -275,7 +278,7 @@ program
 program
   .command("demo")
   .description("Try everything with a fake persona and fixture pages, in a throwaway data folder")
-  .option("--port <n>", "port", Number)
+  .option("--port <n>", "port", positiveInt)
   .option("--no-serve", "only create the demo data")
   .action(async (o: { port?: number; serve: boolean }) => {
     const { createDemo } = await import("../demo/seed.js");
