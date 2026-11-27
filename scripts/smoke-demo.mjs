@@ -1,11 +1,11 @@
 // Smoke test for CI on macOS, Linux and Windows: start `quietapply demo`, wait until the dashboard
 // answers, check the summary, then stop it. Exits non-zero on failure. Run after `npm run build`.
-// Usage: node scripts/smoke-demo.mjs [port]
+// Usage: node scripts/smoke-demo.mjs [port] [path to dist/cli/index.js, default this checkout's]
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 
 const port = Number(process.argv[2] ?? process.env.QA_PORT ?? 4790);
-const cli = join(import.meta.dirname, "..", "dist", "cli", "index.js");
+const cli = process.argv[3] ?? join(import.meta.dirname, "..", "dist", "cli", "index.js");
 const demo = spawn(process.execPath, [cli, "demo", "--port", String(port)], {
   stdio: ["ignore", "pipe", "pipe"],
   windowsHide: true,

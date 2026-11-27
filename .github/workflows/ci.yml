@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node: [22, 24]
+        node: [22, 24, 26]
     defaults:
       run:
         shell: bash
@@ -35,6 +35,77 @@ jobs:
       - run: npm test
       - name: Demo smoke test (start the dashboard with demo data, check it answers, stop it)
         run: node scripts/smoke-demo.mjs 4790
+
+  # What a stranger gets from npm, not what is in this checkout: the packed tarball installed into a clean
+  # global folder, on the oldest supported Node.js and the current LTS, then the command and the demo.
+  package-install:
+    name: ${{ matrix.os }} · package install · Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        node: ["22.13.0", 26]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm pack --pack-destination "$RUNNER_TEMP"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Install the tarball into a clean prefix
+        run: npm install -g --prefix "$RUNNER_TEMP/global" "$RUNNER_TEMP"/quietapply-*.tgz
+      - name: The quietapply command and the demo, away from this checkout
+        working-directory: ${{ runner.temp }}
+        env:
+          QUIETAPPLY_HOME: ${{ runner.temp }}/qa-home
+        run: |
+          "$RUNNER_TEMP/global/bin/quietapply" --version
+          "$RUNNER_TEMP/global/bin/quietapply" init --yes --provider fake
+          "$RUNNER_TEMP/global/bin/quietapply" doctor || test $? -eq 1
+          node "$GITHUB_WORKSPACE/scripts/smoke-demo.mjs" 4792 "$RUNNER_TEMP/global/lib/node_modules/quietapply/dist/cli/index.js"
+
+  # A Node.js that is too old must get a plain message and exit 1, not a stack trace.
+  old-node:
+    name: Too-old Node ${{ matrix.node }} gets a plain message
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: The CLI explains and exits 1
+        run: |
+          set +e
+          out=$(node dist/cli/index.js --version 2>&1); code=$?
+          set -e
+          echo "$out"
+          test "$code" -eq 1
+          echo "$out" | grep -q "needs Node.js 22.13 or newer"
+          ! echo "$out" | grep -q "ERR_UNKNOWN_BUILTIN_MODULE"
+      - name: npm install in a clone refuses at once, and says which Node.js it needs
+        run: |
+          set +e
+          out=$(npm install --ignore-scripts 2>&1); code=$?
+          set -e
+          echo "$out"
+          test "$code" -ne 0
+          echo "$out" | grep -q 'Required: {"node":">=22.13"}'
 
   # The README's Windows steps, as written, in PowerShell: install from the clone, the demo, npm link,
   # init, doctor, import and running automatically for real (Task Scheduler), then off again.

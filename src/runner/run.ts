@@ -1,6 +1,7 @@
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { type Config, loadConfig } from "../core/config.js";
+import { playwrightBrowserArgs } from "../core/browser.js";
+import { type Config, loadConfig, type ProviderId } from "../core/config.js";
 import { type DB, openDb } from "../core/db.js";
 import { filledFromEvidence, recordHandoff, unsupportedSite } from "../core/handoffs.js";
 import { allowance, companyAllowed, startOfToday } from "../core/limits.js";
@@ -102,6 +103,7 @@ export function mcpServers(
   dryRun: boolean,
   outputDir?: string,
   linkedin = false,
+  browserArgs = playwrightBrowserArgs(),
 ): Record<string, McpServerSpec> {
   const guardLog = outputDir && join(outputDir, "blocked-requests.jsonl");
   const cli = join(packageRoot(), "dist", "cli", "index.js");
@@ -119,7 +121,7 @@ export function mcpServers(
     // Screenshots and page snapshots land in the application's own run folder, where the dashboard finds them.
     const args = ["-y", PLAYWRIGHT_MCP, "--output-dir", outputDir ?? join(p.logsDir, "playwright")];
     if (config.browser === "playwright-extension") args.push("--extension");
-    else args.push("--user-data-dir", p.browserProfile);
+    else args.push("--user-data-dir", p.browserProfile, ...browserArgs);
     if (config.headless) args.push("--headless");
     args.push("--init-page", formShotPath());
     if (dryRun) args.push("--init-page", dryRunGuardPath(), "--block-service-workers");
@@ -164,6 +166,7 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
     const runId = startRun(db, providerId, dryRun, opts.trigger ?? "manual");
     const processed: RunSummary["processed"] = [];
     let stopped: RunSummary["status"] | undefined;
+    let agentChecked = providerId === "fake";
     const limit = Math.min(opts.max ?? Number.POSITIVE_INFINITY, config.limits.perDay || 1);
 
     const notes: string[] = [];
@@ -263,6 +266,16 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
         log(`hand over ${app.company} · ${app.title}: ${note}`);
         continue;
       }
+      // Before the first job the agent would touch, so a missing AI leaves the whole queue as it was.
+      if (!agentChecked) {
+        agentChecked = true;
+        const missing = await agentMissing(providerId);
+        if (missing) {
+          notes.push(missing);
+          stopped = "failed";
+          break;
+        }
+      }
       log(`apply ${app.company} · ${app.title}${linkedin ? " (LinkedIn)" : ""}`);
       setStatus(db, app.id, "in_progress", {
         reason: linkedin ? LINKEDIN_RUN_NOTE : dryRun ? "dry run" : undefined,
@@ -277,7 +290,7 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
         runId,
         linkedin,
         pace: opts.pace,
-      });
+      }).catch((err: Error): AgentRunResult => ({ status: "failed", text: err.message, exitCode: 1 }));
       // A LinkedIn run that ended without recording anything but mentions a warning is treated as one.
       if (
         linkedin &&
@@ -342,6 +355,18 @@ export async function runOnce(opts: RunOptions = {}): Promise<RunSummary> {
     db.close();
     release();
   }
+}
+
+/** What to tell the person when the AI chosen in setup is not on this computer. */
+async function agentMissing(id: ProviderId): Promise<string | undefined> {
+  const provider = getProvider(id);
+  const found = await provider.detect();
+  if (found.installed) return undefined;
+  return [
+    `${provider.label} is not installed, so nothing was started and your queue is unchanged.`,
+    ...found.notes,
+    "Or choose another AI with `quietapply init`.",
+  ].join("\n");
 }
 
 /** Whether a LinkedIn application may start now: `skip` ends it, `hold` leaves it queued for later. */

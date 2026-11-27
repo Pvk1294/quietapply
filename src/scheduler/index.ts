@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { join, sep } from "node:path";
 import { type Config, loadConfig, saveConfig } from "../core/config.js";
@@ -60,6 +60,17 @@ const attempt = (f: () => void): boolean => {
   }
 };
 
+/** The OS refused the jobs: take the files back, so `schedule status` and `doctor` do not say it is on. */
+function notStarted(files: string[], why: string, err: unknown): ScheduleResult {
+  for (const f of files) rmSync(f, { force: true });
+  const detail = (err as Error).message.split("\n").find((l) => l.trim()) ?? "";
+  return {
+    ok: false,
+    message: `${why} (${detail}). Nothing was installed. The dashboard and \`quietapply run\` still work.`,
+    files: [],
+  };
+}
+
 /** Install the dashboard login item and the run schedule. `dryRun` only reports what would be written. */
 export function scheduleOn(
   p: Paths,
@@ -82,12 +93,16 @@ export function scheduleOn(
     const plists = [launchdDashboardPlist(node, cli, p.home, port), launchdPlist(node, cli, p.home)];
     if (opts.dryRun) return { ok: true, message: plists.join("\n"), files };
     const uid = process.getuid?.();
-    files.forEach((f, i) => {
-      write(f, plists[i]!);
-      const label = i === 0 ? DASHBOARD_LABEL : LABEL;
-      attempt(() => exec("launchctl", ["bootout", `gui/${uid}/${label}`])); // not loaded yet is fine
-      exec("launchctl", ["bootstrap", `gui/${uid}`, f]);
-    });
+    try {
+      files.forEach((f, i) => {
+        write(f, plists[i]!);
+        const label = i === 0 ? DASHBOARD_LABEL : LABEL;
+        attempt(() => exec("launchctl", ["bootout", `gui/${uid}/${label}`])); // not loaded yet is fine
+        exec("launchctl", ["bootstrap", `gui/${uid}`, f]);
+      });
+    } catch (err) {
+      return notStarted(files, "macOS would not start the background jobs", err);
+    }
     const folder = macProtectedFolder(cli, userHome);
     return {
       ok: true,
@@ -110,9 +125,17 @@ export function scheduleOn(
     write(files[0]!, units.dashboard);
     write(files[1]!, units.service);
     write(files[2]!, units.timer);
-    exec("systemctl", ["--user", "daemon-reload"]);
-    exec("systemctl", ["--user", "enable", "--now", SYSTEMD_FILES.dashboard]);
-    exec("systemctl", ["--user", "enable", "--now", SYSTEMD_FILES.timer]);
+    try {
+      exec("systemctl", ["--user", "daemon-reload"]);
+      exec("systemctl", ["--user", "enable", "--now", SYSTEMD_FILES.dashboard]);
+      exec("systemctl", ["--user", "enable", "--now", SYSTEMD_FILES.timer]);
+    } catch (err) {
+      return notStarted(
+        files,
+        "This computer has no systemd user session, which running automatically needs on Linux",
+        err,
+      );
+    }
     return { ok: true, message: onMessage(port), files };
   }
   if (platform === "win32") {
@@ -292,7 +315,13 @@ export function setAutoStart(p: Paths, cli: string, on: boolean, env: ScheduleEn
     }
   }
   saveConfig({ ...config, autoStart: on }, p);
-  return r;
+  // A LaunchAgent or unit that points into npx's cache breaks without a sound when that cache is cleared.
+  return on && /[\\/]_npx[\\/]/.test(cli)
+    ? {
+        ...r,
+        message: `${r.message}\nWarning: QuietApply is running from npx's temporary cache, which can be cleared at any time. Run \`npm install -g quietapply\`, then \`quietapply schedule on\` again.`,
+      }
+    : r;
 }
 
 /** The lines `quietapply schedule status` prints (and the dashboard shows). */

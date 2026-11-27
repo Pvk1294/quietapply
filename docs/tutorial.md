@@ -2,7 +2,7 @@
 
 Hi! This guide walks you through QuietApply from nothing to your first practice application. Take it slowly; nothing here sends a real application, and you can stop at any point. All the screenshots use a made-up person, **Jane Doe**, and made-up companies.
 
-**What you need:** Node.js 22.13 or newer, Google Chrome or Microsoft Edge, and either [Claude Code](https://code.claude.com/docs) or [Codex CLI](https://github.com/openai/codex), signed in. A few minutes. That is all. On Windows, see [Windows](#windows) for the exact PowerShell steps.
+**What you need:** [Node.js](https://nodejs.org) 22.13 or newer (type `node --version` to check; if it says "command not found" or an older number, install the LTS version from nodejs.org and open a new terminal), Google Chrome or Microsoft Edge, and either [Claude Code](https://code.claude.com/docs) or [Codex CLI](https://github.com/openai/codex), signed in. A few minutes. That is all. On Windows, see [Windows](#windows) for the exact PowerShell steps.
 
 ## 1. Try it first with fake data (2 minutes)
 
@@ -28,6 +28,8 @@ The demo is Jane Doe, a fictional engineer. Here is her **Today** page: what nee
 npm install -g quietapply   # makes the `quietapply` command available (from a clone: npm link)
 quietapply init          # the friendly setup
 ```
+
+If `npm install -g` stops with `EACCES`, skip `sudo` and use `npm install -g --prefix ~/.local quietapply`, then `echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc` and open a new terminal. Anything else that goes wrong during install is in [this table](../README.md#if-the-install-fails).
 
 `init` says what each question is for before it asks it. In order, it:
 
